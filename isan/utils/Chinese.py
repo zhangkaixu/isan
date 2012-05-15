@@ -25,7 +25,10 @@ full_stops=set('。？！')
 
 def to_full(text):
     """
-
+    半角转全角的程序
+        空格变成全角
+        大于空格的直接加上偏移量
+        否则不变
     """
     return ''.join(chr(12288) if x==32 else chr(x+65248) if x<128 and x>32 else chr(x)
             for x in map(ord,text))
