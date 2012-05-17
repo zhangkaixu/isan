@@ -23,6 +23,9 @@ content_characters.update(latin_characters)
 #句末符号
 full_stops=set('。？！')
 
+def test():
+    print("测试")
+
 def to_full(text):
     """
     半角转全角的程序
