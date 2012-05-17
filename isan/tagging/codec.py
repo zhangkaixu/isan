@@ -1,8 +1,9 @@
 #!/usr/bin/python3
+import sys
 def decode(line,sep='_'):
     seq=[item.partition(sep) for item in line.split(' ')]
     if not all(sep==item[1] for item in seq):
-        print("error")
+        print("error",file=sys.stderr)
         return []
     return [[word, tag] for word,_,tag in seq]
 
