@@ -2,9 +2,10 @@
 import sys
 def decode(line,sep='_'):
     seq=[item.partition(sep) for item in line.split(' ')]
-    if not all(sep==item[1] for item in seq):
-        print("error",file=sys.stderr)
-        return []
+    if not seq:return []
+    if(seq[0][1]==''):
+        return [word for word,_,tag in seq]
+    
     return [[word, tag] for word,_,tag in seq]
 
 

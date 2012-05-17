@@ -3,8 +3,8 @@
 用于分词词性标注的评测和比较
 """
 
+import time
 
-import argparse
 
 
 class DiffToHTML:
@@ -96,18 +96,25 @@ class TaggingEval:
         f=2*p*r/(r+p) if (r+p) else 0
         return p,r,f
     def __init__(self,plugins=[],sep='_'):
+        self.otime=time.time()
         self.plugins=plugins
         self.std,self.rst=0,0
         self.cor,self.seg_cor=0,0
         self.sep=sep
-        pass
+    def print_result(self):
+        cor=self.cor
+        p=cor/self.rst if self.rst else 0
+        r=cor/self.std if self.std else 0
+        f=2*p*r/(r+p) if (r+p) else 0
+        print("std: %d rst: %d cor: %d f1: %.4f time: %.4f"%(self.std,self.rst,self.cor,f,time.time()-self.otime))
+        
     def _set_based(self,std,rst):
         self.std+=len(std)
         self.rst+=len(rst)
         self.cor+=len(std&rst)
         
         self.seg_cor+=len({(b,e) for b,e,t in std}&{(b,e) for b,e,t in rst})
-    def eval_files(self,std_file,rst_file):
+    """def eval_files(self,std_file,rst_file):
         for g,r in zip(open(std_file),open(rst_file)):
             gl=sum(len(x.partition(self.sep)[0])for x in g.split())
             rl=sum(len(x.partition(self.sep)[0])for x in r.split())
@@ -118,22 +125,26 @@ class TaggingEval:
             assert(gl==rl)
             g=g.strip()
             r=r.strip()
-            eval(g,r)
+            eval(g,r)"""
+    
+    def _to_set(self,seq):
+        s=set()
+        if type(seq[0])==list:#word with tag
+            pass
+        else:#only word
+            offset=0
+            for word in seq:
+                s.add((offset,word,''))
+                offset+=len(word)
+        return s
     def __call__(self,std,rst,raw=None):
-        """
-        不论输入是字符串、列表还是集合，都可以支持
-        """
-        if type(std) is str and type(rst) is str:
-            std=set(str_to_list(std))
-            rst=set(str_to_list(rst))
-        if type(std) is list and type(rst) is list:
-            std=set(std)
-            rst=set(rst)
-        self._set_based(std,rst)
+        if not std:return
+        
+        self._set_based(self._to_set(std),self._to_set(rst))
         for plugin in self.plugins:
             plugin(std,rst)
 
-def eval(file1,file2,plugins=[]):
+"""def eval(file1,file2,plugins=[]):
     eval=TaggingEval(plugins);
     for g,r in zip(open(file1),open(file2)):
         gl=sum(len(x.partition('_')[0])for x in g.split())
@@ -165,8 +176,9 @@ def bi_eval(file1,file2,plugins=[]):
         eval(g,r)
     p,r,f=eval.get_prf()
     sp,sr,sf=eval.get_prf(True)
-    return(eval.std,eval.rst,eval.cor,p,r,f,sp,sr,sf)
+    return(eval.std,eval.rst,eval.cor,p,r,f,sp,sr,sf)"""
 if __name__=="__main__":
+    import argparse
     parser=argparse.ArgumentParser(description="用于分词词性标注的评测和比较")
     parser.add_argument('std',help='被比较的标注结果')
     parser.add_argument('rst',help='用以比较的标注结果',nargs='?',default='-')
