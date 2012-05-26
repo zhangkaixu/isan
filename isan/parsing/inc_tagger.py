@@ -2,8 +2,7 @@
 import pickle
 import sys
 
-import isan.tagging.codec as tagging_codec
-import isan.tagging.eval as tagging_eval
+
 import isan.common.perceptrons as perceptrons
 """
 一个增量搜索模式的中文分词模块
@@ -16,25 +15,7 @@ import isan.common.perceptrons as perceptrons
 class Defalt_Action:
     def __init__(self):
         self.features=perceptrons.Features()
-        #self.dic=set()
-        #for line in open("sogou_dict.txt"):
-        #    line=line.split()
-        #    if len(line)>1:
-        #        self.dic.add(line[0])
-        #self.ass=Model("inc_segger_ctb.model")
     def set_raw(self,raw):
-        #if("ass" in self.__dict__):
-            ##print(self.ass(raw))
-            #ass_rst=self.ass(raw)
-            #offset=0
-            #bk=['s']
-            #for word in ass_rst:
-                #for i in range(len(word)-1):
-                    #bk.append('c')
-                #bk.append('s')
-            #bk.append('|')
-            #bk.append('|')
-            #self.bk=bk
         self.raw=raw
         self.uni_chars=list('###'+raw+'##')
         self.bi_chars=[(self.uni_chars[i],self.uni_chars[i+1]) for i in range(len(self.uni_chars)-1)]
