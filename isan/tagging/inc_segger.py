@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import collections
 import pickle
 import sys
 import isan.tagging.codec as tagging_codec
@@ -7,7 +8,7 @@ import isan.common.perceptrons as perceptrons
 """
 一个增量搜索模式的中文分词模块
 """
-   
+
 class Defalt_Atom_Action:
     def __init__(self):
         self.features=perceptrons.Features()#特征
@@ -18,17 +19,15 @@ class Defalt_Atom_Action:
         self.raw=raw
         self.uni_chars=list('###'+raw+'##')
         self.bi_chars=[(self.uni_chars[i],self.uni_chars[i+1]) for i in range(len(self.uni_chars)-1)]
-    def _gen_keys(self,span):
+    def _key_gen(self,span):
         raw=self.raw
         uni_chars=self.uni_chars
         bi_chars=self.bi_chars
-        w_current=raw[span[3]+1-span[0]:span[3]+1]
-        ws_current=span[2]
-        ws_left=span[1]
-        c_ind=span[3]-1+3
+        c_ind=span[0]+2
+        ws_current=span[1]
+        ws_left=span[2]
         
-        return (
-                ("w",w_current),
+        fv=[
                 ("ws",ws_left,ws_current),
                 ("c",uni_chars[c_ind],ws_current),
                 ("r",uni_chars[c_ind+1],ws_current),
@@ -37,24 +36,40 @@ class Defalt_Atom_Action:
                 ("lc",bi_chars[c_ind-1],ws_current),
                 ("rr2",bi_chars[c_ind+1],ws_current),
                 ("l2l",bi_chars[c_ind-2],ws_current),
-            )
+            ]
+        if len(span)>=4:
+            w_current=raw[span[0]+1-span[3]:span[0]+1]
+            fv.append(("w",w_current))
+        return fv
         
     def __call__(self,stat):
         """
         返回一个动作的分数
         """
-        return sum(self.features.get(cur,0) for cur in self._gen_keys(stat[0]))
+        return sum(self.features.get(cur,0) for cur in self._key_gen(stat[0]))
 
     def update(self,stat,delta,step=0):
         """
         跟新权重
         """
-        self.features.updates(self._gen_keys(stat[0]),delta,step)
+        self.features.updates(self._key_gen(stat[0]),delta,step)
+
+
+class Defalt_Position:
+    def __init__(self):
+        #self.Pos=collections.namedtuple('Pos','','','')
+        pass
+    def __call__(self,last=None,action=None):
+        if not last:
+            return (0,'|','|',0)#(当前位置，上一个动作，上上个动作，到前一个断开的距离)
+        if action=='s':
+            return (last[0]+1,'s',last[1],1)
+        else:
+            return (last[0]+1,'c',last[1],last[-1]+1)
+    def is_init(self,pos):
+        return pos[0]==0
 
 class Defalt_Actions:
-    @staticmethod
-    def gen_init_stat():
-        return [(0,'|','|',0),(0,)]
     @staticmethod
     def actions_to_result(actions,raw):
         sen=[]
@@ -73,10 +88,14 @@ class Defalt_Actions:
                 actions.append('c')
             actions.append('s')
         return actions
+
+    def gen_init_stat(self):
+        return [self.positions(),(0,)]
     
     def __init__(self,atom_action=Defalt_Atom_Action):
         self.sep_action=atom_action();
         self.com_action=atom_action();
+        self.positions=Defalt_Position()
 
     def search(self,raw,std_actions=None):
         self.sep_action.set_raw(raw)
@@ -114,7 +133,7 @@ class Defalt_Actions:
         beam.sort(key=lambda x:x[1][0],reverse=True)
         stat=beam[0]
         while True:
-            if stat[0][-1]==0:break
+            if self.positions.is_init(stat[0]):break
             rst_actions.append(stat[1][3])
             stat=stat[1][2]
         rst_actions.reverse()
@@ -140,21 +159,21 @@ class Defalt_Actions:
         
     ### 私有函数 
     def _separate(self,stat):
-        return [(1,stat[0][2],'s',stat[0][-1]+1),
+        return [self.positions(stat[0],'s'),
                 (stat[1][0]+self.sep_action(stat),stat,stat,'s')]
     def _separate_update(self,stat,delta,step=0):
         self.sep_action.update(stat,delta,step)
-        return [(1,stat[0][2],'s',stat[0][-1]+1),
+        return [self.positions(stat[0],'s'),
                 (0,stat,stat,'s')]
 
 
     def _combine(self,stat):
-        return [(stat[0][0]+1,stat[0][2],'c',stat[0][-1]+1),
+        return [self.positions(stat[0],'c'),
                 (stat[1][0]+self.com_action(stat),stat[1][1],stat,'c')]
     
     def _combine_update(self,stat,delta,step=0):
         self.com_action.update(stat,delta,step)
-        return [(stat[0][0]+1,stat[0][2],'c',stat[0][-1]+1),
+        return [self.positions(stat[0],'c'),
                 (0,stat[1][1],stat,'c')]
 
 
