@@ -56,9 +56,6 @@ class Defalt_Atom_Action:
 
 
 class Defalt_Position:
-    def __init__(self):
-        #self.Pos=collections.namedtuple('Pos','','','')
-        pass
     def __call__(self,last=None,action=None):
         if not last:
             return (0,'|','|',0)#(当前位置，上一个动作，上上个动作，到前一个断开的距离)
@@ -142,13 +139,14 @@ class Defalt_Actions:
                 beam.sort(key=lambda x:x[1][0],reverse=True)
                 beam=beam[:min(len(beam),2)]
 
-        rst_actions=[]
         beam.sort(key=lambda x:x[1][0],reverse=True)
+        
+        rst_actions=[]
         stat=beam[0]
         while True:
             if self.positions.is_init(stat[0]):break
-            rst_actions.append(stat[1][3])
-            stat=stat[1][2]
+            rst_actions.append(stat[1][2])
+            stat=stat[1][1]
         rst_actions.reverse()
 
         return rst_actions
@@ -158,11 +156,11 @@ class Defalt_Actions:
         std_stat=self.gen_init_stat()
         rst_stat=self.gen_init_stat()
         for a,b in zip(rst_actions,std_actions):
-            if a =='s':
+            if a=='s':
                 std_stat=self._separate_update(std_stat,-1,step=step)
             if a=='c':
                 std_stat=self._combine_update(std_stat,-1,step=step)
-            if b =='s':
+            if b=='s':
                 rst_stat=self._separate_update(rst_stat,1,step=step)
             if b=='c':
                 rst_stat=self._combine_update(rst_stat,1,step=step)
@@ -173,21 +171,21 @@ class Defalt_Actions:
     ### 私有函数 
     def _separate(self,stat):
         return [self.positions(stat[0],'s'),
-                (stat[1][0]+self.sep_action(stat),stat,stat,'s')]
+                (stat[1][0]+self.sep_action(stat),stat,'s')]
     def _separate_update(self,stat,delta,step=0):
         self.sep_action.update(stat,delta,step)
         return [self.positions(stat[0],'s'),
-                (0,stat,stat,'s')]
+                (0,stat,'s')]
 
 
     def _combine(self,stat):
         return [self.positions(stat[0],'c'),
-                (stat[1][0]+self.com_action(stat),stat[1][1],stat,'c')]
+                (stat[1][0]+self.com_action(stat),stat,'c')]
     
     def _combine_update(self,stat,delta,step=0):
         self.com_action.update(stat,delta,step)
         return [self.positions(stat[0],'c'),
-                (0,stat[1][1],stat,'c')]
+                (0,stat,'c')]
 
 
 
@@ -224,7 +222,6 @@ class Model:
         std_actions=self.actions.result_to_actions(y)#得到标准动作
         rst_actions=self.actions.search(raw)#得到解码后动作
         hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
-        #if std_actions!=rst_actions:#如果动作不一致，则更新
         if y!=hat_y:#如果动作不一致，则更新
             self.actions.update(raw,std_actions,rst_actions,self.step)
         return hat_y

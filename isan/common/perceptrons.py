@@ -1,18 +1,14 @@
 #!/usr/bin/python3
-class Features(dict):
+import collections
+class Features(collections.defaultdict):
     def __init__(self):
-        self.acc=dict()
-    def __missing__(self,key):
-        return 0
+        super().__init__(int)
+        self.acc=collections.defaultdict(int)
     def update(self,feature,delta=0,step=0):
-        self.setdefault(feature,0)
-        self.acc.setdefault(feature,0)
         self[feature]+=delta
         self.acc[feature]+=step*delta
     def updates(self,features,delta=0,step=0):
         for feature in features:
-            self.setdefault(feature,0)
-            self.acc.setdefault(feature,0)
             self[feature]+=delta
             self.acc[feature]+=step*delta
     def average(self,step):
