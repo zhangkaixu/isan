@@ -69,6 +69,18 @@ class Defalt_Position:
     def is_init(self,pos):
         return pos[0]==0
 
+class Character_Labeling_Based_Position:
+    def __call__(self,last=None,action=None):
+        if not last:
+            return (0,'|','|')#(当前位置，上一个动作，上上个动作)
+        if action=='s':
+            return (last[0]+1,'s',last[1])
+        else:
+            return (last[0]+1,'c',last[1])
+    def is_init(self,pos):
+        return pos[0]==0
+
+
 class Defalt_Actions:
     @staticmethod
     def actions_to_result(actions,raw):
@@ -92,11 +104,12 @@ class Defalt_Actions:
     def gen_init_stat(self):
         return [self.positions(),(0,)]
     
-    def __init__(self,atom_action=Defalt_Atom_Action):
-        self.sep_action=atom_action();
-        self.com_action=atom_action();
-        self.positions=Defalt_Position()
-
+    def __init__(self,
+                atom_action=Defalt_Atom_Action,
+                positions=Defalt_Position):
+        self.sep_action=atom_action()
+        self.com_action=atom_action()
+        self.positions=positions()
     def search(self,raw,std_actions=None):
         self.sep_action.set_raw(raw)
         self.com_action.set_raw(raw)
