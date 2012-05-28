@@ -44,12 +44,6 @@ class DiffToHTML:
             html.append("<font color=blue>"+w+"_"+t+"</font>")
         print(' '.join(html),"<br/><br/>",file=self.html)
         
-        
-
-
-
-
-
 """
 tagging_eval std rst
 """
@@ -89,19 +83,31 @@ class CrossBoundaryErrors(object):
 
 
 class TaggingEval:
+    """
+    分词词性标注评测类
+    """
     def get_prf(self,seg=False):
+        """
+        得到评测的结果，准确度、精确度和F1
+        """
         cor=self.cor if seg==False else self.seg_cor
         p=cor/self.rst if self.rst else 0
         r=cor/self.std if self.std else 0
         f=2*p*r/(r+p) if (r+p) else 0
         return p,r,f
     def __init__(self,plugins=[],sep='_'):
+        """
+        初始化
+        """
         self.otime=time.time()
         self.plugins=plugins
         self.std,self.rst=0,0
         self.cor,self.seg_cor=0,0
         self.sep=sep
     def print_result(self):
+        """
+        打印结果
+        """
         cor=self.cor
         p=cor/self.rst if self.rst else 0
         r=cor/self.std if self.std else 0
@@ -112,20 +118,7 @@ class TaggingEval:
         self.std+=len(std)
         self.rst+=len(rst)
         self.cor+=len(std&rst)
-        
         self.seg_cor+=len({(b,e) for b,e,t in std}&{(b,e) for b,e,t in rst})
-    """def eval_files(self,std_file,rst_file):
-        for g,r in zip(open(std_file),open(rst_file)):
-            gl=sum(len(x.partition(self.sep)[0])for x in g.split())
-            rl=sum(len(x.partition(self.sep)[0])for x in r.split())
-            if(gl!=rl):
-                print("---")
-                print(g.strip())
-                print(r.strip())
-            assert(gl==rl)
-            g=g.strip()
-            r=r.strip()
-            eval(g,r)"""
     
     def _to_set(self,seq):
         s=set()
@@ -139,44 +132,9 @@ class TaggingEval:
         return s
     def __call__(self,std,rst,raw=None):
         if not std:return
-        
         self._set_based(self._to_set(std),self._to_set(rst))
         for plugin in self.plugins:
             plugin(std,rst)
-
-"""def eval(file1,file2,plugins=[]):
-    eval=TaggingEval(plugins);
-    for g,r in zip(open(file1),open(file2)):
-        gl=sum(len(x.partition('_')[0])for x in g.split())
-        rl=sum(len(x.partition('_')[0])for x in r.split())
-        if(gl!=rl):
-            print("---")
-            print(g.strip())
-            print(r.strip())
-        assert(gl==rl)
-        g=g.strip()
-        r=r.strip()
-        #print(r)
-        eval(g,r)
-    p,r,f=eval.get_prf()
-    return(eval.std,eval.rst,eval.cor,p,r,f)
-def bi_eval(file1,file2,plugins=[]):
-    eval=TaggingEval(plugins);
-    for g,r in zip(open(file1),open(file2)):
-        gl=sum(len(x.partition('_')[0])for x in g.split())
-        rl=sum(len(x.partition('_')[0])for x in r.split())
-        if(gl!=rl):
-            print("---")
-            print(g.strip())
-            print(r.strip())
-        assert(gl==rl)
-        g=g.strip()
-        r=r.strip()
-        #print(r)
-        eval(g,r)
-    p,r,f=eval.get_prf()
-    sp,sr,sf=eval.get_prf(True)
-    return(eval.std,eval.rst,eval.cor,p,r,f,sp,sr,sf)"""
 if __name__=="__main__":
     import argparse
     parser=argparse.ArgumentParser(description="用于分词词性标注的评测和比较")
