@@ -107,6 +107,7 @@ class Defalt_Actions:
         self.sep_action=atom_action()
         self.com_action=atom_action()
         self.positions=positions()
+        self.max_pos_size=1
     def search(self,raw,std_actions=None):
         self.sep_action.set_raw(raw)
         self.com_action.set_raw(raw)
@@ -131,15 +132,29 @@ class Defalt_Actions:
 
                 #确保每个状态只保留一个最优的解
                 last_pos=None
+                pos_size=0
                 for stat in new_beam:
                     if stat[0]!=last_pos:
                         beam.append(stat)
                         last_pos=stat[0]
+                        pos_size=1
+                    else:
+                        if pos_size>= self.max_pos_size : continue
+                        pos_size+=1
+                        beam.append(stat)
+
+
                 #保留一定宽度的解（柱宽度）
                 beam.sort(key=lambda x:x[1][0],reverse=True)
                 beam=beam[:min(len(beam),2)]
 
         beam.sort(key=lambda x:x[1][0],reverse=True)
+        
+        self.delta=-1
+        if len(beam)>1:
+            self.delta=beam[0][1][0]-beam[1][1][0]
+        #print(raw)
+        #print(delta)
         
         rst_actions=[]
         stat=beam[0]
@@ -181,7 +196,6 @@ class Defalt_Actions:
     def _combine(self,stat):
         return [self.positions(stat[0],'c'),
                 (stat[1][0]+self.com_action(stat),stat,'c')]
-    
     def _combine_update(self,stat,delta,step=0):
         self.com_action.update(stat,delta,step)
         return [self.positions(stat[0],'c'),
@@ -252,7 +266,11 @@ class Model:
         for line in open(test_file):
             y=tagging_codec.decode(line.strip())
             raw=''.join(y)
-            eval(y,self(raw))
+            hat_y=self(raw)
+            eval(y,hat_y)
+            #print(raw,self.actions.delta)
+            #if not y==hat_y:
+            #    input()
         eval.print_result()
 if __name__=="__main__":
     train()
