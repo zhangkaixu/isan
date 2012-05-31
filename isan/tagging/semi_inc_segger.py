@@ -2,6 +2,7 @@
 import collections
 import pickle
 import sys
+import random
 import isan.tagging.codec as tagging_codec
 import isan.tagging.eval as tagging_eval
 import isan.common.perceptrons as perceptrons
@@ -108,7 +109,7 @@ class Defalt_Actions:
         self.com_action=atom_action()
         self.positions=positions()
         self.max_pos_size=1
-    def search(self,raw,std_actions=None):
+    def search(self,raw,search_space=None):
         self.sep_action.set_raw(raw)
         self.com_action.set_raw(raw)
         beam=[self.gen_init_stat()]
@@ -125,8 +126,15 @@ class Defalt_Actions:
                 beam=new_beam
             else:
                 for stat in beam:
-                    new_beam.append(self._separate(stat))
-                    new_beam.append(self._combine(stat))
+                    if not search_space:
+                        new_beam.append(self._separate(stat))
+                        new_beam.append(self._combine(stat))
+                    else:
+                        if 's' in search_space[k]:
+                            new_beam.append(self._separate(stat))
+                        if 'c' in search_space[k]:
+                            new_beam.append(self._combine(stat))
+
                 new_beam.sort(reverse=True)
                 beam=[]
 
@@ -228,15 +236,17 @@ class Model:
         rst_actions=self.actions.search(raw)
         hat_y=self.actions.actions_to_result(rst_actions,raw)
         return hat_y
-    def _learn_sentence(self,raw,y):
+    def _learn_sentence(self,raw,std_space):
         """
         学习，根据生句子和标准分词结果
         """
         self.step+=1#学习步数加一
-        std_actions=self.actions.result_to_actions(y)#得到标准动作
+        #print(raw)
+        #print(std_space)
+        std_actions=self.actions.search(raw,std_space)#得到标准动作
         rst_actions=self.actions.search(raw)#得到解码后动作
         hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
-        if y!=hat_y:#如果动作不一致，则更新
+        if std_actions!=rst_actions:#如果动作不一致，则更新
             self.actions.update(raw,std_actions,rst_actions,self.step)
         return hat_y
     def save(self):
@@ -251,12 +261,24 @@ class Model:
         """
         训练
         """
+        training_data=[]
+        for line in open(training_file):
+            y=tagging_codec.decode(line.strip())
+            
+            std_actions=self.actions.result_to_actions(y)#得到标准动作
+            std_space=[[x] for x in std_actions]
+            for i in range(len(std_space)):
+                if random.random()<0.5:
+                    std_space[i]=['s','c']
+            if random.random()<1:
+                training_data.append((''.join(y),y,std_space))
+            #print(y)
+        #training_data=training_data[:int(len(training_data)*0.7)]
         for it in range(iteration):#迭代整个语料库
             eval=tagging_eval.TaggingEval()#测试用的对象
-            for line in open(training_file):#迭代每个句子
-                y=tagging_codec.decode(line.strip())
-                raw=''.join(y)
-                eval(y,self._learn_sentence(raw,y))#学习它
+            for raw,y,std_space in training_data:#迭代每个句子
+                hat_y=self._learn_sentence(raw,std_space)
+                eval(y,hat_y)#学习它
             eval.print_result()#打印评测结果
     def test(self,test_file):
         """
