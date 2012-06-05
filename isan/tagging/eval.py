@@ -132,6 +132,7 @@ class TaggingEval:
         return s
     def __call__(self,std,rst,raw=None):
         if not std:return
+        if not rst:return
         self._set_based(self._to_set(std),self._to_set(rst))
         for plugin in self.plugins:
             plugin(std,rst)

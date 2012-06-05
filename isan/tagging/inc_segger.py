@@ -46,38 +46,48 @@ class Defalt_Atom_Action:
         """
         返回一个动作的分数
         """
-        return sum(self.features.get(cur,0) for cur in self._key_gen(stat[0]))
+        return sum(self.features.get(cur,0) for cur in self._key_gen(stat))
 
     def update(self,stat,delta,step=0):
         """
         跟新权重
         """
-        self.features.updates(self._key_gen(stat[0]),delta,step)
+        self.features.updates(self._key_gen(stat),delta,step)
 
-
-class Defalt_Position:
-    def __call__(self,last=None,action=None):
-        if not last:
-            return (0,'|','|',0)#(当前位置，上一个动作，上上个动作，到前一个断开的距离)
-        if action=='s':
-            return (last[0]+1,'s',last[1],1)
-        else:
-            return (last[0]+1,'c',last[1],last[-1]+1)
-    def is_init(self,pos):
-        return pos[0]==0
-
-class Character_Labeling_Based_Position:
-    def __call__(self,last=None,action=None):
-        if not last:
-            return (0,'|','|')#(当前位置，上一个动作，上上个动作)
-        if action=='s':
-            return (last[0]+1,'s',last[1])
-        else:
-            return (last[0]+1,'c',last[1])
-    def is_init(self,pos):
-        return pos[0]==0
-
-
+def search(model):
+    """
+    线性搜索
+    value = [alphas,betas]
+    alpha = [score, delta, action, link]
+    """
+    sequence=[]
+    sequence.append({model.init():([(0,None,'',None)],[])})
+    while True :
+        beam={}
+        for stat,alpha_beta in sequence[-1].items():
+            for action,next_stat,value in model.gen_next(stat):
+                is_termed=model.is_termed(next_stat)
+                if next_stat not in beam:
+                    beam[next_stat]=([],[])
+                beam[next_stat][0].append((alpha_beta[0][0][0]+value,value,action,stat))
+        #sort alphas
+        for k,v in beam.items():
+            v[0].sort(reverse=True)
+        #thrink beam
+        beam=sorted(list(beam.items()),key=lambda x:x[1][0][0][0],reverse=True)
+        beam=beam[:min(len(beam),3)]
+        if is_termed : break
+        sequence.append(dict(beam))
+    result=[]
+    item=beam[0][1][0][0]
+    ind=len(sequence)-1
+    while True :
+        if item[3]==None: break
+        result.append(item[2])
+        item=sequence[ind][item[3]][0][0]
+        ind-=1
+    result.reverse()
+    return result
 class Defalt_Actions:
     @staticmethod
     def actions_to_result(actions,raw):
@@ -88,6 +98,8 @@ class Defalt_Actions:
             if a=='s':
                 sen.append(cache)
                 cache=''
+        if cache:
+            sen.append(cache)
         return sen
     @staticmethod
     def result_to_actions(y):
@@ -98,78 +110,30 @@ class Defalt_Actions:
             actions.append('s')
         return actions
 
-    def gen_init_stat(self):
-        return [self.positions(),(0,)]
     
     def __init__(self,
-                atom_action=Defalt_Atom_Action,
-                positions=Defalt_Position):
+                atom_action=Defalt_Atom_Action):
         self.sep_action=atom_action()
         self.com_action=atom_action()
-        self.positions=positions()
         self.max_pos_size=1
+    def init(self):
+        return (0,'|','|',0)
+    def is_termed(self,stat):
+        return stat[0]-1==len(self.raw)
+    def gen_next(self,stat):
+        ind,last,last2,wordl=stat
+        yield 's',(ind+1,'s',last,wordl+1),self.sep_action(stat)
+        yield 'c',(ind+1,'c',last,1),self.com_action(stat)
     def search(self,raw,std_actions=None):
+        self.raw=raw
         self.sep_action.set_raw(raw)
         self.com_action.set_raw(raw)
-        beam=[self.gen_init_stat()]
-        std_stat=[self.gen_init_stat()]
-        debug_flag=False
-        for k in range(len(raw)+1):
-            new_beam=[]
-            if k==0:
-                new_beam.append(self._separate(beam[0]))
-                beam=new_beam
-            elif k==len(raw):
-                for stat in beam:
-                    new_beam.append(self._separate(stat))
-                beam=new_beam
-            else:
-                for stat in beam:
-                    new_beam.append(self._separate(stat))
-                    new_beam.append(self._combine(stat))
-                new_beam.sort(reverse=True)
-                beam=[]
-
-                #确保每个状态只保留一个最优的解
-                last_pos=None
-                pos_size=0
-                for stat in new_beam:
-                    if stat[0]!=last_pos:
-                        beam.append(stat)
-                        last_pos=stat[0]
-                        pos_size=1
-                    else:
-                        if pos_size>= self.max_pos_size : continue
-                        pos_size+=1
-                        beam.append(stat)
-
-
-                #保留一定宽度的解（柱宽度）
-                beam.sort(key=lambda x:x[1][0],reverse=True)
-                beam=beam[:min(len(beam),2)]
-
-        beam.sort(key=lambda x:x[1][0],reverse=True)
-        
-        self.delta=-1
-        if len(beam)>1:
-            self.delta=beam[0][1][0]-beam[1][1][0]
-        #print(raw)
-        #print(delta)
-        
-        rst_actions=[]
-        stat=beam[0]
-        while True:
-            if self.positions.is_init(stat[0]):break
-            rst_actions.append(stat[1][2])
-            stat=stat[1][1]
-        rst_actions.reverse()
-
-        return rst_actions
-
+        res=search(self)
+        return res
 
     def update(self,x,std_actions,rst_actions,step):
-        std_stat=self.gen_init_stat()
-        rst_stat=self.gen_init_stat()
+        std_stat=self.init()
+        rst_stat=self.init()
         for a,b in zip(rst_actions,std_actions):
             if a=='s':
                 std_stat=self._separate_update(std_stat,-1,step=step)
@@ -184,22 +148,16 @@ class Defalt_Actions:
         self.com_action.features.average(step)
         
     ### 私有函数 
-    def _separate(self,stat):
-        return [self.positions(stat[0],'s'),
-                (stat[1][0]+self.sep_action(stat),stat,'s')]
     def _separate_update(self,stat,delta,step=0):
+        ind,last,last2,wordl=stat
         self.sep_action.update(stat,delta,step)
-        return [self.positions(stat[0],'s'),
-                (0,stat,'s')]
+        return (ind+1,'s',last,wordl+1)
 
 
-    def _combine(self,stat):
-        return [self.positions(stat[0],'c'),
-                (stat[1][0]+self.com_action(stat),stat,'c')]
     def _combine_update(self,stat,delta,step=0):
+        ind,last,last2,wordl=stat
         self.com_action.update(stat,delta,step)
-        return [self.positions(stat[0],'c'),
-                (0,stat,'c')]
+        return (ind+1,'c',last,1)
 
 
 
@@ -236,6 +194,9 @@ class Model:
         std_actions=self.actions.result_to_actions(y)#得到标准动作
         rst_actions=self.actions.search(raw)#得到解码后动作
         hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
+        if not (sum(len(x)for x in y)==sum(len(x)for x in hat_y)):
+            print(y)
+            print(hat_y)
         if y!=hat_y:#如果动作不一致，则更新
             self.actions.update(raw,std_actions,rst_actions,self.step)
         return hat_y
@@ -256,7 +217,8 @@ class Model:
             for line in open(training_file):#迭代每个句子
                 y=tagging_codec.decode(line.strip())
                 raw=''.join(y)
-                eval(y,self._learn_sentence(raw,y))#学习它
+                hat_y=self._learn_sentence(raw,y)
+                eval(y,hat_y)#学习它
             eval.print_result()#打印评测结果
     def test(self,test_file):
         """
