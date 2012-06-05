@@ -268,9 +268,9 @@ class Model:
             std_actions=self.actions.result_to_actions(y)#得到标准动作
             std_space=[[x] for x in std_actions]
             for i in range(len(std_space)):
-                if random.random()<0.5:
+                if random.random()<0:
                     std_space[i]=['s','c']
-            if random.random()<1:
+            if random.random()<0.1:
                 training_data.append((''.join(y),y,std_space))
             #print(y)
         #training_data=training_data[:int(len(training_data)*0.7)]
