@@ -1,0 +1,95 @@
+<style>
+#a:hover{background:#003000;}  
+span.n{background:yellow;}
+span.s{background:blue;}
+span.c{background:white;}
+</style>
+
+<script>
+start_id=-1
+function selection_start(id){
+    start_id=id
+}
+function selection_end(id){
+    if(start_id==-1)return
+    //alert(start_id+" "+id)
+    if(start_id>id){
+        tmp=id
+        id=start_id
+        start_id=tmp
+    }
+    //alert(start_id)
+    ele=document.getElementById('i'+start_id)
+    if(ele){ele.className='s'}
+    for(i=start_id+1;i<=id;i++){
+        ele=document.getElementById('i'+i)
+        if(ele){ele.className='c'}
+    }
+    ele=document.getElementById('i'+(id+1))
+    if(ele){ele.className='s'}
+    start_id=-1
+}
+function click(ele){
+    if(event.button==0){
+        if(ele.className=='s'){
+            ele.className='n'
+        }else{
+            ele.className='s'
+        }
+    }
+    else if(event.button==2){
+        if(ele.className=='c'){
+            ele.className='n'
+        }else{
+            ele.className='c'
+        }
+    }
+}
+
+function submit(){
+    anno=['s']
+    id=1
+    while(1){
+        ele=document.getElementById('i'+id)
+        if(ele){
+            if(ele.className=='s'){
+                anno.push('s')
+            }else if (ele.className=='c'){
+                anno.push('c')
+            }else{
+                anno.push('sc')
+            }
+        }else{
+            anno.push('s')
+            break;
+        }
+        id++
+    }
+    alert(anno.join(' '))
+}
+</script>
+<div onselectstart="return false;" oncontextmenu="return false">
+    
+    
+<a id='c0' onmousedown="selection_start(0)" onmouseup="selection_end(0)" >也</a>
+<span id='i1' class='n' onmousedown=click(this)>？</span>
+<span id='c1' onmousedown="selection_start(1)" onmouseup="selection_end(1)" >记</span>
+<span id='i2' class='n' onmousedown=click(this)>？</span>
+<span id='c1' onmousedown="selection_start(2)" onmouseup="selection_end(2)">得</span>
+<span id='i3' class='n' onmousedown=click(this) oncontextmenu="return false">？</span>
+<span id='c1' onmousedown="selection_start(3)" onmouseup="selection_end(3)">还</span>
+<span id='i4' class='n' onmousedown=click(this) oncontextmenu="return false">？</span>
+<span id='c1' onmousedown="selection_start(4)" onmouseup="selection_end(4)">是</span>
+<span id='i5' class='n' onmousedown=click(this) oncontextmenu="return false">？</span>
+<span id='c1' onmousedown="selection_start(5)" onmouseup="selection_end(5)">羚</span>
+<span id='i6' class='n' onmousedown=click(this) oncontextmenu="return false">？</span>
+<span id='c1' onmousedown="selection_start(6)" onmouseup="selection_end(6)">羊</span>
+<span id='i7' class='n' onmousedown=click(this) oncontextmenu="return false">？</span>
+<span id='c1' onmousedown="selection_start(7)" onmouseup="selection_end(7)">啊</span>
+
+
+</div>
+<a onclick="submit();">提交</a>
+
+
+

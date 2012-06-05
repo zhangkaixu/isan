@@ -1,3 +1,5 @@
 test/
 *.swp
 __pycache__/
+*.raw
+*.json
