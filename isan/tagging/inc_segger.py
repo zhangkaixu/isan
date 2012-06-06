@@ -26,7 +26,6 @@ class Defalt_Atom_Action:
         c_ind=span[0]+2
         ws_current=span[1]
         ws_left=span[2]
-        
         fv=[
                 ("ws",ws_left,ws_current),
                 ("c",uni_chars[c_ind],ws_current),
@@ -50,44 +49,77 @@ class Defalt_Atom_Action:
 
     def update(self,stat,delta,step=0):
         """
-        跟新权重
+        更新权重
         """
         self.features.updates(self._key_gen(stat),delta,step)
 
-def search(model):
-    """
-    线性搜索
-    value = [alphas,betas]
-    alpha = [score, delta, action, link]
-    """
-    sequence=[]
-    sequence.append({model.init():([(0,None,'',None)],[])})
-    while True :
-        beam={}
-        for stat,alpha_beta in sequence[-1].items():
-            for action,next_stat,value in model.gen_next(stat):
-                is_termed=model.is_termed(next_stat)
-                if next_stat not in beam:
-                    beam[next_stat]=([],[])
-                beam[next_stat][0].append((alpha_beta[0][0][0]+value,value,action,stat))
-        #sort alphas
-        for k,v in beam.items():
-            v[0].sort(reverse=True)
-        #thrink beam
-        beam=sorted(list(beam.items()),key=lambda x:x[1][0][0][0],reverse=True)
-        beam=beam[:min(len(beam),3)]
-        if is_termed : break
-        sequence.append(dict(beam))
-    result=[]
-    item=beam[0][1][0][0]
-    ind=len(sequence)-1
-    while True :
-        if item[3]==None: break
-        result.append(item[2])
-        item=sequence[ind][item[3]][0][0]
-        ind-=1
-    result.reverse()
-    return result
+class Searcher:
+    def __init__(self):
+        self.sequence=[]
+        self.beam_width=2
+    def forward(self,model):
+        """
+        线性搜索
+        value = [alphas,betas]
+        alpha = [score, delta, action, link]
+        """
+        sequence=self.sequence
+        del sequence[:]
+        sequence.append({model.init():([(0,None,None,None)],[])})
+        while True :
+            beam={}
+            for stat,alpha_beta in sequence[-1].items():
+                for action,next_stat,value in model.gen_next(stat):
+                    is_termed=model.is_termed(next_stat)
+                    if next_stat not in beam:
+                        beam[next_stat]=([],[])
+                    beam[next_stat][0].append((alpha_beta[0][0][0]+value,value,action,stat))
+            #sort alphas
+            for k,v in beam.items():
+                v[0].sort(reverse=True)
+            #thrink beam
+            beam=sorted(list(beam.items()),key=lambda x:x[1][0][0][0],reverse=True)
+            beam=beam[:min(len(beam),self.beam_width)]
+            sequence.append(dict(beam))
+            if is_termed : break
+        result=[]
+        item=beam[0][1][0][0]
+        self.best_score=item[0]
+        ind=len(sequence)-2
+        while True :
+            if item[3]==None: break
+            result.append(item[2])
+            item=sequence[ind][item[3]][0][0]
+            ind-=1
+        result.reverse()
+        return result
+    def backward(self):
+        """
+        使用beta算法计算后向分数
+        """
+        sequence=self.sequence
+        ind=len(sequence)-1
+        for stat,alpha_beta in sequence[ind].items():#初始化最后一项的分数
+            alpha_beta[1].append((0,None,None,None))
+        while ind>0:
+            for stat,alpha_beta in sequence[ind].items():
+                alphas=alpha_beta[0]
+                if not alpha_beta[1]: continue
+                beta=alpha_beta[1][0][0]
+                for score,delta,action,pre_stat in alphas:
+                    sequence[ind-1][pre_stat][1].append((beta+delta,delta,action,stat))
+            #排序
+            for _,alpha_beta in sequence[ind-1].items():
+                alpha_beta[1].sort(reverse=True)
+            ind-=1
+        
+        #for i,d in enumerate(sequence):
+        #    print(i,"===")
+        #    for stat,alpha_beta in d.items():
+        #        if alpha_beta[1]:
+        #            print(alpha_beta[0][0][0]+alpha_beta[1][0][0])
+        #input()
+
 class Defalt_Actions:
     @staticmethod
     def actions_to_result(actions,raw):
@@ -116,6 +148,7 @@ class Defalt_Actions:
         self.sep_action=atom_action()
         self.com_action=atom_action()
         self.max_pos_size=1
+        self.searcher=Searcher()
     def init(self):
         return (0,'|','|',0)
     def is_termed(self,stat):
@@ -128,9 +161,9 @@ class Defalt_Actions:
         self.raw=raw
         self.sep_action.set_raw(raw)
         self.com_action.set_raw(raw)
-        res=search(self)
+        res=self.searcher.forward(self)
+        self.searcher.backward()
         return res
-
     def update(self,x,std_actions,rst_actions,step):
         std_stat=self.init()
         rst_stat=self.init()
@@ -146,20 +179,15 @@ class Defalt_Actions:
     def average(self,step):
         self.sep_action.features.average(step)
         self.com_action.features.average(step)
-        
     ### 私有函数 
     def _separate_update(self,stat,delta,step=0):
         ind,last,last2,wordl=stat
         self.sep_action.update(stat,delta,step)
         return (ind+1,'s',last,wordl+1)
-
-
     def _combine_update(self,stat,delta,step=0):
         ind,last,last2,wordl=stat
         self.com_action.update(stat,delta,step)
         return (ind+1,'c',last,1)
-
-
 
 class Model:
     """
