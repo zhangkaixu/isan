@@ -37,7 +37,7 @@ class Defalt_Atom_Action:
                 ("l2l",bi_chars[c_ind-2],ws_current),
             ]
         if len(span)>=4:
-            w_current=raw[span[0]+1-span[3]:span[0]+1]
+            w_current=raw[span[0]-span[3]:span[0]]
             fv.append(("w",w_current))
         return fv
         
@@ -113,14 +113,27 @@ class Searcher:
                 alpha_beta[1].sort(reverse=True)
             ind-=1
         
-        #for i,d in enumerate(sequence):
-        #    print(i,"===")
-        #    for stat,alpha_beta in d.items():
-        #        if alpha_beta[1]:
-        #            print(alpha_beta[0][0][0]+alpha_beta[1][0][0])
+        
+class Defalt_Actions:
+    def debug(self):
+        self.searcher.backward()
+        sequence=self.searcher.sequence
+        for i,d in enumerate(sequence):
+            #print(i,"===")
+            for stat,alpha_beta in d.items():
+                if alpha_beta[1]:
+                    for beta,db,action,n_stat in alpha_beta[1]:
+                        if beta==None:continue
+                        delta=alpha_beta[0][0][0]+beta-self.searcher.best_score
+                        if action=='s':
+                            pass
+                            #print(self.raw,stat)
+                            #print(delta,self.raw[stat[0]-stat[3]:stat[0]])
+                    
+                    #print(alpha_beta[0][0][0]+alpha_beta[1][0][0],self.searcher.best_score)
         #input()
 
-class Defalt_Actions:
+        pass
     @staticmethod
     def actions_to_result(actions,raw):
         sen=[]
@@ -155,14 +168,14 @@ class Defalt_Actions:
         return stat[0]-1==len(self.raw)
     def gen_next(self,stat):
         ind,last,last2,wordl=stat
-        yield 's',(ind+1,'s',last,wordl+1),self.sep_action(stat)
-        yield 'c',(ind+1,'c',last,1),self.com_action(stat)
+        yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+        yield 'c',(ind+1,'c',last,wordl+1),self.com_action(stat)
     def search(self,raw,std_actions=None):
         self.raw=raw
         self.sep_action.set_raw(raw)
         self.com_action.set_raw(raw)
         res=self.searcher.forward(self)
-        self.searcher.backward()
+        self.debug()
         return res
     def update(self,x,std_actions,rst_actions,step):
         std_stat=self.init()
@@ -183,11 +196,11 @@ class Defalt_Actions:
     def _separate_update(self,stat,delta,step=0):
         ind,last,last2,wordl=stat
         self.sep_action.update(stat,delta,step)
-        return (ind+1,'s',last,wordl+1)
+        return (ind+1,'s',last,1)
     def _combine_update(self,stat,delta,step=0):
         ind,last,last2,wordl=stat
         self.com_action.update(stat,delta,step)
-        return (ind+1,'c',last,1)
+        return (ind+1,'c',last,wordl+1)
 
 class Model:
     """
