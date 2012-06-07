@@ -104,6 +104,7 @@ class TaggingEval:
         self.std,self.rst=0,0
         self.cor,self.seg_cor=0,0
         self.sep=sep
+        self.characters=0
     def print_result(self):
         """
         打印结果
@@ -112,12 +113,15 @@ class TaggingEval:
         p=cor/self.rst if self.rst else 0
         r=cor/self.std if self.std else 0
         f=2*p*r/(r+p) if (r+p) else 0
-        print("std: %d rst: %d cor: %d f1: %.4f time: %.4f"%(self.std,self.rst,self.cor,f,time.time()-self.otime))
+        time_used=time.time()-self.otime
+        speed=self.characters/time_used
+        print("std: %d rst: %d cor: %d f1: \033[32;01m%.4f\033[1;m time: %.4f 速度: %.0f字/秒"%(self.std,self.rst,self.cor,f,time_used,speed))
         
     def _set_based(self,std,rst):
         self.std+=len(std)
         self.rst+=len(rst)
         self.cor+=len(std&rst)
+        self.characters+=sum(len(w)for _,w,_ in std)
         self.seg_cor+=len({(b,e) for b,e,t in std}&{(b,e) for b,e,t in rst})
     
     def _to_set(self,seq):

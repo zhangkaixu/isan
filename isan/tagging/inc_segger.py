@@ -129,10 +129,8 @@ class Defalt_Actions:
                             pass
                             #print(self.raw,stat)
                             #print(delta,self.raw[stat[0]-stat[3]:stat[0]])
-                    
                     #print(alpha_beta[0][0][0]+alpha_beta[1][0][0],self.searcher.best_score)
         #input()
-
         pass
     @staticmethod
     def actions_to_result(actions,raw):
@@ -175,7 +173,7 @@ class Defalt_Actions:
         self.sep_action.set_raw(raw)
         self.com_action.set_raw(raw)
         res=self.searcher.forward(self)
-        self.debug()
+        #self.debug()
         return res
     def update(self,x,std_actions,rst_actions,step):
         std_stat=self.init()
@@ -276,5 +274,4 @@ class Model:
             #    input()
         eval.print_result()
 if __name__=="__main__":
-    train()
-    test()
+    pass
