@@ -7,25 +7,17 @@
     一种扩展的格式是这样的：["原始句子",[已知的成分的开始和结尾],[各个间隔断开和连接可选值]]
 """
 import sys
+import json
 """
 
 """
-def decode(line,sep='_'):
+def decode(line):
     if not line: return []
     if line[0]!='[':
-        seq=[item.partition(sep) for item in line.split(' ')]
-        if not seq:return []
-        if(seq[0][1]==''):
-            return [word for word,_,tag in seq]
+        seq=[word for word in line.split(' ')]
+        return seq
+    return tuple(json.loads(line))
         
-        return [[word, tag] for word,_,tag in seq]
 
-
-def encode(seq,sep='_'):
-    if type(seq[0])!=str:
-        return ' '.join(a+sep+b for a,b in seq)
-    else:
-        return ' '.join(seq)
-if __name__=="__main__":
-    
-    print(encode([['a','b']]))
+def encode(seq):
+    return ' '.join(seq)

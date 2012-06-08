@@ -115,7 +115,8 @@ class TaggingEval:
         f=2*p*r/(r+p) if (r+p) else 0
         time_used=time.time()-self.otime
         speed=self.characters/time_used
-        print("std: %d rst: %d cor: %d f1: \033[32;01m%.4f\033[1;m time: %.4f 速度: %.0f字/秒"%(self.std,self.rst,self.cor,f,time_used,speed))
+        print("std: %d rst: %d cor: %d f1: \033[32;01m%.4f\033[1;m 时间: %.4f (%.0f字/秒)"
+                    %(self.std,self.rst,self.cor,f,time_used,speed))
         
     def _set_based(self,std,rst):
         self.std+=len(std)

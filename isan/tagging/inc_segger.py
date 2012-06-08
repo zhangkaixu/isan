@@ -1,8 +1,7 @@
-#!/usr/bin/python3
 import collections
 import pickle
 import sys
-import isan.tagging.codec as tagging_codec
+import isan.tagging.cws_codec as tagging_codec
 import isan.tagging.eval as tagging_eval
 import isan.common.perceptrons as perceptrons
 """
@@ -38,6 +37,7 @@ class Defalt_Atom_Action:
             ]
         if len(span)>=4:
             w_current=raw[span[0]-span[3]:span[0]]
+            #print(w_current,span,self.raw)
             fv.append(("w",w_current))
         return fv
         
@@ -160,6 +160,7 @@ class Defalt_Actions:
         self.com_action=atom_action()
         self.max_pos_size=1
         self.searcher=Searcher()
+        #self.step=0
     def init(self):
         return (0,'|','|',0)
     def is_termed(self,stat):
@@ -176,6 +177,8 @@ class Defalt_Actions:
         #self.debug()
         return res
     def update(self,x,std_actions,rst_actions,step):
+        #self.step+=1
+        #step=self.step
         std_stat=self.init()
         rst_stat=self.init()
         for a,b in zip(rst_actions,std_actions):
@@ -188,6 +191,9 @@ class Defalt_Actions:
             if b=='c':
                 rst_stat=self._combine_update(rst_stat,1,step=step)
     def average(self,step):
+        #print(step,self.step)
+        #step=self.step
+        
         self.sep_action.features.average(step)
         self.com_action.features.average(step)
     ### 私有函数 
@@ -273,5 +279,3 @@ class Model:
             #if not y==hat_y:
             #    input()
         eval.print_result()
-if __name__=="__main__":
-    pass
