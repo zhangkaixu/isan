@@ -18,7 +18,8 @@ class Features(dict):
             self.acc[feature]+=step*delta
     def average(self,step):
         for k in self.acc:
-            self[k]=self[k]-self.acc[k]/step
+            #self[k]=round((self[k]-self.acc[k]/step)*1000)
+            self[k]=(self[k]-self.acc[k]/step)
             if self[k]==0:del self[k]
         del self.acc
 #class Features(collections.defaultdict):

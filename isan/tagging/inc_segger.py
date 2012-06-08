@@ -133,6 +133,16 @@ class Defalt_Actions:
         #input()
         pass
     @staticmethod
+    def constituents_to_constraints(length,constituents):
+        if not constituents: return None
+        spans=[[0,length+1] for i in range(length+1)]
+        for left,right in constituents:
+            for i in range(left+1,right):
+                if left>spans[i][0]:spans[i][0]=left
+                if right<spans[i][1]:spans[i][1]=right
+        #print(spans)
+        return spans
+    @staticmethod
     def actions_to_result(actions,raw):
         sen=[]
         cache=''
@@ -167,10 +177,43 @@ class Defalt_Actions:
         return stat[0]-1==len(self.raw)
     def gen_next(self,stat):
         ind,last,last2,wordl=stat
-        yield 's',(ind+1,'s',last,1),self.sep_action(stat)
-        yield 'c',(ind+1,'c',last,wordl+1),self.com_action(stat)
-    def search(self,raw,std_actions=None):
+        genned=False
+        if self.candidates:
+            if 's' in self.candidates[ind]:
+                if self.constraints:
+                    #print(self.constraints)
+                    left=ind-wordl
+                    right=ind
+                    if not (self.constraints[left][1]<right or self.constraints[right][0]>left):
+                        yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+                        genned=True
+                else:
+                    yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+                    genned=True
+            if 'c' in self.candidates[ind]:    
+                yield 'c',(ind+1,'c',last,wordl+1),self.com_action(stat)
+                genned=True
+                
+        else:
+            if self.constraints:
+                left=ind-wordl
+                right=ind
+                if not (self.constraints[left][1]<right or self.constraints[right][0]>left):
+                    yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+                    genned=True
+            else:
+                yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+                genned=True
+            yield 'c',(ind+1,'c',last,wordl+1),self.com_action(stat)
+            genned=True
+        if not genned:
+            yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+            yield 'c',(ind+1,'c',last,wordl+1),self.com_action(stat)
+
+    def search(self,raw,candidates=None,constituents=None):
         self.raw=raw
+        self.candidates=candidates
+        self.constraints=self.constituents_to_constraints(len(raw),constituents)
         self.sep_action.set_raw(raw)
         self.com_action.set_raw(raw)
         res=self.searcher.forward(self)
@@ -190,6 +233,24 @@ class Defalt_Actions:
                 rst_stat=self._separate_update(rst_stat,1,step=step)
             if b=='c':
                 rst_stat=self._combine_update(rst_stat,1,step=step)
+    def is_violated(self,rst_actions,candidates,constituents):
+        if candidates:
+            if any(a not in b for a,b in zip(rst_actions,candidates)):
+                return True
+        if constituents:
+            constraints=self.constituents_to_constraints(len(rst_actions)-1,constituents)
+            #print(constraints)
+            left=None
+            for right,a in enumerate(rst_actions):
+                if a=='s':
+                    #print(left,right) 
+                    if left!=None:
+                        if constraints[left][1]<right or constraints[right][0]>left:
+                            #print('violated')
+                            return True
+                        pass
+                    left=right
+        return False
     def average(self,step):
         #print(step,self.step)
         #step=self.step
@@ -205,6 +266,7 @@ class Defalt_Actions:
         ind,last,last2,wordl=stat
         self.com_action.update(stat,delta,step)
         return (ind+1,'c',last,wordl+1)
+
 
 class Model:
     """
@@ -231,20 +293,29 @@ class Model:
         rst_actions=self.actions.search(raw)
         hat_y=self.actions.actions_to_result(rst_actions,raw)
         return hat_y
-    def _learn_sentence(self,raw,y):
+    def _learn_sentence(self,raw,y=None,candidates=None,constituents=None):
         """
         学习，根据生句子和标准分词结果
         """
         self.step+=1#学习步数加一
-        std_actions=self.actions.result_to_actions(y)#得到标准动作
-        rst_actions=self.actions.search(raw)#得到解码后动作
-        hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
-        if not (sum(len(x)for x in y)==sum(len(x)for x in hat_y)):
-            print(y)
-            print(hat_y)
-        if y!=hat_y:#如果动作不一致，则更新
-            self.actions.update(raw,std_actions,rst_actions,self.step)
-        return hat_y
+        if y:#传统训练样本
+            std_actions=self.actions.result_to_actions(y)#得到标准动作
+            rst_actions=self.actions.search(raw)#得到解码后动作
+            hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
+            if y!=hat_y:#如果动作不一致，则更新
+                self.actions.update(raw,std_actions,rst_actions,self.step)
+        else :#广义训练样本
+            rst_actions=self.actions.search(raw)#得到解码后动作
+            hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
+            if self.actions.is_violated(rst_actions,candidates,constituents):
+                std_actions=self.actions.search(raw,candidates=candidates,constituents=constituents)#得到解码后动作
+                y=self.actions.actions_to_result(std_actions,raw)#得到解码后结果
+                #print(y,hat_y)
+                self.actions.update(raw,std_actions,rst_actions,self.step)
+            else:
+                y=hat_y
+            #print(y)
+        return y,hat_y
     def save(self):
         """
         保存模型
@@ -259,11 +330,18 @@ class Model:
         """
         for it in range(iteration):#迭代整个语料库
             eval=tagging_eval.TaggingEval()#测试用的对象
-            for line in open(training_file):#迭代每个句子
-                y=tagging_codec.decode(line.strip())
-                raw=''.join(y)
-                hat_y=self._learn_sentence(raw,y)
-                eval(y,hat_y)#学习它
+            if type(training_file)==str:training_file=[training_file]
+
+            for t_file in training_file:
+                for line in open(t_file):#迭代每个句子
+                    y=tagging_codec.decode(line.strip())
+                    if type(y)==tuple :
+                        constituents=y[2] if len(y)>2 else None
+                        y,hat_y=self._learn_sentence(y[0],candidates=y[1],constituents=constituents)
+                    else:
+                        raw=''.join(y)
+                        y,hat_y=self._learn_sentence(raw,y)
+                    eval(y,hat_y)#学习它
             eval.print_result()#打印评测结果
     def test(self,test_file):
         """
@@ -275,7 +353,4 @@ class Model:
             raw=''.join(y)
             hat_y=self(raw)
             eval(y,hat_y)
-            #print(raw,self.actions.delta)
-            #if not y==hat_y:
-            #    input()
         eval.print_result()
