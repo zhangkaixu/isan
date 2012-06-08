@@ -11,13 +11,13 @@ def make_color(s):
 if __name__=="__main__":
     parser=argparse.ArgumentParser(description="分词模型")
     parser.add_argument('model_file',help='模型文件')
-    parser.add_argument('-t','--test',help='测试用文件',dest='test_file')
+    parser.add_argument('--train',help='训练文件',action='append')
     parser.add_argument('-i','--iteration',help='模型迭代次数',dest='iteration',default='5')
-    parser.add_argument('--train',help='训练文件')
+    parser.add_argument('--test',help='测试用文件',dest='test_file')
     args=parser.parse_args()
     """如果指定了训练集，就训练模型"""
     if args.train:
-        print("由训练语料库%s迭代%s次，训练分词模型保存在%s。"%(make_color(args.train),
+        print("由训练语料库%s迭代%s次，训练分词模型保存在%s。"%(make_color(' '.join(args.train)),
                         make_color(args.iteration),
                         make_color(args.model_file)),file=sys.stderr)
         model=inc_segger.Model(args.model_file,
@@ -29,7 +29,9 @@ if __name__=="__main__":
 
     if args.train and not args.test_file:
         exit()
-    print("使用模型文件%s分词"%(make_color(args.model_file)),file=sys.stderr)
+    if not args.train:
+        print("使用模型文件%s分词"%(make_color(args.model_file)),file=sys.stderr)
+    
     model=inc_segger.Model(args.model_file,
                 inc_segger.Defalt_Actions(
                 )
