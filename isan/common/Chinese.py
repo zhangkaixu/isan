@@ -26,18 +26,21 @@ full_stops=set('。？！')
 def test():
     print("测试")
 
-def to_full(text):
+def to_full(text,ignore=set()):
     """
     半角转全角的程序
         空格变成全角
         大于空格的直接加上偏移量
         否则不变
     """
-    return ''.join(chr(12288) if x==32 else chr(x+65248) if x<128 and x>32 else chr(x)
+    
+    return ''.join(chr(12288) if x==32 else chr(x+65248) if x<128 and x>32 and x not in ignore else chr(x)
             for x in map(ord,text))
 
 def seg_sentence(text):
-    #print(text)
+    """
+    切分句子
+    """
     cache=[]
     sentences=[]
     has_non=False
@@ -53,7 +56,6 @@ def seg_sentence(text):
             has_non=False
             
         elif c in content_characters:
-            #print(c)
             has_non=True
     if cache:
         if not sentences:sentences.append('')
