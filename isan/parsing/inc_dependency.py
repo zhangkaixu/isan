@@ -14,42 +14,81 @@ class Defalt_Features:
         对需要处理的句子做必要的预处理（如缓存特征）
         """
         self.raw=raw
-        pass
     def __call__(self,stat):
         ind,stack_top=stat
         top1,top2=stack_top
-        word1,tag1=None,None
+        s1_w,s1_t=None,None
         if top1:
-            word1,tag1=top1[2]
-        word2,tag2=None,None
+            s1_w,s1_t=top1[2]
+        s2_w,s2_t=None,None
         if top2:
-            word2,tag2=top2[2]
-        qw0,qt0=self.raw[ind] if ind<len(self.raw) else (None,None)
+            s2_w,s2_t=top2[2]
+        q0_w,q0_t=self.raw[ind] if ind<len(self.raw) else (None,None)
+        q1_w,q1_t=self.raw[ind+1] if ind+1<len(self.raw) else (None,None)
         
-        fv=[('w1t1',word1,tag1),
-                ('w2t22',word2,tag2),
-                ('t1t2',tag1,tag2),
-                ('w1t1w2t2',word1,tag1,word2,tag2),
-                ('qw0',qw0),
-                ('qt0',qt0),
+        fv=[('s1w',s1_w),('s1t',s1_t),('s1ws1t',s1_w,s1_t),
+            ('s2w',s2_w),('s2t',s2_t),('s2ws2t',s2_w,s2_t),
+            ('q0w',q0_w),('q0t',q0_t),('q0wq0t',q0_w,q0_t),
+            ('s1ws2w',s1_w,s2_w),('s1ts2t',s1_t,s2_t),
+            ('s1tq0t',s1_t,q0_t),('s1ws1ts2t',s1_w,s1_t,s2_t),
+            ('s1ts2ws2t',s1_t,s2_w,s2_t),('s1ws1ts2w',s1_w,s1_t,s2_w),
+            ('s1ws2ws2t',s1_w,s2_w,s2_t),('s1ws1ts2ws2t',s1_w,s1_t,s2_w,s2_t),
+            ('s1tq0tq1t',s1_t,q0_t,q1_t),('s1ts2tq0t',s1_t,s2_t,q0_t),
+            ('s1wq0tq1t',s1_w,q0_t,q1_t),('s1ws2tq0t',s1_w,s2_t,q0_t),
                 ]
-        #print(stat,self.raw)
-        #print(fv)
         return fv
         
-    #def update(self,stat,delta,step=0):
-    #    """
-    #    更新权重
-    #    """
-    #    self.features.updates(self._key_gen(stat),delta,step)
-        
-class Shift_Reduce_Stat:
+class Model :
     """
-    步数 :
-    (解析位置, (栈顶若干元素)) :
-    [set(predictors),alphas,betas]
-        alpha=(score,step_score,action,last_stat)
     """
+    @staticmethod
+    def result_to_actions(result):
+        stack=[]
+        actions=[]
+        #print(">>",result)
+        record=[[ind,head,0] for ind,head in enumerate(result)]
+        for ind,head,_ in record:
+            if head!=-1:
+                record[head][2]+=1
+        for ind,head in enumerate(result):
+            actions.append('s')
+            stack.append([ind,result[ind],record[ind][2]])
+            while len(stack)>=2:
+                #print(stack)
+                if stack[-1][2]==0 and stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
+                    actions.append('l')
+                    stack.pop()
+                    stack[-1][2]-=1
+                elif stack[-2][2]==0 and stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
+                    actions.append('r')
+                    stack[-2]=stack[-1]
+                    stack.pop()
+                    stack[-1][2]-=1
+                else:
+                    break
+        return actions
+
+    @staticmethod
+    def actions_to_result(actions):
+        ind=0
+        stack=[]
+        arcs=[]
+        for a in actions:
+            if a=='s':
+                stack.append(ind)
+                ind+=1
+            elif a=='l':
+                arcs.append((stack[-1],stack[-2]))
+                stack.pop()
+            elif a=='r':
+                arcs.append((stack[-2],stack[-1]))
+                stack[-2]=stack[-1]
+                stack.pop()
+        arcs.append((stack[-1],-1))
+        arcs.sort()
+        arcs=[x for _,x in arcs]
+        return arcs
+
     def __init__(self):
         self.shift_weights=perceptrons.Features()#特征
         self.lreduce_weights=perceptrons.Features()#特征
@@ -167,56 +206,6 @@ class Shift_Reduce_Stat:
                     stack.pop()
 
             
-    @staticmethod
-    def result_to_actions(result):
-        stack=[]
-        actions=[]
-        #print(">>",result)
-        record=[[ind,head,0] for ind,head in enumerate(result)]
-        for ind,head,_ in record:
-            if head!=-1:
-                record[head][2]+=1
-        for ind,head in enumerate(result):
-            actions.append('s')
-            stack.append([ind,result[ind],record[ind][2]])
-            while len(stack)>=2:
-                #print(stack)
-                if stack[-1][2]==0 and stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
-                    actions.append('l')
-                    stack.pop()
-                    stack[-1][2]-=1
-                elif stack[-2][2]==0 and stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
-                    actions.append('r')
-                    stack[-2]=stack[-1]
-                    stack.pop()
-                    stack[-1][2]-=1
-                else:
-                    break
-        #print('>>',stack)
-        #print('>>',actions)
-        return actions
-
-
-    @staticmethod
-    def actions_to_result(actions):
-        ind=0
-        stack=[]
-        arcs=[]
-        for a in actions:
-            if a=='s':
-                stack.append(ind)
-                ind+=1
-            elif a=='l':
-                arcs.append((stack[-1],stack[-2]))
-                stack.pop()
-            elif a=='r':
-                arcs.append((stack[-2],stack[-1]))
-                stack[-2]=stack[-1]
-                stack.pop()
-        arcs.append((stack[-1],-1))
-        arcs.sort()
-        arcs=[x for _,x in arcs]
-        return arcs
 
     def decode(self,raw):
         self.raw=raw
@@ -254,31 +243,36 @@ class Shift_Reduce_Stat:
             find(r_ind,r_stat,begin,r_ind,actions)
             find(last_ind,last_stat,r_ind+1,end-1,actions)
         find(step,stat,0,step,actions)
-
-        #raw=self.raw
-        #for ind,action in enumerate(actions):
-        #    stat=stats[ind]
-        #    assert('betas' in self.steps[ind][stat])
         return actions    
+    def average(self,step):
+        
+        self.shift_weights.average(step)
+        self.lreduce_weights.average(step)
+        self.rreduce_weights.average(step)
+        pass
 
-def test():
-    print('hello')
-    raw='abcde'
-    stats=Shift_Reduce_Stat()
-    actions=stats.decode(raw)
-    print(actions)
-    result=stats.actions_to_result(actions)
+    def save(self,filename):
+        file=open(filename,'bw')
+        pickle.dump(self.shift_weights,file)
+        pickle.dump(self.lreduce_weights,file)
+        pickle.dump(self.rreduce_weights,file)
+        file.close()
+    def load(self,filename):
+        file=open(filename,'rb')
+        self.shift_weights=pickle.load(file)
+        self.lreduce_weights=pickle.load(file)
+        self.rreduce_weights=pickle.load(file)
+        file.close()
+        
 
-    print(result)
-    act=stats.result_to_actions(result)
-    print(act)
-    pass
-def train(training):
-    stats=Shift_Reduce_Stat()
+def train(model,training):
+    stats=model
+    step=0
     for i in range(10):
         std,cor=0,0
         for ln,line in enumerate(open(training)):
-            #if ln>1000:break
+            step+=1
+            #if ln>100:break
             line=line.strip()
             sen=codec.decode(line)
             raw=[(word,tag) for word,tag,_,_ in sen]
@@ -293,10 +287,27 @@ def train(training):
             #print(rst_actions)
             std+=len(std_result)
             cor+=sum(1 if s==r else 0 for s,r in zip(std_result,rst_result))
-            stats.update(rst_actions,3,-1)
-            stats.update(std_actions,3,1)
+            if std_result!=rst_result:
+                stats.update(rst_actions,step,-1)
+                stats.update(std_actions,step,1)
         print(cor/std)
+    model.average(step)
 
+def test(model,test):
+    stats=model
+    std,cor=0,0
+    for ln,line in enumerate(open(test)):
+        line=line.strip()
+        sen=codec.decode(line)
+        raw=[(word,tag) for word,tag,_,_ in sen]
+        std_result=[x for _,_,x,_ in sen]
+        #print(raw)
+        rst_actions=stats.decode(raw)
+        rst_result=stats.actions_to_result(rst_actions)
+        std_actions=stats.result_to_actions(std_result)
+        std+=len(std_result)
+        cor+=sum(1 if s==r else 0 for s,r in zip(std_result,rst_result))
+    print(cor/std)
 
 if __name__=="__main__":
     pass
