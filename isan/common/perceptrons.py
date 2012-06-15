@@ -10,6 +10,8 @@ class Features(dict):
         self[feature]+=delta
         #self.acc.setdefault(feature,0)
         self.acc[feature]+=step*delta
+    def __call__(self,fv):
+        return sum(map(lambda x:self.get(x,0),fv))
     def updates(self,features,delta=0,step=0):
         for feature in features:
             self.setdefault(feature,0)

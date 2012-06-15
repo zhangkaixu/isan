@@ -1,5 +1,6 @@
 test/
 *.swp
+*.swo
 __pycache__/
 *.raw
 *.json
