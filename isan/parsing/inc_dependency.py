@@ -3,6 +3,7 @@ import collections
 import pickle
 import sys
 import random
+import time
 import isan.common.perceptrons as perceptrons
 import isan.parsing.dep_codec as codec
 """
@@ -15,6 +16,8 @@ class Defalt_Features:
         """
         self.raw=raw
     def __call__(self,stat):
+        #if stat in self.cache:
+        #    return self.cache[stat]
         ind,stack_top=stat
         top1,top2=stack_top
         s1_w,s1_t=None,None
@@ -36,16 +39,55 @@ class Defalt_Features:
             ('s1tq0tq1t',s1_t,q0_t,q1_t),('s1ts2tq0t',s1_t,s2_t,q0_t),
             ('s1wq0tq1t',s1_w,q0_t,q1_t),('s1ws2tq0t',s1_w,s2_t,q0_t),
                 ]
+        #self.cache[stat]=fv
         return fv
+
+class Stats :
+    def __init__(self):
+        self.init_stat=(0,(None,None))
+    def shift(self,raw,stat):
+        ind,stack_top=stat
+        if ind>=len(raw): return None
+        return (ind+1,((ind,ind+1,raw[ind]),stack_top[0]))
+    def reduce(self,raw,stat,predictor):
+        ind,stack_top=stat
+        right,left=stack_top
+        if right==None or left==None:return None,None
+        return ((ind,((left[0],right[1],left[2] ),predictor[1][1])),
+             (ind,((left[0],right[1],right[2]),predictor[1][1])),)
+
+    def gen_stats(self,raw,actions):
+        stat=None
+        stack=[]
+        ind=0
+        for action in actions:
+            stat=(ind,(stack[-1] if len(stack)>0 else None,
+                        stack[-2] if len(stack)>1 else None))
+            yield stat
+            if action=='s':
+                stack.append((ind,ind+1,raw[ind]))
+                ind+=1
+            else:
+                left=stack[-2][0]
+                right=stack[-1][1]
+                if action=='l':
+                    stack[-2]=(left,right,stack[-2][2])
+                    stack.pop()
+                if action=='r':
+                    stack[-2]=(left,right,stack[-1][2])
+                    stack.pop()
         
 class Model :
     """
     """
     @staticmethod
     def result_to_actions(result):
+        """
+        将依存树转化为shift-reduce的动作序列（与动态规划用的状态空间无关）
+        在一对多中选择了一个（没搞清楚相关工作怎么弄的）
+        """
         stack=[]
         actions=[]
-        #print(">>",result)
         record=[[ind,head,0] for ind,head in enumerate(result)]
         for ind,head,_ in record:
             if head!=-1:
@@ -54,7 +96,6 @@ class Model :
             actions.append('s')
             stack.append([ind,result[ind],record[ind][2]])
             while len(stack)>=2:
-                #print(stack)
                 if stack[-1][2]==0 and stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
                     actions.append('l')
                     stack.pop()
@@ -70,6 +111,9 @@ class Model :
 
     @staticmethod
     def actions_to_result(actions):
+        """
+        动作序列转化为依存结果（与DP的状态设计无关）
+        """
         ind=0
         stack=[]
         arcs=[]
@@ -94,21 +138,15 @@ class Model :
         self.lreduce_weights=perceptrons.Features()#特征
         self.rreduce_weights=perceptrons.Features()#特征
         self.features=Defalt_Features()
-
-    def cal_score(self,step):
-        for stat,info in self.steps[step].items():
-            for alpha in info['alphas']:
-                alpha[0]=0
-                alpha[1]=2
-                #print(stat,alpha[:])
-                pass
+        self.stats=Stats()
+        self.beam_size=4
+    
     def find_thrink(self,step):
-        self.cal_score(step)
         for stat,info in self.steps[step].items():
             info['alphas'].sort(key=lambda x:x['c'],reverse=True)
         beam=[(info,stat) for stat,info in self.steps[step].items()]
         beam.sort(reverse=True,key=lambda x:x[0]['alphas'][0]['c'])
-        beam=beam[:min(len(beam),4)]
+        beam=beam[:min(len(beam),self.beam_size)]
         return [stat for _,stat in beam]
 
     def find_next(self,step):
@@ -116,18 +154,15 @@ class Model :
             fv=self.features(k)
             self._gen_next(step,k,fv)
 
-
-    
     def _gen_next(self,step,stat,fv):
-        ind,stack_top=stat
         stat_info=self.steps[step][stat]
         alphas=stat_info['alphas']
-        betas=stat_info.setdefault('betas',{})
+        #betas=stat_info.setdefault('betas',{})
         predictors=stat_info['pi']
         c,v=alphas[0]['c'],alphas[0]['v']
         #shift
-        if ind<len(self.raw):
-            key=(ind+1,((ind,ind+1,self.raw[ind]),stack_top[0]))
+        key=self.stats.shift(self.raw,stat)
+        if key:
             if key not in self.steps[step+1]:
                 self.steps[step+1][key]={'pi':set(),'alphas':[]}
             new_stat_info=self.steps[step+1][key]
@@ -138,21 +173,18 @@ class Model :
                         'v':0,
                         'a':'s',
                         'p':((step,stat),)})
-            betas['s']=[key]
-        if stack_top[0]!=None and stack_top[1]!=None:
-            right,left=stack_top
-
-            for p_step,predictor in predictors:
-                last_stat_info=self.steps[p_step][predictor]
-                assert('betas' in last_stat_info)
-                last_fv=self.features(predictor)
-                last_xi=self.shift_weights(last_fv)
-                last_c,last_v=last_stat_info['alphas'][0]['c'],last_stat_info['alphas'][0]['v']
-                #left-reduce
-                key=(ind,((left[0],right[1],left[2] ),predictor[1][1]))
-                if key not in self.steps[step+1]:
-                    self.steps[step+1][key]={'pi':set(),'alphas':[]}
-                new_stat_info=self.steps[step+1][key]
+            #betas['s']=[key]
+        for p_step,predictor in predictors:
+            last_stat_info=self.steps[p_step][predictor]
+            last_fv=self.features(predictor)
+            last_xi=self.shift_weights(last_fv)
+            last_c,last_v=last_stat_info['alphas'][0]['c'],last_stat_info['alphas'][0]['v']
+            lkey,rkey=self.stats.reduce(self.raw,stat,predictor)
+            #left-reduce
+            if lkey :
+                if lkey not in self.steps[step+1]:
+                    self.steps[step+1][lkey]={'pi':set(),'alphas':[]}
+                new_stat_info=self.steps[step+1][lkey]
                 new_stat_info['pi'].update(last_stat_info['pi'])
                 lamda=self.lreduce_weights(fv)
                 delta=lamda+last_xi
@@ -161,13 +193,13 @@ class Model :
                             'v':last_v+v+delta,
                             'a':'l',
                             'p':((step,stat),(p_step,predictor))})
-                betas['l']=[key]
+                #betas['l']=[lkey]
 
-                #right-reduce
-                key=(ind,((left[0],right[1],right[2]),predictor[1][1]))
-                if key not in self.steps[step+1]:
-                    self.steps[step+1][key]={'pi':set(),'alphas':[]}
-                new_stat_info=self.steps[step+1][key]
+            #right-reduce
+            if rkey:
+                if rkey not in self.steps[step+1]:
+                    self.steps[step+1][rkey]={'pi':set(),'alphas':[]}
+                new_stat_info=self.steps[step+1][rkey]
                 new_stat_info['pi'].update(last_stat_info['pi'])
                 rho=self.rreduce_weights(fv)
                 delta=rho+last_xi
@@ -176,34 +208,34 @@ class Model :
                             'v':last_v+v+delta,
                             'a':'r',
                             'p':((step,stat),(p_step,predictor))})
-                betas['r']=[key]
+                #betas['r']=[rkey]
 
     def update(self,actions,training_step,delta):
-        stat=None
-        stack=[]
-        ind=0
-        raw=self.raw
-        for action in actions:
-            stat=(ind,(stack[-1] if len(stack)>0 else None,
-                        stack[-2] if len(stack)>1 else None))
-            #print(stat)
+        for stat,action in zip(self.stats.gen_stats(self.raw,actions),actions):
             fv=self.features(stat)
-            
-            if action=='s':
-                self.shift_weights.updates(fv,delta,training_step)
-                stack.append((ind,ind+1,raw[ind]))
-                ind+=1
-            else:
-                left=stack[-2][0]
-                right=stack[-1][1]
-                if action=='l':
-                    self.lreduce_weights.updates(fv,delta,training_step)
-                    stack[-2]=(left,right,stack[-2][2])
-                    stack.pop()
-                if action=='r':
-                    self.rreduce_weights.updates(fv,delta,training_step)
-                    stack[-2]=(left,right,stack[-1][2])
-                    stack.pop()
+            if action=='s': self.shift_weights.updates(fv,delta,training_step)
+            if action=='l': self.lreduce_weights.updates(fv,delta,training_step)
+            if action=='r': self.rreduce_weights.updates(fv,delta,training_step)
+
+    def _find_result(self,step,stat,begin,end,actions,stats):
+        if begin==end: return
+        info=self.steps[step][stat]
+        alpha=info['alphas'][0]
+        #assert(end==len(actions)or 'betas' in info)
+        action=alpha['a']
+        actions[end-1]=alpha['a']
+        if alpha['a']=='s': 
+            last_ind,last_stat=alpha['p'][0]
+            stats[last_ind]=last_stat
+            return
+        last,reduced=alpha['p']
+        r_ind,r_stat=reduced
+        last_ind,last_stat=last
+        actions[r_ind]='s'
+        stats[last_ind]=last_stat
+        stats[r_ind]=r_stat
+        self._find_result(r_ind,r_stat,begin,r_ind,actions,stats)
+        self._find_result(last_ind,last_stat,r_ind+1,end-1,actions,stats)
 
             
 
@@ -211,41 +243,19 @@ class Model :
         self.raw=raw
         self.features.set_raw(raw)
         self.steps=[{} for i in range(2*len(raw))]
-        self.steps[0][(0,(None,None))]={'pi':set(),
+        self.steps[0][self.stats.init_stat]={'pi':set(),
                     'alphas':[{'c' : 0, 'v' : 0, 'a': None }]}#初始状态
         for i in range(len(raw)*2-1):
             self.find_next(i)
-            for k in self.steps[i]:
-                #print(i,k)
-                pass
             
         stat=self.find_thrink(len(raw)*2-1)[0]
         step=len(raw)*2-1
         actions=[None for x in range(step)]
         stats=[None for x in range(step)]
-        def find(step,stat,begin,end,actions):
-            if begin==end: return
-            info=self.steps[step][stat]
-            alpha=info['alphas'][0]
-            assert(end==len(actions)or 'betas' in info)
-            action=alpha['a']
-            actions[end-1]=alpha['a']
-            if alpha['a']=='s': 
-                last_ind,last_stat=alpha['p'][0]
-                stats[last_ind]=last_stat
-                return
-            last,reduced=alpha['p']
-            r_ind,r_stat=reduced
-            last_ind,last_stat=last
-            actions[r_ind]='s'
-            stats[last_ind]=last_stat
-            stats[r_ind]=r_stat
-            find(r_ind,r_stat,begin,r_ind,actions)
-            find(last_ind,last_stat,r_ind+1,end-1,actions)
-        find(step,stat,0,step,actions)
+        self._find_result(step,stat,0,step,actions,stats)
         return actions    
+
     def average(self,step):
-        
         self.shift_weights.average(step)
         self.lreduce_weights.average(step)
         self.rreduce_weights.average(step)
@@ -270,6 +280,7 @@ def train(model,training):
     step=0
     for i in range(10):
         std,cor=0,0
+        otime=time.time()
         for ln,line in enumerate(open(training)):
             step+=1
             #if ln>100:break
@@ -290,7 +301,7 @@ def train(model,training):
             if std_result!=rst_result:
                 stats.update(rst_actions,step,-1)
                 stats.update(std_actions,step,1)
-        print(cor/std)
+        print(cor/std,time.time()-otime)
     model.average(step)
 
 def test(model,test):
