@@ -2,7 +2,8 @@
 import re
 
 
-
+def encode(raw,result):
+    return ' '.join(['_'.join([item[0],item[1],str(head)]) for item,head in zip(raw,result)])
 
 def decode(line):
     sen=[]

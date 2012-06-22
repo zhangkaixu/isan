@@ -16,65 +16,117 @@ class Defalt_Features:
         """
         self.raw=raw
     def __call__(self,stat):
-        #if stat in self.cache:
-        #    return self.cache[stat]
-        ind,stack_top=stat
-        top1,top2=stack_top
-        s1_w,s1_t=None,None
-        if top1:
-            s1_w,s1_t=top1[2]
-        s2_w,s2_t=None,None
-        if top2:
-            s2_w,s2_t=top2[2]
+        ind,_,stack_top=stat
+        s0,s1,s2_t=stack_top
+        s0_w,s0_t,s0l_t,s0r_t=None,None,None,None
+        if s0:
+            s0_w,s0_t,s0l_t,s0r_t=s0
+        s1_w,s1_t,s1l_t,s1r_t=None,None,None,None
+        if s1:
+            s1_w,s1_t,s1l_t,s1r_t=s1
         q0_w,q0_t=self.raw[ind] if ind<len(self.raw) else (None,None)
         q1_w,q1_t=self.raw[ind+1] if ind+1<len(self.raw) else (None,None)
         
-        fv=[('s1w',s1_w),('s1t',s1_t),('s1ws1t',s1_w,s1_t),
-            ('s2w',s2_w),('s2t',s2_t),('s2ws2t',s2_w,s2_t),
+        fv=[('s1w',s0_w),('s1t',s0_t),('s1ws1t',s0_w,s0_t),
+            ('s2w',s1_w),('s2t',s1_t),('s2ws2t',s1_w,s1_t),
             ('q0w',q0_w),('q0t',q0_t),('q0wq0t',q0_w,q0_t),
-            ('s1ws2w',s1_w,s2_w),('s1ts2t',s1_t,s2_t),
-            ('s1tq0t',s1_t,q0_t),('s1ws1ts2t',s1_w,s1_t,s2_t),
-            ('s1ts2ws2t',s1_t,s2_w,s2_t),('s1ws1ts2w',s1_w,s1_t,s2_w),
-            ('s1ws2ws2t',s1_w,s2_w,s2_t),('s1ws1ts2ws2t',s1_w,s1_t,s2_w,s2_t),
-            ('s1tq0tq1t',s1_t,q0_t,q1_t),('s1ts2tq0t',s1_t,s2_t,q0_t),
-            ('s1wq0tq1t',s1_w,q0_t,q1_t),('s1ws2tq0t',s1_w,s2_t,q0_t),
+            ('s1ws2w',s0_w,s1_w),('s1ts2t',s0_t,s1_t),
+            ('s1tq0t',s0_t,q0_t),('s1ws1ts2t',s0_w,s0_t,s1_t),
+            ('s1ts2ws2t',s0_t,s1_w,s1_t),('s1ws1ts2w',s0_w,s0_t,s1_w),
+            ('s1ws2ws2t',s0_w,s1_w,s1_t),('s1ws1ts2ws2t',s0_w,s0_t,s1_w,s1_t),
+            ('s1tq0tq1t',s0_t,q0_t,q1_t),('s1ts2tq0t',s0_t,s1_t,q0_t),
+            ('s1wq0tq1t',s0_w,q0_t,q1_t),('s1ws2tq0t',s0_w,s1_t,q0_t),
+            ('s0ts1ts0lt',s0_t,s1_t,s0l_t),('s0ts1ts0rt',s0_t,s1_t,s0r_t),
+            ('s0ts1ts1lt',s0_t,s1_t,s1l_t),('s0ts1ts1rt',s0_t,s1_t,s1r_t),
+            ('s0ts0ws0lt',s0_t,s0_w,s0l_t),('s0ts0ws0rt',s0_t,s0_w,s0r_t),
+            ('s0ts1ts2t',s0_t,s1_t,s2_t),
                 ]
-        #self.cache[stat]=fv
         return fv
 
 class Stats :
     def __init__(self):
-        self.init_stat=(0,(None,None))
+        self.init_stat=(0,(0,0),(None,None,None))
     def shift(self,raw,stat):
-        ind,stack_top=stat
+        ind,_,stack_top=stat
         if ind>=len(raw): return None
-        return (ind+1,((ind,ind+1,raw[ind]),stack_top[0]))
+        return (ind+1,
+                (ind,ind+1),
+                ((raw[ind][0],raw[ind][1],None,None),
+                        stack_top[0],
+                        stack_top[1][1] if stack_top[1] else None)
+                )
     def reduce(self,raw,stat,predictor):
-        ind,stack_top=stat
-        right,left=stack_top
-        if right==None or left==None:return None,None
-        return ((ind,((left[0],right[1],left[2] ),predictor[1][1])),
-             (ind,((left[0],right[1],right[2]),predictor[1][1])),)
+        ind,span,stack_top=stat
+        _,p_span,_=predictor
+        s0,s1,s2=stack_top
+        if s0==None or s1==None:return None,None
+        return ((ind,
+                (p_span[0],span[1]),
+                ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2])),
+             (ind,
+                (p_span[0],span[1]),
+                ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])),)
 
     def gen_stats(self,raw,actions):
+        sn=sum(1 if a=='s' else 0 for a in actions)
+        assert(sn*2-1==len(actions))
         stat=None
         stack=[]
         ind=0
         for action in actions:
-            stat=(ind,(stack[-1] if len(stack)>0 else None,
-                        stack[-2] if len(stack)>1 else None))
+            stat=(ind,(0,0),(stack[-1] if len(stack)>0 else None,
+                        stack[-2] if len(stack)>1 else None,
+                        stack[-3][1] if len(stack)>2 else None,
+                        ))
             yield stat
             if action=='s':
-                stack.append((ind,ind+1,raw[ind]))
+                stack.append([raw[ind][0],raw[ind][1],None,None])
                 ind+=1
             else:
                 left=stack[-2][0]
                 right=stack[-1][1]
                 if action=='l':
-                    stack[-2]=(left,right,stack[-2][2])
+                    stack[-2][3]=stack[-1][1]
                     stack.pop()
                 if action=='r':
-                    stack[-2]=(left,right,stack[-1][2])
+                    stack[-1][2]=stack[-2][1]
+                    stack[-2]=stack[-1]
+                    stack.pop()
+class Reduced_Stats :
+    def __init__(self):
+        self.init_stat=(0,(0,0),(None,None))
+    def shift(self,raw,stat):
+        ind,_,stack_top=stat
+        if ind>=len(raw): return None
+        return (ind+1,(ind,ind+1),(raw[ind],stack_top[0]))
+    def reduce(self,raw,stat,predictor):
+        ind,span,stack_top=stat
+        _,p_span,_=predictor
+        right,left=stack_top
+        if right==None or left==None:return None,None
+        return ((ind,(p_span[0],span[1]),(left,predictor[2][1])),
+             (ind,(p_span[0],span[1]),(right,predictor[2][1])),)
+
+    def gen_stats(self,raw,actions):
+        sn=sum(1 if a=='s' else 0 for a in actions)
+        assert(sn*2-1==len(actions))
+        stat=None
+        stack=[]
+        ind=0
+        for action in actions:
+            stat=(ind,(0,0),(stack[-1] if len(stack)>0 else None,
+                        stack[-2] if len(stack)>1 else None))
+            yield stat
+            if action=='s':
+                stack.append(raw[ind])
+                ind+=1
+            else:
+                left=stack[-2][0]
+                right=stack[-1][1]
+                if action=='l':
+                    stack.pop()
+                if action=='r':
+                    stack[-2]=stack[-1]
                     stack.pop()
         
 class Model :
@@ -97,16 +149,22 @@ class Model :
             stack.append([ind,result[ind],record[ind][2]])
             while len(stack)>=2:
                 if stack[-1][2]==0 and stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
+                #if stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
                     actions.append('l')
                     stack.pop()
                     stack[-1][2]-=1
-                elif stack[-2][2]==0 and stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
+                #elif stack[-2][2]==0 and stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
+                elif stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
                     actions.append('r')
                     stack[-2]=stack[-1]
                     stack.pop()
                     stack[-1][2]-=1
                 else:
                     break
+        #print(stack)
+        #print(len(actions),len(result))
+        #print(*enumerate(result))
+        assert(len(actions)==2*len(result)-1)
         return actions
 
     @staticmethod
@@ -133,17 +191,18 @@ class Model :
         arcs=[x for _,x in arcs]
         return arcs
 
-    def __init__(self):
+    def __init__(self,beam_size=16):
         self.shift_weights=perceptrons.Features()#特征
         self.lreduce_weights=perceptrons.Features()#特征
         self.rreduce_weights=perceptrons.Features()#特征
         self.features=Defalt_Features()
         self.stats=Stats()
-        self.beam_size=4
+        self.beam_size=beam_size
     
     def find_thrink(self,step):
         for stat,info in self.steps[step].items():
             info['alphas'].sort(key=lambda x:x['c'],reverse=True)
+            pass
         beam=[(info,stat) for stat,info in self.steps[step].items()]
         beam.sort(reverse=True,key=lambda x:x[0]['alphas'][0]['c'])
         beam=beam[:min(len(beam),self.beam_size)]
@@ -211,6 +270,11 @@ class Model :
                 #betas['r']=[rkey]
 
     def update(self,actions,training_step,delta):
+        
+        #print(delta)
+        #print(len(actions))
+        #print(len(self.raw))
+        #print(actions)
         for stat,action in zip(self.stats.gen_stats(self.raw,actions),actions):
             fv=self.features(stat)
             if action=='s': self.shift_weights.updates(fv,delta,training_step)
@@ -221,7 +285,6 @@ class Model :
         if begin==end: return
         info=self.steps[step][stat]
         alpha=info['alphas'][0]
-        #assert(end==len(actions)or 'betas' in info)
         action=alpha['a']
         actions[end-1]=alpha['a']
         if alpha['a']=='s': 
@@ -275,10 +338,10 @@ class Model :
         file.close()
         
 
-def train(model,training):
+def train(model,training,iteration=10):
     stats=model
     step=0
-    for i in range(10):
+    for i in range(iteration):
         std,cor=0,0
         otime=time.time()
         for ln,line in enumerate(open(training)):
@@ -287,6 +350,8 @@ def train(model,training):
             line=line.strip()
             sen=codec.decode(line)
             raw=[(word,tag) for word,tag,_,_ in sen]
+            if not raw:
+                print('x',line)
             std_result=[x for _,_,x,_ in sen]
             #print(raw)
             rst_actions=stats.decode(raw)
@@ -296,12 +361,14 @@ def train(model,training):
             #print(rst_result)
             #print(std_actions)
             #print(rst_actions)
+            #input()
+            #print(ln)
             std+=len(std_result)
             cor+=sum(1 if s==r else 0 for s,r in zip(std_result,rst_result))
             if std_result!=rst_result:
                 stats.update(rst_actions,step,-1)
                 stats.update(std_actions,step,1)
-        print(cor/std,time.time()-otime)
+        print(i+1,cor/std,time.time()-otime)
     model.average(step)
 
 def test(model,test):
@@ -317,8 +384,26 @@ def test(model,test):
         rst_result=stats.actions_to_result(rst_actions)
         std_actions=stats.result_to_actions(std_result)
         std+=len(std_result)
+        '''for i in range(len(raw)):
+            if raw[i][1]!='PU':
+                std+=1
+                if std_result[i]==rst_result[i]:cor+=1'''
         cor+=sum(1 if s==r else 0 for s,r in zip(std_result,rst_result))
+        #print(cor/std)
+        '''print(raw)
+        for ind,s,r in zip(range(len(sen)),std_result,rst_result):
+            if s!=r:
+                print(raw[ind],raw[s],raw[r])'''
     print(cor/std)
+def predict(model,cor=sys.stdin,output=sys.stdout):
+    stats=model
+    for line in cor:
+        line=line.strip()
+        raw=[item.split('_')[:2] for item in line.split()]
+        #print(raw)
+        rst_actions=stats.decode(raw)
+        rst_result=stats.actions_to_result(rst_actions)
+        print(codec.encode(raw,rst_result),file=output)
 
 if __name__=="__main__":
     pass
