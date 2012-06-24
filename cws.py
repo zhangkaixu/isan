@@ -14,14 +14,17 @@ if __name__=="__main__":
     parser.add_argument('--train',help='训练文件',action='append')
     parser.add_argument('-i','--iteration',help='模型迭代次数',dest='iteration',default='5')
     parser.add_argument('--test',help='测试用文件',dest='test_file')
+    parser.add_argument('--beam_width',help='搜索宽度',dest='beam_width',default='8')
     args=parser.parse_args()
     """如果指定了训练集，就训练模型"""
+    print("使用柱搜索，柱宽度为%s"%(make_color(args.beam_width)))
+            
     if args.train:
         print("由训练语料库%s迭代%s次，训练分词模型保存在%s。"%(make_color(' '.join(args.train)),
                         make_color(args.iteration),
                         make_color(args.model_file)),file=sys.stderr)
         model=inc_segger.Model(args.model_file,
-                    inc_segger.Defalt_Actions(
+                    inc_segger.Defalt_Actions(beam_width=int(args.beam_width)
                     )
             )
         model.train(args.train,int(args.iteration))
@@ -33,7 +36,7 @@ if __name__=="__main__":
         print("使用模型文件%s分词"%(make_color(args.model_file)),file=sys.stderr)
     
     model=inc_segger.Model(args.model_file,
-                inc_segger.Defalt_Actions(
+                inc_segger.Defalt_Actions(beam_width=int(args.beam_width)
                 )
         )
     model=inc_segger.Model(args.model_file)

@@ -8,6 +8,39 @@ import isan.common.perceptrons as perceptrons
 一个增量搜索模式的中文分词模块
 """
 
+class Defalt_Features:
+    def set_raw(self,raw):
+        """
+        对需要处理的句子做必要的预处理（如缓存特征）
+        """
+        self.raw=raw
+        self.uni_chars=list('###'+raw+'##')
+        self.bi_chars=[(self.uni_chars[i],self.uni_chars[i+1]) for i in range(len(self.uni_chars)-1)]
+    def __call__(self,stat):
+        raw=self.raw
+        uni_chars=self.uni_chars
+        bi_chars=self.bi_chars
+        c_ind=span[0]+2
+        ws_current=span[1]
+        ws_left=span[2]
+        fv=[
+                ("ws",ws_left,ws_current),
+                ("c",uni_chars[c_ind],ws_current),
+                ("r",uni_chars[c_ind+1],ws_current),
+                ('l',uni_chars[c_ind-1],ws_current),
+                ("cr",bi_chars[c_ind],ws_current),
+                ("lc",bi_chars[c_ind-1],ws_current),
+                ("rr2",bi_chars[c_ind+1],ws_current),
+                ("l2l",bi_chars[c_ind-2],ws_current),
+            ]
+        if len(span)>=4:
+            w_current=raw[span[0]-span[3]:span[0]]
+            #print(w_current,span,self.raw)
+            fv.append(("w",w_current))
+        #print(raw,span)
+        #print(fv)
+        return fv
+
 class Defalt_Atom_Action:
     def __init__(self):
         self.features=perceptrons.Features()#特征
@@ -56,9 +89,10 @@ class Defalt_Atom_Action:
         self.features.updates(self._key_gen(stat),delta,step)
 
 class Searcher:
-    def __init__(self):
+    def __init__(self,beam_width=8):
         self.sequence=[]
-        self.beam_width=2
+        self.beam_width=beam_width
+
     def forward(self,model):
         """
         线性搜索
@@ -129,10 +163,6 @@ class Defalt_Actions:
                         delta=alpha_beta[0][0][0]+beta-self.searcher.best_score
                         if action=='s':
                             pass
-                            #print(self.raw,stat)
-                            #print(delta,self.raw[stat[0]-stat[3]:stat[0]])
-                    #print(alpha_beta[0][0][0]+alpha_beta[1][0][0],self.searcher.best_score)
-        #input()
         pass
     @staticmethod
     def constituents_to_constraints(length,constituents):
@@ -167,11 +197,11 @@ class Defalt_Actions:
 
     
     def __init__(self,
-                atom_action=Defalt_Atom_Action):
+                atom_action=Defalt_Atom_Action,beam_width=8):
         self.sep_action=atom_action()
         self.com_action=atom_action()
         self.max_pos_size=1
-        self.searcher=Searcher()
+        self.searcher=Searcher(beam_width)
         #self.step=0
     def init(self):
         return (0,'|','|',0)

@@ -141,6 +141,20 @@ class TaggingEval:
         self._set_based(self._to_set(std),self._to_set(rst))
         for plugin in self.plugins:
             plugin(std,rst)
+    def eval_files(self,std_file,rst_file):
+        for g,r in zip(open(std_file),open(rst_file)):
+            gl=sum(len(x.partition(self.sep)[0])for x in g.split())
+            rl=sum(len(x.partition(self.sep)[0])for x in r.split())
+            if(gl!=rl):
+                print("---")
+                print(g.strip())
+                print(r.strip())
+            assert(gl==rl)
+            g=g.strip()
+            r=r.strip()
+            #print(g)
+            #print(r)
+            self(g.split(),r.split())
 if __name__=="__main__":
     import argparse
     parser=argparse.ArgumentParser(description="用于分词词性标注的评测和比较")
