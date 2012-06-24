@@ -198,6 +198,7 @@ class Model :
         self.features=Defalt_Features()
         self.stats=Stats()
         self.beam_size=beam_size
+        self.step=0
     
     def find_thrink(self,step):
         for stat,info in self.steps[step].items():
@@ -269,17 +270,13 @@ class Model :
                             'p':((step,stat),(p_step,predictor))})
                 #betas['r']=[rkey]
 
-    def update(self,actions,training_step,delta):
-        
-        #print(delta)
-        #print(len(actions))
-        #print(len(self.raw))
-        #print(actions)
+    def update(self,actions,delta):
+        #print(self.step,training_step)
         for stat,action in zip(self.stats.gen_stats(self.raw,actions),actions):
             fv=self.features(stat)
-            if action=='s': self.shift_weights.updates(fv,delta,training_step)
-            if action=='l': self.lreduce_weights.updates(fv,delta,training_step)
-            if action=='r': self.rreduce_weights.updates(fv,delta,training_step)
+            if action=='s': self.shift_weights.updates(fv,delta,self.step)
+            if action=='l': self.lreduce_weights.updates(fv,delta,self.step)
+            if action=='r': self.rreduce_weights.updates(fv,delta,self.step)
 
     def _find_result(self,step,stat,begin,end,actions,stats):
         if begin==end: return
@@ -318,20 +315,23 @@ class Model :
         self._find_result(step,stat,0,step,actions,stats)
         return actions    
 
-    def average(self,step):
-        self.shift_weights.average(step)
-        self.lreduce_weights.average(step)
-        self.rreduce_weights.average(step)
+    def average(self):
+        self.shift_weights.average(self.step)
+        self.lreduce_weights.average(self.step)
+        self.rreduce_weights.average(self.step)
         pass
 
     def save(self,filename):
         file=open(filename,'bw')
+        pickle.dump([self.step],file)
         pickle.dump(self.shift_weights,file)
         pickle.dump(self.lreduce_weights,file)
         pickle.dump(self.rreduce_weights,file)
         file.close()
     def load(self,filename):
         file=open(filename,'rb')
+        data=pickle.load(file)
+        self.step=data[0]
         self.shift_weights=pickle.load(file)
         self.lreduce_weights=pickle.load(file)
         self.rreduce_weights=pickle.load(file)
@@ -340,36 +340,26 @@ class Model :
 
 def train(model,training,iteration=10):
     stats=model
-    step=0
     for i in range(iteration):
         std,cor=0,0
         otime=time.time()
         for ln,line in enumerate(open(training)):
-            step+=1
-            #if ln>100:break
+            stats.step+=1
             line=line.strip()
             sen=codec.decode(line)
             raw=[(word,tag) for word,tag,_,_ in sen]
             if not raw:
-                print('x',line)
+                print('not raw')
             std_result=[x for _,_,x,_ in sen]
-            #print(raw)
             rst_actions=stats.decode(raw)
             rst_result=stats.actions_to_result(rst_actions)
             std_actions=stats.result_to_actions(std_result)
-            #print(std_result)
-            #print(rst_result)
-            #print(std_actions)
-            #print(rst_actions)
-            #input()
-            #print(ln)
             std+=len(std_result)
             cor+=sum(1 if s==r else 0 for s,r in zip(std_result,rst_result))
             if std_result!=rst_result:
-                stats.update(rst_actions,step,-1)
-                stats.update(std_actions,step,1)
+                stats.update(rst_actions,-1)
+                stats.update(std_actions,1)
         print(i+1,cor/std,time.time()-otime)
-    model.average(step)
 
 def test(model,test):
     stats=model
