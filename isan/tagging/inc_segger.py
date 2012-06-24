@@ -15,8 +15,9 @@ class Defalt_Features:
         """
         self.raw=raw
         self.uni_chars=list('###'+raw+'##')
-        self.bi_chars=[(self.uni_chars[i],self.uni_chars[i+1]) for i in range(len(self.uni_chars)-1)]
-    def __call__(self,stat):
+        self.bi_chars=[(self.uni_chars[i],self.uni_chars[i+1]) 
+                for i in range(len(self.uni_chars)-1)]
+    def __call__(self,span):
         raw=self.raw
         uni_chars=self.uni_chars
         bi_chars=self.bi_chars
@@ -35,100 +36,36 @@ class Defalt_Features:
             ]
         if len(span)>=4:
             w_current=raw[span[0]-span[3]:span[0]]
-            #print(w_current,span,self.raw)
             fv.append(("w",w_current))
-        #print(raw,span)
-        #print(fv)
         return fv
 
-class Defalt_Atom_Action:
-    def __init__(self):
-        self.features=perceptrons.Features()#特征
-    def set_raw(self,raw):
-        """
-        对需要处理的句子做必要的预处理（如缓存特征）
-        """
-        self.raw=raw
-        self.uni_chars=list('###'+raw+'##')
-        self.bi_chars=[(self.uni_chars[i],self.uni_chars[i+1]) for i in range(len(self.uni_chars)-1)]
-    def _key_gen(self,span):
-        raw=self.raw
-        uni_chars=self.uni_chars
-        bi_chars=self.bi_chars
-        c_ind=span[0]+2
-        ws_current=span[1]
-        ws_left=span[2]
-        fv=[
-                ("ws",ws_left,ws_current),
-                ("c",uni_chars[c_ind],ws_current),
-                ("r",uni_chars[c_ind+1],ws_current),
-                ('l',uni_chars[c_ind-1],ws_current),
-                ("cr",bi_chars[c_ind],ws_current),
-                ("lc",bi_chars[c_ind-1],ws_current),
-                ("rr2",bi_chars[c_ind+1],ws_current),
-                ("l2l",bi_chars[c_ind-2],ws_current),
-            ]
-        if len(span)>=4:
-            w_current=raw[span[0]-span[3]:span[0]]
-            #print(w_current,span,self.raw)
-            fv.append(("w",w_current))
-        #print(raw,span)
-        #print(fv)
-        return fv
-        
-    def __call__(self,stat):
-        """
-        返回一个动作的分数
-        """
-        return sum(self.features.get(cur,0) for cur in self._key_gen(stat))
-
-    def update(self,stat,delta,step=0):
-        """
-        更新权重
-        """
-        self.features.updates(self._key_gen(stat),delta,step)
 
 class Searcher:
     def __init__(self,beam_width=8):
         self.sequence=[]
         self.beam_width=beam_width
-
-    def forward(self,model):
+    def thrink(self,ind):
+        #sort alphas
+        for k,v in self.sequence[ind].items():
+            #alphas=v['alphas']
+            #max_ind=max(enumerate(v['alphas']),key=lambda x:x[1])[0]
+            #alphas[0],alphas[max_ind]=alphas[max_ind],alphas[0]
+            v['alphas'].sort(reverse=True)
+        #thrink beam
+        beam=sorted(list(self.sequence[ind].items()),key=lambda x:x[1]['alphas'][0],reverse=True)
+        beam=beam[:min(len(beam),self.beam_width)]
+        return [stat for stat,_ in beam]
+    def forward(self,sequence,model):
         """
         线性搜索
         value = [alphas,betas]
         alpha = [score, delta, action, link]
         """
-        sequence=self.sequence
-        del sequence[:]
-        sequence.append({model.init():([(0,None,None,None)],[])})
-        while True :
-            beam={}
-            for stat,alpha_beta in sequence[-1].items():
-                for action,next_stat,value in model.gen_next(stat):
-                    is_termed=model.is_termed(next_stat)
-                    if next_stat not in beam:
-                        beam[next_stat]=([],[])
-                    beam[next_stat][0].append((alpha_beta[0][0][0]+value,value,action,stat))
-            #sort alphas
-            for k,v in beam.items():
-                v[0].sort(reverse=True)
-            #thrink beam
-            beam=sorted(list(beam.items()),key=lambda x:x[1][0][0][0],reverse=True)
-            beam=beam[:min(len(beam),self.beam_width)]
-            sequence.append(dict(beam))
-            if is_termed : break
-        result=[]
-        item=beam[0][1][0][0]
-        self.best_score=item[0]
-        ind=len(sequence)-2
-        while True :
-            if item[3]==None: break
-            result.append(item[2])
-            item=sequence[ind][item[3]][0][0]
-            ind-=1
-        result.reverse()
-        return result
+        self.sequence=sequence
+        sequence[0][model.init]=dict(model.init_data)#初始化第一个状态
+        for ind in range(len(model.raw)+1):
+            for stat in self.thrink(ind):
+                model.gen_next(ind,stat)
     def backward(self):
         """
         使用beta算法计算后向分数
@@ -197,33 +134,36 @@ class Defalt_Actions:
 
     
     def __init__(self,
-                atom_action=Defalt_Atom_Action,beam_width=8):
-        self.sep_action=atom_action()
-        self.com_action=atom_action()
-        self.max_pos_size=1
+                features=Defalt_Features,beam_width=8):
+        self.sep_weights=perceptrons.Features()#特征
+        self.com_weights=perceptrons.Features()#特征
+        self.weights={'s':self.sep_weights,
+                'c':self.com_weights}
+        self.features=features()
         self.searcher=Searcher(beam_width)
-        #self.step=0
-    def init(self):
-        return (0,'|','|',0)
-    def is_termed(self,stat):
-        return stat[0]-1==len(self.raw)
-    def gen_next(self,stat):
+        #初始状态 (解析位置，上一个位置结果，上上个位置结果，当前词长)
+        self.init=(0,'|','|',0)
+        self.init_data={'alphas':[(0,None,None,None)],'betas':[]}
+    def gen_next_stats(self,stat):
+        """
+        由现有状态产生合法新状态
+        """
         ind,last,last2,wordl=stat
         genned=False
         if self.candidates:
             if 's' in self.candidates[ind]:
                 if self.constraints:
-                    #print(self.constraints)
                     left=ind-wordl
                     right=ind
-                    if not (self.constraints[left][1]<right or self.constraints[right][0]>left):
-                        yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+                    if not (self.constraints[left][1]<right 
+                            or self.constraints[right][0]>left):
+                        yield 's',(ind+1,'s',last,1)
                         genned=True
                 else:
-                    yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+                    yield 's',(ind+1,'s',last,1)
                     genned=True
             if 'c' in self.candidates[ind]:    
-                yield 'c',(ind+1,'c',last,wordl+1),self.com_action(stat)
+                yield 'c',(ind+1,'c',last,wordl+1)
                 genned=True
                 
         else:
@@ -231,40 +171,60 @@ class Defalt_Actions:
                 left=ind-wordl
                 right=ind
                 if not (self.constraints[left][1]<right or self.constraints[right][0]>left):
-                    yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+                    yield 's',(ind+1,'s',last,1)
                     genned=True
             else:
-                yield 's',(ind+1,'s',last,1),self.sep_action(stat)
+                yield 's',(ind+1,'s',last,1)
                 genned=True
-            yield 'c',(ind+1,'c',last,wordl+1),self.com_action(stat)
+            yield 'c',(ind+1,'c',last,wordl+1)
             genned=True
         if not genned:
-            yield 's',(ind+1,'s',last,1),self.sep_action(stat)
-            yield 'c',(ind+1,'c',last,wordl+1),self.com_action(stat)
+            yield 's',(ind+1,'s',last,1)
+            yield 'c',(ind+1,'c',last,wordl+1)
 
+    def gen_next(self,ind,stat):
+        """
+        产生新状态，并计算data
+        """
+        fv=self.features(stat)
+        alpha_beta=self.sequence[ind][stat]
+        beam=self.sequence[ind+1]
+        for action,key in self.gen_next_stats(stat):
+            if key not in beam:
+                beam[key]={'alphas':[],'betas':[]}
+            #value=self.sep_weights(fv) if action=='s' else self.com_weights(fv)
+            value=self.weights[action](fv)
+            beam[key]['alphas'].append((alpha_beta['alphas'][0][0]+value,value,action,stat))
+
+    def make_result(self):
+        """
+        由状态及data计算actions
+        """
+        sequence=self.sequence
+        result=[]
+        item=sequence[-1][self.searcher.thrink(len(sequence)-1)[0]]['alphas'][0]
+        self.best_score=item[0]
+        ind=len(sequence)-2
+        while True :
+            if item[3]==None: break
+            result.append(item[2])
+            item=sequence[ind][item[3]]['alphas'][0]
+            ind-=1
+        result.reverse()
+        return result
     def search(self,raw,candidates=None,constituents=None):
         self.raw=raw
         self.candidates=candidates
         self.constraints=self.constituents_to_constraints(len(raw),constituents)
-        self.sep_action.set_raw(raw)
-        self.com_action.set_raw(raw)
-        res=self.searcher.forward(self)
-        #self.debug()
+        self.features.set_raw(raw)
+        self.sequence=[{}for x in range(len(raw)+2)]
+        self.searcher.forward(self.sequence,self)
+        res=self.make_result()
         return res
     def update(self,x,std_actions,rst_actions,step):
-        #self.step+=1
-        #step=self.step
-        std_stat=self.init()
-        rst_stat=self.init()
-        for a,b in zip(rst_actions,std_actions):
-            if a=='s':
-                std_stat=self._separate_update(std_stat,-1,step=step)
-            if a=='c':
-                std_stat=self._combine_update(std_stat,-1,step=step)
-            if b=='s':
-                rst_stat=self._separate_update(rst_stat,1,step=step)
-            if b=='c':
-                rst_stat=self._combine_update(rst_stat,1,step=step)
+        self._update_actions(rst_actions,-1,step)
+        self._update_actions(std_actions,1,step)
+
     def is_violated(self,rst_actions,candidates,constituents):
         if candidates:
             if any(a not in b for a,b in zip(rst_actions,candidates)):
@@ -284,21 +244,19 @@ class Defalt_Actions:
                     left=right
         return False
     def average(self,step):
-        #print(step,self.step)
-        #step=self.step
-        
-        self.sep_action.features.average(step)
-        self.com_action.features.average(step)
+        for v in self.weights.values():
+            v.average(step)
     ### 私有函数 
-    def _separate_update(self,stat,delta,step=0):
-        ind,last,last2,wordl=stat
-        self.sep_action.update(stat,delta,step)
-        return (ind+1,'s',last,1)
-    def _combine_update(self,stat,delta,step=0):
-        ind,last,last2,wordl=stat
-        self.com_action.update(stat,delta,step)
-        return (ind+1,'c',last,wordl+1)
-
+    def _update_actions(self,actions,delta,step):
+        stat=self.init
+        for action in actions:
+            fv=self.features(stat)
+            ind,last,last2,wordl=stat
+            self.weights[action].updates(fv,delta,step)
+            if action=='s':
+                stat=(ind+1,'s',last,1)
+            else:
+                stat=(ind+1,'c',last,wordl+1)
 
 class Model:
     """
