@@ -127,8 +127,11 @@ class TaggingEval:
     
     def _to_set(self,seq):
         s=set()
-        if type(seq[0])==list:#word with tag
-            pass
+        if type(seq[0])!=str:#word with tag
+            offset=0
+            for word,tag in seq:
+                s.add((offset,word,tag))
+                offset+=len(word)
         else:#only word
             offset=0
             for word in seq:

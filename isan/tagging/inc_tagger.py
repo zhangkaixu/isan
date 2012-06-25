@@ -34,9 +34,9 @@ class Default_Features :
                 ("rr2",bi_chars[c_ind+1],ws_current),
                 ("l2l",bi_chars[c_ind-2],ws_current),
             ]
-        if len(span)>=4:
-            w_current=raw[span[0]-span[3]:span[0]]
-            fv.append(("w",w_current))
+        #if len(span)>=4:
+        #    w_current=raw[span[0]-span[3]:span[0]]
+        #    fv.append(("w",w_current))
         return fv
 
 
@@ -46,18 +46,20 @@ class Segmentation_Actions(dict):
     def actions_to_result(actions,raw):
         sen=[]
         cache=''
+        #print(actions,raw)
         for c,a in zip(raw,actions[1:]):
             cache+=c
+            a,tag=a
             if a=='s':
-                sen.append(cache)
+                sen.append((cache,tag))
                 cache=''
         if cache:
-            sen.append(cache)
+            sen.append((cache,tag))
         return sen
     @staticmethod
     def result_to_actions(y):
-        print(y)
-        actions=[('s',None)]
+        #print(y)
+        actions=[('s','$')]
         for w,t in y:
             for i in range(len(w)-1):
                 actions.append(('c',t))
@@ -65,8 +67,11 @@ class Segmentation_Actions(dict):
         return actions
 
     def __init__(self):
-        self['s']=perceptrons.Weights()#特征
-        self['c']=perceptrons.Weights()#特征
+        self[('s','$')]=perceptrons.Weights()#特征
+        
+    def new_action(self,action):
+        #print(action)
+        self[action]=perceptrons.Weights()
 
     def average(self,step):
         for v in self.values():
@@ -83,18 +88,20 @@ class Segmentation_Stats(perceptrons.Base_Stats):
         由现有状态产生合法新状态
         """
         ind,last,_,wordl=stat
-        yield 's',(ind+1,'s',last,1)
-        yield 'c',(ind+1,'c',last,wordl+1)
+        last_sc=last[0]
+        last_tag=last[1:]
+        for act in self.actions:
+            sc,tag=act
+            if last_sc=='c' and last_tag!=tag: continue
+            yield act,(ind+1,sc+tag,last,1 if sc=='s' else wordl+1)
 
     def _actions_to_stats(self,actions):
         stat=self.init
         for action in actions:
+            action,tag=action
             yield stat
             ind,last,_,wordl=stat
-            if action=='s':
-                stat=(ind+1,'s',last,1)
-            else:
-                stat=(ind+1,'c',last,wordl+1)
+            stat=(ind+1,action+tag,last,1 if action=='s' else wordl+1)
         yield stat
 
 
@@ -128,7 +135,7 @@ class Segmentation_Space(perceptrons.Base_Decoder):
         self.stats=Segmentation_Stats(self.actions,self.features)
 
     def search(self,raw):
-        print(raw)
+        #print(raw)
         self.raw=raw
         self.features.set_raw(raw)
         self.sequence=[{}for x in range(len(raw)+2)]
