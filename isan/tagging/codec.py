@@ -26,6 +26,14 @@ def encode(seq,sep='_'):
         return ' '.join(a+sep+b for a,b in seq)
     else:
         return ' '.join(seq)
+
+def to_raw(seq):
+    if not seq: return ''
+    if type(seq[0])!=str:
+        return ''.join(a for a,_ in seq)
+    else:
+        return ''.join(seq)
+
 if __name__=="__main__":
     
     print(encode([['a','b']]))

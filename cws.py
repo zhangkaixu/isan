@@ -24,7 +24,7 @@ if __name__=="__main__":
                         make_color(args.iteration),
                         make_color(args.model_file)),file=sys.stderr)
         model=inc_segger.Model(args.model_file,
-                    inc_segger.Defalt_Actions(beam_width=int(args.beam_width)
+                    inc_segger.Segmentation_Space(beam_width=int(args.beam_width)
                     )
             )
         model.train(args.train,int(args.iteration))
@@ -36,7 +36,7 @@ if __name__=="__main__":
         print("使用模型文件%s分词"%(make_color(args.model_file)),file=sys.stderr)
     
     model=inc_segger.Model(args.model_file,
-                inc_segger.Defalt_Actions(beam_width=int(args.beam_width)
+                inc_segger.Segmentation_Space(beam_width=int(args.beam_width)
                 )
         )
     model=inc_segger.Model(args.model_file)

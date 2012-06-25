@@ -21,3 +21,10 @@ def decode(line):
 
 def encode(seq):
     return ' '.join(seq)
+def to_raw(seq):
+    if not seq: return ''
+    if type(seq[0])!=str:
+        return ''.join(a for a,_ in seq)
+    else:
+        return ''.join(seq)
+
