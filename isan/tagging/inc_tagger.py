@@ -1,7 +1,7 @@
 import collections
 import pickle
 import sys
-import isan.tagging.cws_codec as tagging_codec
+import isan.tagging.tagging_codec as tagging_codec
 import isan.tagging.eval as tagging_eval
 import isan.common.perceptrons as perceptrons
 """
@@ -56,11 +56,12 @@ class Segmentation_Actions(dict):
         return sen
     @staticmethod
     def result_to_actions(y):
-        actions=['s']
-        for w in y:
+        print(y)
+        actions=[('s',None)]
+        for w,t in y:
             for i in range(len(w)-1):
-                actions.append('c')
-            actions.append('s')
+                actions.append(('c',t))
+            actions.append(('s',t))
         return actions
 
     def __init__(self):
@@ -127,6 +128,7 @@ class Segmentation_Space(perceptrons.Base_Decoder):
         self.stats=Segmentation_Stats(self.actions,self.features)
 
     def search(self,raw):
+        print(raw)
         self.raw=raw
         self.features.set_raw(raw)
         self.sequence=[{}for x in range(len(raw)+2)]

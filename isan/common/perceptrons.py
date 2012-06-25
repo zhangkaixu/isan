@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 import pickle
 import collections
-class Features(dict):
+class Weights(dict):
+    """
+    感知器特征的权重
+    """
     def __init__(self):
         self.acc=collections.defaultdict(int)
     def update(self,feature,delta=0,step=0):
@@ -21,21 +24,22 @@ class Features(dict):
             if self[k]==0:del self[k]
         del self.acc
 
-class Base_Space(object):
+class Base_Decoder(object):
     def __init__(self,beam_width):
-        self.beam_width=beam_width
+        self.beam_width=beam_width#搜索柱宽度
     def thrink(self,ind):
-        #sort alphas
+        #找到最好的alphas
         for k,v in self.sequence[ind].items():
             #alphas=v['alphas']
             #max_ind=max(enumerate(v['alphas']),key=lambda x:x[1])[0]
             #alphas[0],alphas[max_ind]=alphas[max_ind],alphas[0]
             v['alphas'].sort(reverse=True)
-        #thrink beam
+        #构造beam
         beam=sorted(list(self.sequence[ind].items()),key=lambda x:x[1]['alphas'][0][0],reverse=True)
         beam=beam[:min(len(beam),self.beam_width)]
         return [stat for stat,_ in beam]
     def forward(self):
+        #前向搜索
         self.sequence[0][self.stats.init]=dict(self.init_data)#初始化第一个状态
         for ind in range(len(self.raw)+1):
             for stat in self.thrink(ind):
@@ -60,7 +64,7 @@ class Base_Space(object):
                 alpha_beta[1].sort(reverse=True)
             ind-=1
 
-class Base_Stats :
+class Base_Stats(object):
     def update(self,x,std_actions,rst_actions,step):
         self._update_actions(rst_actions,-1,step)
         self._update_actions(std_actions,1,step)
@@ -86,6 +90,7 @@ class Base_Model(object):
             self.schema=schema
         self.actions=self.schema.actions
         self.stats=self.schema.stats
+        self.step=0
 
     def test(self,test_file):
         """
@@ -135,7 +140,7 @@ class Base_Model(object):
             for t_file in training_file:
                 for line in open(t_file):#迭代每个句子
                     y=self.codec.decode(line.strip())
-                    raw=''.join(y)
+                    raw=self.codec.to_raw(y)
                     y,hat_y=self._learn_sentence(raw,y)
                     eval(y,hat_y)
             eval.print_result()#打印评测结果

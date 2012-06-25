@@ -21,6 +21,7 @@ def decode(line):
 
 def encode(seq):
     return ' '.join(seq)
+
 def to_raw(seq):
     if not seq: return ''
     if type(seq[0])!=str:
