@@ -70,6 +70,8 @@ class Segmentation_Actions(dict):
     def average(self,step):
         for v in self.values():
             v.average(step)
+    def new_action(self,action):
+        self[action]=perceptrons.Weights()
         
 class Segmentation_Stats(perceptrons.Base_Stats):
     def __init__(self,actions,features):
