@@ -12,7 +12,9 @@ class Weights(dict):
         self[feature]+=delta
         self.acc[feature]+=step*delta
     def __call__(self,fv):
-        return sum(map(lambda x:self.get(x,0),fv))
+        #return 0
+        return sum(self.get(x,0)for x in fv)
+        #return sum(map(lambda x:self.get(x,0),fv))
     def updates(self,features,delta=0,step=0):
         for feature in features:
             self.setdefault(feature,0)
@@ -149,6 +151,7 @@ class Base_Model(object):
             for t_file in training_file:
                 for line in open(t_file):#迭代每个句子
                     y=self.codec.decode(line.strip())
+                    #print(y)
                     raw=self.codec.to_raw(y)
                     y,hat_y=self._learn_sentence(raw,y)
                     eval(y,hat_y)

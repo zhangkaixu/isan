@@ -15,28 +15,31 @@ class Default_Features :
         """
         self.raw=raw
         self.uni_chars=list('###'+raw+'##')
-        self.bi_chars=[(self.uni_chars[i],self.uni_chars[i+1]) 
+        self.bi_chars=[self.uni_chars[i]+self.uni_chars[i+1]
                 for i in range(len(self.uni_chars)-1)]
     def __call__(self,span):
         raw=self.raw
+        #print(raw,len(raw),span)
         uni_chars=self.uni_chars
         bi_chars=self.bi_chars
         c_ind=span[0]+2
         ws_current=span[1]
         ws_left=span[2]
+        #return []
         fv=[
-                ("ws",ws_left,ws_current),
-                ("c",uni_chars[c_ind],ws_current),
-                ("r",uni_chars[c_ind+1],ws_current),
-                ('l',uni_chars[c_ind-1],ws_current),
-                ("cr",bi_chars[c_ind],ws_current),
-                ("lc",bi_chars[c_ind-1],ws_current),
-                ("rr2",bi_chars[c_ind+1],ws_current),
-                ("l2l",bi_chars[c_ind-2],ws_current),
+                "ws"+ws_left+ws_current,
+                "c"+uni_chars[c_ind]+ws_current,
+                "r"+uni_chars[c_ind+1]+ws_current,
+                'l'+uni_chars[c_ind-1]+ws_current,
+                "cr"+bi_chars[c_ind]+ws_current,
+                "lc"+bi_chars[c_ind-1]+ws_current,
+                "rr2"+bi_chars[c_ind+1]+ws_current,
+                "l2l"+bi_chars[c_ind-2]+ws_current,
             ]
         if len(span)>=4:
             w_current=raw[span[0]-span[3]:span[0]]
-            fv.append(("w",w_current))
+            fv.append("w"+w_current)
+        #return []
         return fv
 
 
