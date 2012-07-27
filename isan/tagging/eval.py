@@ -19,6 +19,7 @@ class DiffToHTML:
     def __call__(self,std,rst):
         self.line_no+=1
         #for b,w,t in std:
+        print(std)
         cor=std&rst
         tag_std=set(std)
         seg_std={(b,w)for b,w,t in std}

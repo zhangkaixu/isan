@@ -1,7 +1,9 @@
 test/
+test.*
 *.swp
 *.swo
 __pycache__/
 *.raw
 *.json
 scripts/test
+*.so

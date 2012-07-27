@@ -24,6 +24,9 @@ class Default_Features :
         c_ind=span[0]+2
         ws_current=span[1]
         ws_left=span[2]
+        #print(raw)
+        #print(len(raw))
+        #print(c_ind)
         fv=[
                 ("ws",ws_left,ws_current),
                 ("c",uni_chars[c_ind],ws_current),
