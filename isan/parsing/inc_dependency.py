@@ -192,9 +192,9 @@ class Model :
         return arcs
 
     def __init__(self,beam_size=16):
-        self.shift_weights=perceptrons.Features()#特征
-        self.lreduce_weights=perceptrons.Features()#特征
-        self.rreduce_weights=perceptrons.Features()#特征
+        self.shift_weights=perceptrons.Weights()#特征
+        self.lreduce_weights=perceptrons.Weights()#特征
+        self.rreduce_weights=perceptrons.Weights()#特征
         self.features=Defalt_Features()
         self.stats=Stats()
         self.beam_size=beam_size

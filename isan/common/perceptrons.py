@@ -12,7 +12,9 @@ class Weights(dict):
         self[feature]+=delta
         self.acc[feature]+=step*delta
     def __call__(self,fv):
-        return sum(map(lambda x:self.get(x,0),fv))
+        #return 0
+        return sum(self.get(x,0)for x in fv)
+        #return sum(map(lambda x:self.get(x,0),fv))
     def updates(self,features,delta=0,step=0):
         for feature in features:
             self.setdefault(feature,0)
@@ -72,6 +74,9 @@ class Base_Stats(object):
     def _update_actions(self,actions,delta,step):
         for stat,action in zip(self._actions_to_stats(actions),actions):
             fv=self.features(stat)
+            if action not in self.actions:
+                #print(action)
+                self.actions.new_action(action)
             self.actions[action].updates(fv,delta,step)
 
 class Base_Model(object):
@@ -125,9 +130,15 @@ class Base_Model(object):
         self.step+=1#学习步数加一
         std_actions=self.actions.result_to_actions(y)#得到标准动作
         rst_actions=self.schema.search(raw)#得到解码后动作
+        #print('std action')
+        #print(std_actions)
+        #print('rst action')
+        #print(rst_actions)
         hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
         if y!=hat_y:#如果动作不一致，则更新
             self.stats.update(raw,std_actions,rst_actions,self.step)
+        #else:
+        #    print('all right')
         return y,hat_y
         
     def train(self,training_file,iteration=5):
@@ -140,7 +151,11 @@ class Base_Model(object):
             for t_file in training_file:
                 for line in open(t_file):#迭代每个句子
                     y=self.codec.decode(line.strip())
+                    #print(y)
                     raw=self.codec.to_raw(y)
                     y,hat_y=self._learn_sentence(raw,y)
                     eval(y,hat_y)
+                    #print(y)
+                    #print(hat_y)
+                    #eval.print_result()#打印评测结果
             eval.print_result()#打印评测结果

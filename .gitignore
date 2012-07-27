@@ -6,4 +6,6 @@ __pycache__/
 *.raw
 *.json
 scripts/test
+<<<<<<< HEAD
 *.so
+datasets/*

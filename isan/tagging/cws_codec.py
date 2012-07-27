@@ -14,7 +14,7 @@ import json
 def decode(line):
     if not line: return []
     if line[0]!='[':
-        seq=[word for word in line.split(' ')]
+        seq=[word for word in line.split()]
         return seq
     return tuple(json.loads(line))
         

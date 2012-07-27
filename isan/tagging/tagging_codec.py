@@ -6,7 +6,7 @@ import sys
 """
 def decode(line):
     if not line: return []
-    seq=[item.split('_') for item in line.split(' ')]
+    seq=[tuple(item.split('_')) for item in line.split(' ')]
     return seq
         
 
