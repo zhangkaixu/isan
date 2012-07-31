@@ -16,6 +16,10 @@
 
 ## 安装
 
+运行本软件需要Linux操作系统和Python3。（如果是Windows操作系统需要对代码做一些修改）
+
+在[github](https://github.com/zhangkaixu/isan)上下载[压缩包](https://github.com/zhangkaixu/isan/zipball/master)解压得到源代码，或者安装git后使用`git clone https://github.com/zhangkaixu/isan.git`
+
 ## 基本命令行用法
 
 例如中文分词的基本命令行用法如下：
@@ -36,6 +40,15 @@
 
 ## 输入输出格式
 
+每个句子一行
+
+* 原始句子 `材料利用率高。`
+
+* 分词结果 `材料 利用率 高 。`
+
+* 词性标注结果 `材料_NN 利用率_NN 高_VA 。_PU`
+
+例如在分词`.cws.py`命令中，`training_file` 、 `test_file` 以及预测阶段的输出的格式均是使用的分词结果格式， 预测阶段的输入格式是原始句子格式。
 
 
 # 增量模型架构
