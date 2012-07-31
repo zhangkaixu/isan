@@ -2,10 +2,10 @@ test/
 test.*
 *.swp
 *.swo
-__pycache__/
 *.raw
 *.json
 scripts/test
-<<<<<<< HEAD
 *.so
 datasets/*
+__pycache__
+README.html
