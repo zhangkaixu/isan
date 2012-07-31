@@ -142,7 +142,7 @@ class Segmentation_Space(perceptrons.Base_Decoder):
         """
         根据第ind步的状态stat，产生新状态，并计算data
         """
-        fv=self.features(stat)
+        fv=self.features(stat)#得到当前状态的特征向量
         alpha_beta=self.sequence[ind][stat]
         beam=self.sequence[ind+1]
         for action,key in self.stats.gen_next_stats(stat):

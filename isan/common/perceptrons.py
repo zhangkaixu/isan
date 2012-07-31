@@ -27,14 +27,25 @@ class Weights(dict):
         del self.acc
 
 class Base_Decoder(object):
+    """
+    解码
+
+    self.sequence: 动作序列的beam
+    
+    需要实现：
+    self.gen_next(ind,stat) # 第ind个动作，当前状态为stat时候，产生后续状态
+
+    """
     def __init__(self,beam_width):
         self.beam_width=beam_width#搜索柱宽度
     def thrink(self,ind):
         #找到最好的alphas
         for k,v in self.sequence[ind].items():
+            #这里使用排序比使用max还快，但保留max的代码
             #alphas=v['alphas']
             #max_ind=max(enumerate(v['alphas']),key=lambda x:x[1])[0]
             #alphas[0],alphas[max_ind]=alphas[max_ind],alphas[0]
+            
             v['alphas'].sort(reverse=True)
         #构造beam
         beam=sorted(list(self.sequence[ind].items()),key=lambda x:x[1]['alphas'][0][0],reverse=True)
@@ -67,17 +78,34 @@ class Base_Decoder(object):
             ind-=1
 
 class Base_Stats(object):
-    def update(self,x,std_actions,rst_actions,step):
-        self._update_actions(rst_actions,-1,step)
-        self._update_actions(std_actions,1,step)
+    """
+    需要实现
+    self.init 初始状态
+    self.gen_next_stats
+    self._actions_to_stats
+    """
+    def update(self,x,std_actions,rst_actions,step,sequence=None):
+        #print("begin")
+        length=self._update_actions(std_actions,1,step,sequence)
+        #print(len(sequence),length)
+        length=self._update_actions(rst_actions,-1,step,sequence[:length])
+        #print(length)
+        #print("end")
     ### 私有函数 
-    def _update_actions(self,actions,delta,step):
-        for stat,action in zip(self._actions_to_stats(actions),actions):
+    def _update_actions(self,actions,delta,step,sequence):
+        length=0
+        #print(len(actions),len(sequence))
+        for stat,action,beam in zip(self._actions_to_stats(actions),actions,sequence[:]):
             fv=self.features(stat)
             if action not in self.actions:
                 #print(action)
                 self.actions.new_action(action)
             self.actions[action].updates(fv,delta,step)
+            length+=1
+            if stat not in beam:
+                #print('early update',length)
+                return length
+        return length
 
 class Base_Model(object):
     def __init__(self,model_file,schema=None,**conf):
@@ -130,15 +158,10 @@ class Base_Model(object):
         self.step+=1#学习步数加一
         std_actions=self.actions.result_to_actions(y)#得到标准动作
         rst_actions=self.schema.search(raw)#得到解码后动作
-        #print('std action')
-        #print(std_actions)
-        #print('rst action')
-        #print(rst_actions)
         hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
+        """这里需要考虑如何引入都说好的early update！"""
         if y!=hat_y:#如果动作不一致，则更新
-            self.stats.update(raw,std_actions,rst_actions,self.step)
-        #else:
-        #    print('all right')
+            self.stats.update(raw,std_actions,rst_actions,self.step,self.schema.sequence)
         return y,hat_y
         
     def train(self,training_file,iteration=5):
@@ -150,12 +173,8 @@ class Base_Model(object):
             if type(training_file)==str:training_file=[training_file]
             for t_file in training_file:
                 for line in open(t_file):#迭代每个句子
-                    y=self.codec.decode(line.strip())
-                    #print(y)
-                    raw=self.codec.to_raw(y)
-                    y,hat_y=self._learn_sentence(raw,y)
-                    eval(y,hat_y)
-                    #print(y)
-                    #print(hat_y)
-                    #eval.print_result()#打印评测结果
+                    y=self.codec.decode(line.strip())#得到标准输出
+                    raw=self.codec.to_raw(y)#得到标准输入
+                    y,hat_y=self._learn_sentence(raw,y)#根据（输入，输出）学习参数，顺便得到解码结果
+                    eval(y,hat_y)#根据解码结果和标准输出，评价效果
             eval.print_result()#打印评测结果
