@@ -14,6 +14,10 @@ def decode(line):
     return sen
         
 
+def to_raw(line):
+    #print(line)
+    return [(w,t)for w,t,*_ in line]
+    
 
 if __name__=="__main__":
     for line in open('/media/exp/isan/test/hit_dep.txt'):

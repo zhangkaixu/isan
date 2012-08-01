@@ -46,10 +46,12 @@ class Base_Decoder(object):
             #max_ind=max(enumerate(v['alphas']),key=lambda x:x[1])[0]
             #alphas[0],alphas[max_ind]=alphas[max_ind],alphas[0]
             
-            v['alphas'].sort(reverse=True)
+            v['alphas'].sort(reverse=True,key=lambda x:x[0])
         #构造beam
         beam=sorted(list(self.sequence[ind].items()),key=lambda x:x[1]['alphas'][0][0],reverse=True)
+        #print(len(beam))
         beam=beam[:min(len(beam),self.beam_width)]
+        #print(len(beam))
         return [stat for stat,_ in beam]
     def forward(self):
         #前向搜索
