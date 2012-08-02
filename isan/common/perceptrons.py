@@ -106,7 +106,8 @@ class Base_Stats(object):
             length+=1
             if stat not in beam:
                 #print('early update',length)
-                return length
+                #return length
+                pass
         return length
 
 class Base_Model(object):
