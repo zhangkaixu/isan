@@ -53,10 +53,10 @@ class Base_Decoder(object):
         beam=beam[:min(len(beam),self.beam_width)]
         #print(len(beam))
         return [stat for stat,_ in beam]
-    def forward(self):
+    def forward(self,get_step=lambda x:len(x)+1):
         #前向搜索
         self.sequence[0][self.stats.init]=dict(self.init_data)#初始化第一个状态
-        for ind in range(len(self.raw)+1):
+        for ind in range(get_step(self.raw)):
             for stat in self.thrink(ind):
                 self.gen_next(ind,stat)
     def backward(self):
@@ -87,6 +87,8 @@ class Base_Stats(object):
     self._actions_to_stats
     """
     def update(self,x,std_actions,rst_actions,step,sequence=None):
+        #print('std',std_actions)
+        #print('rst',rst_actions)
         #print("begin")
         length=self._update_actions(std_actions,1,step,sequence)
         #print(len(sequence),length)
@@ -104,6 +106,7 @@ class Base_Stats(object):
                 self.actions.new_action(action)
             self.actions[action].updates(fv,delta,step)
             length+=1
+            #print('stat',stat)
             if stat not in beam:
                 #print('early update',length)
                 #return length

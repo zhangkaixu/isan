@@ -42,6 +42,27 @@ class Default_Features :
 class Actions(dict):
     @staticmethod
     def actions_to_result(actions,raw):
+        #print(actions,raw)
+        ind=0
+        stack=[]
+        arcs=[]
+        for a in actions:
+            if a=='s':
+                stack.append(ind)
+                ind+=1
+            elif a=='l':
+                arcs.append((stack[-1],stack[-2]))
+                stack.pop()
+            elif a=='r':
+                arcs.append((stack[-2],stack[-1]))
+                stack[-2]=stack[-1]
+                stack.pop()
+        arcs.append((stack[-1],-1))
+        arcs.sort()
+        arcs=[x for _,x in arcs]
+        #print(arcs)
+        return arcs
+
         sen=[]
         cache=''
         for c,a in zip(raw,actions[1:]):
@@ -53,12 +74,40 @@ class Actions(dict):
             sen.append(cache)
         return sen
     @staticmethod
-    def result_to_actions(y):
-        actions=['s']
-        for w in y:
-            for i in range(len(w)-1):
-                actions.append('c')
+    def result_to_actions(result):
+        """
+        将依存树转化为shift-reduce的动作序列（与动态规划用的状态空间无关）
+        在一对多中选择了一个（没搞清楚相关工作怎么弄的）
+        """
+        stack=[]
+        actions=[]
+        #print(result)
+        result=[ind for _,_,ind,_ in result]
+        record=[[ind,head,0] for ind,head in enumerate(result)]
+        for ind,head,_ in record:
+            if head!=-1 :
+                record[head][2]+=1
+        for ind,head in enumerate(result):
             actions.append('s')
+            stack.append([ind,result[ind],record[ind][2]])
+            while len(stack)>=2:
+                if stack[-1][2]==0 and stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
+                #if stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
+                    actions.append('l')
+                    stack.pop()
+                    stack[-1][2]-=1
+                #elif stack[-2][2]==0 and stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
+                elif stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
+                    actions.append('r')
+                    stack[-2]=stack[-1]
+                    stack.pop()
+                    stack[-1][2]-=1
+                else:
+                    break
+        #print(stack)
+        #print(len(actions),len(result))
+        #print(*enumerate(result))
+        assert(len(actions)==2*len(result)-1)
         return actions
 
     def __init__(self):
@@ -98,7 +147,7 @@ class Stats(perceptrons.Base_Stats):
                 (p_span[0],span[1]),
                 ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])),)
     def gen_next_stats(self,stat):
-        print(stat)
+        #print(stat)
         yield 's',self.shift(self.raw,stat)
         l,r=self.reduce(self.raw,stat)
         yield 'l',l
@@ -112,15 +161,42 @@ class Stats(perceptrons.Base_Stats):
         yield 'c',(ind+1,'c',last,wordl+1)
 
     def _actions_to_stats(self,actions):
-        stat=self.init
+        #print(actions)
+        sn=sum(1 if a=='s' else 0 for a in actions)
+        assert(sn*2-1==len(actions))
+        stat=None
+        stack=[]
+        ind=0
         for action in actions:
+            stat=(ind,(0,0),(tuple(stack[-1]) if len(stack)>0 else None,
+                        tuple(stack[-2]) if len(stack)>1 else None,
+                        tuple(stack[-3][1]) if len(stack)>2 else None,
+                        ))
+            #print('stat',stat)
             yield stat
-            ind,last,_,wordl=stat
             if action=='s':
-                stat=(ind+1,'s',last,1)
+                stack.append([self.raw[ind][0],self.raw[ind][1],None,None])
+                ind+=1
             else:
-                stat=(ind+1,'c',last,wordl+1)
-        yield stat
+                left=stack[-2][0]
+                right=stack[-1][1]
+                if action=='l':
+                    stack[-2][3]=stack[-1][1]
+                    stack.pop()
+                if action=='r':
+                    stack[-1][2]=stack[-2][1]
+                    stack[-2]=stack[-1]
+                    stack.pop()
+                    
+        #stat=self.init
+        #for action in actions:
+        #    yield stat
+        #    ind,last,_,wordl=stat
+        #    if action=='s':
+        #        stat=(ind+1,'s',last,1)
+        #    else:
+        #        stat=(ind+1,'c',last,wordl+1)
+        #yield stat
 class Decoder(perceptrons.Base_Decoder):
     """
     线性搜索
@@ -152,7 +228,7 @@ class Decoder(perceptrons.Base_Decoder):
     
     def _find_result(self,step,stat,begin,end,actions,stats):
         if begin==end: return
-        info=self.steps[step][stat]
+        info=self.sequence[step][stat]
         alpha=info['alphas'][0]
         action=alpha['a']
         actions[end-1]=alpha['a']
@@ -176,7 +252,7 @@ class Decoder(perceptrons.Base_Decoder):
         self.sequence=[{} for i in range(2*len(raw))]
         #self.sequence[0][self.stats.init]={'pi':set(),
         #            'alphas':[{'c' : 0, 'v' : 0, 'a': None }]}#初始状态
-        self.forward()
+        self.forward(lambda x:2*len(x)-1)
         res=self.make_result()
         return res
 
