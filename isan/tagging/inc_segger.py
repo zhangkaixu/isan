@@ -11,6 +11,12 @@ import isan.tagging.cwsfeature as cwsfeature
 
 class Default_Features :
     def set_raw(self,raw):
+        cwsfeature.set_raw(raw)
+    def __call__(self,span):
+        return cwsfeature.get_features(span)
+
+class Default_Features_In_Python :
+    def set_raw(self,raw):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
         """
@@ -24,7 +30,6 @@ class Default_Features :
     def __call__(self,span):
         return cwsfeature.get_features(span)
         raw=self.raw
-        #print(raw,len(raw),span)
         uni_chars=self.uni_chars
         bi_chars=self.bi_chars
         c_ind=span[0]+2
@@ -44,8 +49,6 @@ class Default_Features :
         if len(span)>=4:
             w_current=raw[span[0]-span[3]:span[0]]
             fv.append("w"+w_current)
-        #return []
-
         return fv
 
 
@@ -115,20 +118,20 @@ class Segmentation_Space(perceptrons.Base_Decoder):
     value = [alphas,betas]
     alpha = [score, delta, action, link]
     """
-    def debug(self):
-        """
-        used to generate lattice
-        """
-        self.searcher.backward()
-        sequence=self.searcher.sequence
-        for i,d in enumerate(sequence):
-            for stat,alpha_beta in d.items():
-                if alpha_beta[1]:
-                    for beta,db,action,n_stat in alpha_beta[1]:
-                        if beta==None:continue
-                        delta=alpha_beta[0][0][0]+beta-self.searcher.best_score
-                        if action=='s':
-                            pass
+    #def debug(self):
+    #    """
+    #    used to generate lattice
+    #    """
+    #    self.searcher.backward()
+    #    sequence=self.searcher.sequence
+    #    for i,d in enumerate(sequence):
+    #        for stat,alpha_beta in d.items():
+    #            if alpha_beta[1]:
+    #                for beta,db,action,n_stat in alpha_beta[1]:
+    #                    if beta==None:continue
+    #                    delta=alpha_beta[0][0][0]+beta-self.searcher.best_score
+    #                    if action=='s':
+    #                        pass
     
     def __init__(self,beam_width=8):
         super(Segmentation_Space,self).__init__(beam_width)

@@ -59,25 +59,25 @@ class Base_Decoder(object):
         for ind in range(get_step(self.raw)):
             for stat in self.thrink(ind):
                 self.gen_next(ind,stat)
-    def backward(self):
-        """
-        使用beta算法计算后向分数
-        """
-        sequence=self.sequence
-        ind=len(sequence)-1
-        for stat,alpha_beta in sequence[ind].items():#初始化最后一项的分数
-            alpha_beta[1].append((0,None,None,None))
-        while ind>0:
-            for stat,alpha_beta in sequence[ind].items():
-                alphas=alpha_beta[0]
-                if not alpha_beta[1]: continue
-                beta=alpha_beta[1][0][0]
-                for score,delta,action,pre_stat in alphas:
-                    sequence[ind-1][pre_stat][1].append((beta+delta,delta,action,stat))
-            #排序
-            for _,alpha_beta in sequence[ind-1].items():
-                alpha_beta[1].sort(reverse=True)
-            ind-=1
+    #def backward(self):
+    #    """
+    #    使用beta算法计算后向分数
+    #    """
+    #    sequence=self.sequence
+    #    ind=len(sequence)-1
+    #    for stat,alpha_beta in sequence[ind].items():#初始化最后一项的分数
+    #        alpha_beta[1].append((0,None,None,None))
+    #    while ind>0:
+    #        for stat,alpha_beta in sequence[ind].items():
+    #            alphas=alpha_beta[0]
+    #            if not alpha_beta[1]: continue
+    #            beta=alpha_beta[1][0][0]
+    #            for score,delta,action,pre_stat in alphas:
+    #                sequence[ind-1][pre_stat][1].append((beta+delta,delta,action,stat))
+    #        #排序
+    #        for _,alpha_beta in sequence[ind-1].items():
+    #            alpha_beta[1].sort(reverse=True)
+    #        ind-=1
 
 class Base_Stats(object):
     """
