@@ -4,6 +4,7 @@ import sys
 import isan.tagging.cws_codec as tagging_codec
 import isan.tagging.eval as tagging_eval
 import isan.common.perceptrons as perceptrons
+import isan.tagging.cwsfeature as cwsfeature
 """
 一个增量搜索模式的中文分词模块
 """
@@ -13,11 +14,15 @@ class Default_Features :
         """
         对需要处理的句子做必要的预处理（如缓存特征）
         """
+        cwsfeature.set_raw(raw)
+        return
         self.raw=raw
         self.uni_chars=list('###'+raw+'##')
         self.bi_chars=[self.uni_chars[i]+self.uni_chars[i+1]
                 for i in range(len(self.uni_chars)-1)]
+
     def __call__(self,span):
+        return cwsfeature.get_features(span)
         raw=self.raw
         #print(raw,len(raw),span)
         uni_chars=self.uni_chars
@@ -25,6 +30,7 @@ class Default_Features :
         c_ind=span[0]+2
         ws_current=span[1]
         ws_left=span[2]
+        
         fv=[
                 "ws"+ws_left+ws_current,
                 "c"+uni_chars[c_ind]+ws_current,
