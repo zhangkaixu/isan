@@ -11,12 +11,19 @@ import json
 """
 
 """
+
+
+
 def decode(line):
     if not line: return []
     if line[0]!='[':
         seq=[word for word in line.split()]
-        return seq
-    return tuple(json.loads(line))
+        raw=''.join(seq)
+        return raw,seq,None
+    data=json.loads(line)
+    if not data[0] and data[1]:
+        data[0]=''.join(data[1])
+    return data
         
 
 def encode(seq):

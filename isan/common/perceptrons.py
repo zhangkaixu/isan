@@ -137,8 +137,7 @@ class Base_Model(object):
         """
         eval=self.Eval()
         for line in open(test_file):
-            y=self.codec.decode(line.strip())
-            raw=self.codec.to_raw(y)
+            raw,y,set_Y=self.codec.decode(line.strip())
             hat_y=self(raw)
             eval(y,hat_y)
         eval.print_result()
@@ -157,15 +156,17 @@ class Base_Model(object):
         rst_actions=self.schema.search(raw)
         hat_y=self.actions.actions_to_result(rst_actions,raw)
         return hat_y
-    def _learn_sentence(self,raw,y):
+    def _learn_sentence(self,raw,y,set_Y=None):
         """
         学习，根据生句子和标准分词结果
         """
         self.step+=1#学习步数加一
-        std_actions=self.actions.result_to_actions(y)#得到标准动作
+        if y:
+            std_actions=self.actions.result_to_actions(y)#得到标准动作
+        else:
+            std_actions=self.schema.search(raw,set_Y)
         rst_actions=self.schema.search(raw)#得到解码后动作
         hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
-        """这里需要考虑如何引入都说好的early update！"""
         if y!=hat_y:#如果动作不一致，则更新
             self.stats.update(raw,std_actions,rst_actions,self.step,self.schema.sequence)
         return y,hat_y
@@ -179,8 +180,10 @@ class Base_Model(object):
             if type(training_file)==str:training_file=[training_file]
             for t_file in training_file:
                 for line in open(t_file):#迭代每个句子
-                    y=self.codec.decode(line.strip())#得到标准输出
-                    raw=self.codec.to_raw(y)#得到标准输入
-                    y,hat_y=self._learn_sentence(raw,y)#根据（输入，输出）学习参数，顺便得到解码结果
+                    rtn=self.codec.decode(line.strip())#得到标准输出
+                    if not rtn:continue
+                    raw,y,set_Y=rtn
+                    #raw=self.codec.to_raw(y)#得到标准输入
+                    y,hat_y=self._learn_sentence(raw,y,set_Y)#根据（输入，输出）学习参数，顺便得到解码结果
                     eval(y,hat_y)#根据解码结果和标准输出，评价效果
             eval.print_result()#打印评测结果

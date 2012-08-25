@@ -39,6 +39,7 @@ class Default_Features :
             w_current=raw[span[0]-span[3]:span[0]]
             fv.append("w"+w_current)
         #return []
+
         return fv
 
 
@@ -81,7 +82,7 @@ class Segmentation_Stats(perceptrons.Base_Stats):
         self.features=features
         #初始状态 (解析位置，上一个位置结果，上上个位置结果，当前词长)
         self.init=(0,'|','|',0)
-    def gen_next_stats(self,stat):
+    def gen_next_stats(self,stat,set_Y=None):
         """
         由现有状态产生合法新状态
         """
@@ -130,8 +131,9 @@ class Segmentation_Space(perceptrons.Base_Decoder):
         self.actions=Segmentation_Actions()
         self.stats=Segmentation_Stats(self.actions,self.features)
 
-    def search(self,raw):
+    def search(self,raw,set_Y=None):
         self.raw=raw
+        self.set_Y=set_Y
         self.features.set_raw(raw)
         self.sequence=[{}for x in range(len(raw)+2)]
         self.forward()
@@ -145,7 +147,7 @@ class Segmentation_Space(perceptrons.Base_Decoder):
         fv=self.features(stat)#得到当前状态的特征向量
         alpha_beta=self.sequence[ind][stat]
         beam=self.sequence[ind+1]
-        for action,key in self.stats.gen_next_stats(stat):
+        for action,key in self.stats.gen_next_stats(stat,self.set_Y):
             if key not in beam:
                 beam[key]={'alphas':[],'betas':[]}
             value=self.actions[action](fv)
