@@ -7,6 +7,7 @@ test.*
 *.json
 scripts/test
 *.so
+*.bin
 datasets/*
 __pycache__
 README.html

@@ -5,6 +5,7 @@ import isan.tagging.cws_codec as tagging_codec
 import isan.tagging.eval as tagging_eval
 import isan.common.perceptrons as perceptrons
 import isan.tagging.cwsfeature as cwsfeature
+import isan.tagging.dfabeam as dfabeam
 """
 一个增量搜索模式的中文分词模块
 """
@@ -111,7 +112,6 @@ class Segmentation_Stats(perceptrons.Base_Stats):
         yield stat
 
 
-
 class Segmentation_Space(perceptrons.Base_Decoder):
     """
     线性搜索
@@ -133,20 +133,35 @@ class Segmentation_Space(perceptrons.Base_Decoder):
     #                    if action=='s':
     #                        pass
     
+    def keygen_for_c(self,stat):
+        fv=self.features(stat)#得到当前状态的特征向量
+        nexts=[]
+        for action,key in self.stats.gen_next_stats(stat,self.set_Y):
+            value=self.actions[action](fv)
+            nexts.append((key,action,value))
+        #print(nexts)
+        #input()
+        return nexts
     def __init__(self,beam_width=8):
         super(Segmentation_Space,self).__init__(beam_width)
         self.init_data={'alphas':[(0,None,None,None)],'betas':[]}
         self.features=Default_Features()
         self.actions=Segmentation_Actions()
         self.stats=Segmentation_Stats(self.actions,self.features)
+        dfabeam.set_init([self.stats.init,self.keygen_for_c])
 
     def search(self,raw,set_Y=None):
         self.raw=raw
         self.set_Y=set_Y
         self.features.set_raw(raw)
+        re=dfabeam.search(len(raw)+1)
+        self.sequence=[{}for x in range(len(raw)+2)]
+        return re
         self.sequence=[{}for x in range(len(raw)+2)]
         self.forward()
         res=self.make_result()
+        #print(res)
+        #print(re)
         return res
 
     def gen_next(self,ind,stat):
