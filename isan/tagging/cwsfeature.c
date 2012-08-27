@@ -69,7 +69,7 @@ get_features(PyObject *self, PyObject *span)
     Four f_right_right2={7,(char_right),(char_right2),(left_action)};
     
 
-    PyObject* list=PyList_New(9);
+    PyObject* list=PyList_New(8);
     PyList_SetItem(list,0,PyBytes_FromStringAndSize((char*)&f_trans,sizeof(f_trans)));
     PyList_SetItem(list,1,PyBytes_FromStringAndSize((char*)&f_mid,sizeof(f_mid)));
     PyList_SetItem(list,2,PyBytes_FromStringAndSize((char*)&f_right,sizeof(f_right)));
@@ -78,7 +78,7 @@ get_features(PyObject *self, PyObject *span)
     PyList_SetItem(list,5,PyBytes_FromStringAndSize((char*)&f_left_mid,sizeof(f_left_mid)));
     PyList_SetItem(list,6,PyBytes_FromStringAndSize((char*)&f_left2_left,sizeof(f_left2_left)));
     PyList_SetItem(list,7,PyBytes_FromStringAndSize((char*)&f_right_right2,sizeof(f_right_right2)));
-    PyList_SetItem(list,8,PyTuple_Pack(2,PyLong_FromLong(8),PySequence_GetSlice(raw,ind-sep_ind,ind)));
+    //PyList_SetItem(list,8,PyTuple_Pack(2,PyLong_FromLong(8),PySequence_GetSlice(raw,ind-sep_ind,ind)));
     return list;
 };
 

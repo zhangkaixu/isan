@@ -1,22 +1,27 @@
 #!/usr/bin/python3
 import pickle
 import collections
+import isan.common.weights as weights
 class Weights(dict):
     """
     感知器特征的权重
     """
     def __init__(self):
         self.acc=collections.defaultdict(int)
-    def update(self,feature,delta=0,step=0):
-        self.setdefault(feature,0)
-        self[feature]+=delta
-        self.acc[feature]+=step*delta
+        self.c_weights=weights.new_weights(3)
+    def __del__(self):
+        weights.delete_weights(self.c_weights)
+    #def update(self,feature,delta=0,step=0):
+    #    self.setdefault(feature,0)
+    #    self[feature]+=delta
+    #    self.acc[feature]+=step*delta
     def __call__(self,fv):
         #return 0
-        return sum(self.get(x,0)for x in fv)
-        #return sum(map(lambda x:self.get(x,0),fv))
-    def updates(self,features,delta=0,step=0):
-        for feature in features:
+        return weights.call([self.c_weights,fv])
+    def updates(self,fv,delta=0,step=0):
+        weights.update([self.c_weights,fv,delta,step])
+        return
+        for feature in fv:
             self.setdefault(feature,0)
             self[feature]+=delta
             self.acc[feature]+=step*delta

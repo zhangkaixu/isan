@@ -10,27 +10,28 @@ import isan.tagging.dfabeam as dfabeam
 一个增量搜索模式的中文分词模块
 """
 
-class Default_Features :
+class Default_Features_inC :
     def set_raw(self,raw):
         cwsfeature.set_raw(raw)
     def __call__(self,span):
         return cwsfeature.get_features(span)
 
-class Default_Features_In_Python :
+class Default_Features :
     def set_raw(self,raw):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
         """
-        cwsfeature.set_raw(raw)
-        return
+        #cwsfeature.set_raw(raw)
+        #return
         self.raw=raw
         self.uni_chars=list('###'+raw+'##')
         self.bi_chars=[self.uni_chars[i]+self.uni_chars[i+1]
                 for i in range(len(self.uni_chars)-1)]
 
     def __call__(self,span):
-        return cwsfeature.get_features(span)
+        #return cwsfeature.get_features(span)
         raw=self.raw
+        
         uni_chars=self.uni_chars
         bi_chars=self.bi_chars
         c_ind=span[0]+2
@@ -50,6 +51,7 @@ class Default_Features_In_Python :
         if len(span)>=4:
             w_current=raw[span[0]-span[3]:span[0]]
             fv.append("w"+w_current)
+        fv=[x.encode() for x in fv]
         return fv
 
 
@@ -133,28 +135,37 @@ class Segmentation_Space(perceptrons.Base_Decoder):
     #                    if action=='s':
     #                        pass
     
-    def keygen_for_c(self,stat):
+    def keygen_for_c(self,stat,nexts):
         fv=self.features(stat)#得到当前状态的特征向量
-        nexts=[]
+        #nexts=[]
         for action,key in self.stats.gen_next_stats(stat,self.set_Y):
-            value=self.actions[action](fv)
-            nexts.append((key,action,value))
+            nexts.append((key,action,self.actions[action](fv)))
+        return
+        #f2=[x for x in fv]
+        #fv+=f2+f2
         #print(nexts)
         #input()
-        return nexts
+        #return nexts
     def __init__(self,beam_width=8):
         super(Segmentation_Space,self).__init__(beam_width)
         self.init_data={'alphas':[(0,None,None,None)],'betas':[]}
         self.features=Default_Features()
         self.actions=Segmentation_Actions()
         self.stats=Segmentation_Stats(self.actions,self.features)
-        dfabeam.set_init([self.stats.init,self.keygen_for_c])
+        #dfabeam.set_init([self.stats.init,self.keygen_for_c])
+        self.dfabeam=dfabeam.new([self.stats.init,self.keygen_for_c,8])
+
+
+    def __del__(self):
+        self.delete(self.dfabeam)
+        pass
 
     def search(self,raw,set_Y=None):
         self.raw=raw
         self.set_Y=set_Y
         self.features.set_raw(raw)
-        re=dfabeam.search(len(raw)+1)
+        dfabeam.set_raw([self.dfabeam,raw])
+        re=dfabeam.search([self.dfabeam,len(raw)+1])
         self.sequence=[{}for x in range(len(raw)+2)]
         return re
         self.sequence=[{}for x in range(len(raw)+2)]
