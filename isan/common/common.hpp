@@ -25,7 +25,6 @@ public:
         memcpy(pt,buffer,length*sizeof(CHAR));
     };
     ~String(){
-        
         delete[] pt;
     };
     

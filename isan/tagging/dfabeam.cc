@@ -51,6 +51,7 @@ public:
         PyObject * arglist=Py_BuildValue("(OO)",state,result);
         
         PyObject * ret= PyObject_CallObject(this->keygen, arglist);
+        Py_CLEAR(ret);
         
         //list_to_fv(ret,fv);
         default_feature(*raw,key,fv);
@@ -125,13 +126,16 @@ public:
 static PyObject *
 search(PyObject *self, PyObject *arg)
 {
-    
+    PyObject * tmp; 
+    tmp=PySequence_GetItem(arg,0);
     Interface* interface=
-            (Interface*)PyLong_AsLong(PySequence_GetItem(arg,0));
+            (Interface*)PyLong_AsLong(tmp);
+    Py_CLEAR(tmp);
 
     
-    std::vector<Action_Type> result=interface->searcher->call(*(interface->init_key),PyLong_AsLong(PySequence_GetItem(arg,1)));
-    
+    tmp=PySequence_GetItem(arg,1);
+    std::vector<Action_Type> result=interface->searcher->call(*(interface->init_key),PyLong_AsLong(tmp));
+    Py_CLEAR(tmp);
 
     PyObject * list=PyList_New(result.size());
     
@@ -147,9 +151,16 @@ static PyObject *
 searcher_new(PyObject *self, PyObject *arg)
 {
     
-    State_Key* init_key = new State_Key(PySequence_GetItem(arg,0));
+    PyObject * tmp; 
+    tmp=PySequence_GetItem(arg,0);
+    State_Key* init_key = new State_Key(tmp);
+    Py_CLEAR(tmp);
+
     PyObject *callback=PySequence_GetItem(arg,1);
-    int beam_width=PyLong_AsLong(PySequence_GetItem(arg,2));
+
+    tmp=PySequence_GetItem(arg,2);
+    int beam_width=PyLong_AsLong(tmp);
+    Py_CLEAR(tmp);
     Interface* interface=new Interface(init_key,callback,beam_width);
     
     
@@ -167,15 +178,22 @@ searcher_delete(PyObject *self, PyObject *arg){
 static PyObject *
 set_raw(PyObject *self, PyObject *arg)
 {
+    PyObject * tmp; 
+    tmp=PySequence_GetItem(arg,0);
     Interface* interface=
-            (Interface*)PyLong_AsLong(PySequence_GetItem(arg,0));
+            (Interface*)PyLong_AsLong(tmp);
+    Py_CLEAR(tmp);
     PyObject *new_raw=PySequence_GetItem(arg,1);
     long raw_size=PySequence_Size(new_raw);
     if(interface->searcher_data->raw)delete interface->searcher_data->raw;
     interface->searcher_data->raw=new Chinese(raw_size);
     for(int i=0;i<raw_size;i++){
-        interface->searcher_data->raw->pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(PySequence_GetItem(new_raw,i));
+        PyObject *tmp=PySequence_GetItem(new_raw,i);
+        interface->searcher_data->raw->pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(tmp);
+
+        Py_CLEAR(tmp);
     }
+    Py_CLEAR(new_raw);
     Py_INCREF(Py_None);
     
     return Py_None;
@@ -184,11 +202,18 @@ set_raw(PyObject *self, PyObject *arg)
 static PyObject *
 set_action(PyObject *self, PyObject *arg)
 {
+    PyObject * tmp; 
+    tmp=PySequence_GetItem(arg,0);
     Interface* interface=
-            (Interface*)PyLong_AsLong(PySequence_GetItem(arg,0));
-    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(PySequence_GetItem(arg,1));
+            (Interface*)PyLong_AsLong(tmp);
+    Py_CLEAR(tmp);
+    tmp=PySequence_GetItem(arg,1);
+    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(tmp);
+    Py_CLEAR(tmp);
     
-    Weights<String<char> ,Score_Type>* weights=(Weights<String<char> ,Score_Type>*)PyLong_AsLong(PySequence_GetItem(arg,2));
+    tmp=PySequence_GetItem(arg,2);
+    Weights<String<char> ,Score_Type>* weights=(Weights<String<char> ,Score_Type>*)PyLong_AsLong(tmp);
+    Py_CLEAR(tmp);
     interface->searcher_data->actions[action]=new Weights<String<char> ,Score_Type>();
     Py_INCREF(Py_None);
     return Py_None;
@@ -197,11 +222,23 @@ set_action(PyObject *self, PyObject *arg)
 static PyObject *
 update_action(PyObject *self, PyObject *arg)
 {
-    Interface* interface=(Interface*)PyLong_AsLong(PySequence_GetItem(arg,0));
-    State_Key state(PySequence_GetItem(arg,1));
-    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(PySequence_GetItem(arg,2));
-    long delta=PyLong_AsLong(PySequence_GetItem(arg,3));
-    long step=PyLong_AsLong(PySequence_GetItem(arg,4));
+    PyObject * tmp; 
+    tmp=PySequence_GetItem(arg,0);
+    Interface* interface=
+            (Interface*)PyLong_AsLong(tmp);
+    Py_CLEAR(tmp);
+    tmp=PySequence_GetItem(arg,1);
+    State_Key state(tmp);
+    Py_CLEAR(tmp);
+    tmp=PySequence_GetItem(arg,2);
+    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(tmp);
+    Py_CLEAR(tmp);
+    tmp=PySequence_GetItem(arg,3);
+    long delta=PyLong_AsLong(tmp);
+    Py_CLEAR(tmp);
+    tmp=PySequence_GetItem(arg,4);
+    long step=PyLong_AsLong(tmp);
+    Py_CLEAR(tmp);
     
     std::vector<String<char> > fv;
     default_feature(*(interface->searcher_data->raw),state,fv);

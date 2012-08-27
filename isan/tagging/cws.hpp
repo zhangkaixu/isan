@@ -57,11 +57,6 @@ struct State_Key{
     };
     
     void pack_decref(PyObject* pack){
-        
-        Py_DECREF(PySequence_GetItem(pack,0));
-        Py_DECREF(PySequence_GetItem(pack,1));
-        Py_DECREF(PySequence_GetItem(pack,2));
-        Py_DECREF(PySequence_GetItem(pack,3));
         Py_CLEAR(pack);
     };
     

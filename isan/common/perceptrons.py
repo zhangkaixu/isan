@@ -18,6 +18,7 @@ class Base_Stats(object):
     def _update_actions(self,actions,delta,step):
         for stat,action in zip(self._actions_to_stats(actions),actions,):
             dfabeam.update_action([self.dfabeam,stat,action,delta,step])
+            dfabeam.update_action([self.dfabeam,stat,action,delta,step])
 
 class Base_Model(object):
     def __init__(self,model_file,schema=None,**conf):
