@@ -85,11 +85,15 @@ struct Four{
     char d;
 };
 
+
+    
+
+
 void default_feature(Chinese& raw,State_Key& state, std::vector<String<char> >& fv){
     int ind=state.ind;
     Action_Type left_action=state.last_action;
     Action_Type left_left_action=state.last_last_action;
-    
+    long sep_ind=state.sep_ind;
     
     Chinese_Character char_mid=ind-1>=0?raw.pt[ind-1]:-1;
     Chinese_Character char_right=ind<raw.length?raw.pt[ind]:-1;
@@ -117,4 +121,9 @@ void default_feature(Chinese& raw,State_Key& state, std::vector<String<char> >& 
     fv.push_back(String<char>((char*)&f_left_mid,sizeof(f_left_mid)));
     fv.push_back(String<char>((char*)&f_left2_left,sizeof(f_left2_left)));
     fv.push_back(String<char>((char*)&f_right_right2,sizeof(f_right_right2)));
+    
+    fv.push_back(String<char>(1+sizeof(Chinese_Character)*sep_ind));
+    fv.back().pt[0]=8;
+    for(int i=0;i<sep_ind;i++)
+        *(Chinese_Character *) (fv.back().pt+1+i*sizeof(Chinese_Character))= raw.pt[ind-sep_ind+i];
 };

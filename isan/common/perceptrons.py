@@ -1,88 +1,8 @@
 #!/usr/bin/python3
 import pickle
 import collections
-import isan.common.weights as weights
-class Weights(dict):
-    """
-    感知器特征的权重
-    """
-    def __init__(self):
-        self.acc=collections.defaultdict(int)
-        self.c_weights=weights.new_weights(3)
-    def __del__(self):
-        weights.delete_weights(self.c_weights)
-    #def update(self,feature,delta=0,step=0):
-    #    self.setdefault(feature,0)
-    #    self[feature]+=delta
-    #    self.acc[feature]+=step*delta
-    def __call__(self,fv):
-        #return 0
-        return weights.call([self.c_weights,fv])
-    def updates(self,fv,delta=0,step=0):
-        weights.update([self.c_weights,fv,delta,step])
-        return
-        for feature in fv:
-            self.setdefault(feature,0)
-            self[feature]+=delta
-            self.acc[feature]+=step*delta
-    def average(self,step):
-        for k in self.acc:
-            self[k]=(self[k]-self.acc[k]/step)
-            if self[k]==0:del self[k]
-        del self.acc
+import isan.tagging.dfabeam as dfabeam
 
-class Base_Decoder(object):
-    """
-    解码
-
-    self.sequence: 动作序列的beam
-    
-    需要实现：
-    self.gen_next(ind,stat) # 第ind个动作，当前状态为stat时候，产生后续状态
-
-    """
-    def __init__(self,beam_width):
-        self.beam_width=beam_width#搜索柱宽度
-    def thrink(self,ind):
-        #找到最好的alphas
-        for k,v in self.sequence[ind].items():
-            #这里使用排序比使用max还快，但保留max的代码
-            #alphas=v['alphas']
-            #max_ind=max(enumerate(v['alphas']),key=lambda x:x[1])[0]
-            #alphas[0],alphas[max_ind]=alphas[max_ind],alphas[0]
-            
-            v['alphas'].sort(reverse=True,key=lambda x:x[0])
-        #构造beam
-        beam=sorted(list(self.sequence[ind].items()),key=lambda x:x[1]['alphas'][0][0],reverse=True)
-        #print(len(beam))
-        beam=beam[:min(len(beam),self.beam_width)]
-        #print(len(beam))
-        return [stat for stat,_ in beam]
-    def forward(self,get_step=lambda x:len(x)+1):
-        #前向搜索
-        self.sequence[0][self.stats.init]=dict(self.init_data)#初始化第一个状态
-        for ind in range(get_step(self.raw)):
-            for stat in self.thrink(ind):
-                self.gen_next(ind,stat)
-    #def backward(self):
-    #    """
-    #    使用beta算法计算后向分数
-    #    """
-    #    sequence=self.sequence
-    #    ind=len(sequence)-1
-    #    for stat,alpha_beta in sequence[ind].items():#初始化最后一项的分数
-    #        alpha_beta[1].append((0,None,None,None))
-    #    while ind>0:
-    #        for stat,alpha_beta in sequence[ind].items():
-    #            alphas=alpha_beta[0]
-    #            if not alpha_beta[1]: continue
-    #            beta=alpha_beta[1][0][0]
-    #            for score,delta,action,pre_stat in alphas:
-    #                sequence[ind-1][pre_stat][1].append((beta+delta,delta,action,stat))
-    #        #排序
-    #        for _,alpha_beta in sequence[ind-1].items():
-    #            alpha_beta[1].sort(reverse=True)
-    #        ind-=1
 
 class Base_Stats(object):
     """
@@ -91,32 +11,13 @@ class Base_Stats(object):
     self.gen_next_stats
     self._actions_to_stats
     """
-    def update(self,x,std_actions,rst_actions,step,sequence=None):
-        #print('std',std_actions)
-        #print('rst',rst_actions)
-        #print("begin")
-        length=self._update_actions(std_actions,1,step,sequence)
-        #print(len(sequence),length)
-        length=self._update_actions(rst_actions,-1,step,sequence[:length])
-        #print(length)
-        #print("end")
+    def update(self,x,std_actions,rst_actions,step):
+        self._update_actions(std_actions,1,step)
+        self._update_actions(rst_actions,-1,step)
     ### 私有函数 
-    def _update_actions(self,actions,delta,step,sequence):
-        length=0
-        #print(len(actions),len(sequence))
-        for stat,action,beam in zip(self._actions_to_stats(actions),actions,sequence[:]):
-            fv=self.features(stat)
-            if action not in self.actions:
-                #print(action)
-                self.actions.new_action(action)
-            self.actions[action].updates(fv,delta,step)
-            length+=1
-            #print('stat',stat)
-            if stat not in beam:
-                #print('early update',length)
-                #return length
-                pass
-        return length
+    def _update_actions(self,actions,delta,step):
+        for stat,action in zip(self._actions_to_stats(actions),actions,):
+            dfabeam.update_action([self.dfabeam,stat,action,delta,step])
 
 class Base_Model(object):
     def __init__(self,model_file,schema=None,**conf):
@@ -173,7 +74,7 @@ class Base_Model(object):
         rst_actions=self.schema.search(raw)#得到解码后动作
         hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
         if y!=hat_y:#如果动作不一致，则更新
-            self.stats.update(raw,std_actions,rst_actions,self.step,self.schema.sequence)
+            self.stats.update(raw,std_actions,rst_actions,self.step)
         return y,hat_y
         
     def train(self,training_file,iteration=5):

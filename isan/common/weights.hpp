@@ -6,12 +6,12 @@
 
 template<class KEY,class VALUE>
 class Weights{
-private:
+public:
     typedef __gnu_cxx::hash_map<KEY,VALUE,typename KEY::HASH> Map;
     //typedef std::map<KEY,VALUE> Map;
     Map* map;
     Map* acc_map;
-public:
+
     Weights(){
         map=new Map();
         acc_map=new Map();

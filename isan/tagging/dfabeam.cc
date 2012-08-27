@@ -4,16 +4,28 @@
 #include <map>
 #include "dfa_beam_searcher.hpp"
 #include "cws.hpp"
+#include "isan/common/weights.hpp"
 /**
  * g++ dfabeam.cc -I /usr/include/python3.2mu -shared -o dfabeam.so -fPIC -O3
 
  * */
 
+typedef Weights<String<char> ,Score_Type> Default_Weights;
 
-
-
-
-
+void list_to_fv(PyObject * list, std::vector<String<char> > & fv){
+    fv.clear();
+    
+    long size=PySequence_Size(list);
+    char* buffer;
+    size_t length;
+    for(int i=0;i<size;i++){
+        PyObject * bytes=PySequence_GetItem(list,i);
+        PyBytes_AsStringAndSize(bytes,&buffer,(Py_ssize_t*)&(length));
+        fv.push_back(String<char>(buffer,length));
+        Py_DECREF(bytes);
+    };
+    Py_DECREF(list);
+};
 
 
 class Searcher_Data : public DFA_Beam_Searcher_Data<State_Key,Action_Type,Score_Type> {
@@ -21,6 +33,7 @@ public:
     State_Key* pinit_key;
     PyObject *keygen;
     Chinese* raw;
+    std::map<Action_Type, Weights<String<char> ,Score_Type>* > actions;
     Searcher_Data(State_Key* pinit_key,PyObject *keygen){
         this->pinit_key=pinit_key;
         this->keygen=keygen;
@@ -31,13 +44,17 @@ public:
     void gen_next(State_Key& key,std::vector<Triple<State_Key,Action_Type,Score_Type> >& nexts){
         
         std::vector<String<char> > fv;
-        default_feature(*raw,key, fv);
+        
         
         PyObject * state=key.pack();
         PyObject *result =PyList_New(0);
         PyObject * arglist=Py_BuildValue("(OO)",state,result);
         
-        PyObject_CallObject(this->keygen, arglist);
+        PyObject * ret= PyObject_CallObject(this->keygen, arglist);
+        
+        //list_to_fv(ret,fv);
+        default_feature(*raw,key,fv);
+        
         long size=PySequence_Size(result);
         PyObject * tri;
         PyObject * tmp_item;
@@ -61,8 +78,14 @@ public:
             nexts[i].key=State_Key(tmp_item);Py_DECREF(tmp_item);
             tmp_item=PySequence_GetItem(tri,1);
             nexts[i].action=*PyUnicode_AS_UNICODE(tmp_item);Py_DECREF(tmp_item);
-            tmp_item=PySequence_GetItem(tri,2);
-            nexts[i].score=PyLong_AsLong(tmp_item);Py_DECREF(tmp_item);
+            
+            //(*(this->actions[nexts[i].action]))(fv);
+            //std::cout<<(*(this->actions[nexts[i].action])).map->size()<<"\n";
+            //std::cout<<this->actions.size()<<"\n";
+            //std::cout<<fv[0].length<<"\n";
+            nexts[i].score=(*(this->actions[nexts[i].action]))(fv);
+            //std::cout<<(size_t)weights<<" "<<(size_t)(this->actions[nexts[i].action])<< "\n";
+            //nexts[i].score=PyLong_AsLong(tmp_item);Py_DECREF(tmp_item);
             Py_DECREF(tri);
         };
         
@@ -158,6 +181,38 @@ set_raw(PyObject *self, PyObject *arg)
     return Py_None;
 };
 
+static PyObject *
+set_action(PyObject *self, PyObject *arg)
+{
+    Interface* interface=
+            (Interface*)PyLong_AsLong(PySequence_GetItem(arg,0));
+    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(PySequence_GetItem(arg,1));
+    
+    Weights<String<char> ,Score_Type>* weights=(Weights<String<char> ,Score_Type>*)PyLong_AsLong(PySequence_GetItem(arg,2));
+    interface->searcher_data->actions[action]=new Weights<String<char> ,Score_Type>();
+    Py_INCREF(Py_None);
+    return Py_None;
+};
+
+static PyObject *
+update_action(PyObject *self, PyObject *arg)
+{
+    Interface* interface=(Interface*)PyLong_AsLong(PySequence_GetItem(arg,0));
+    State_Key state(PySequence_GetItem(arg,1));
+    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(PySequence_GetItem(arg,2));
+    long delta=PyLong_AsLong(PySequence_GetItem(arg,3));
+    long step=PyLong_AsLong(PySequence_GetItem(arg,4));
+    
+    std::vector<String<char> > fv;
+    default_feature(*(interface->searcher_data->raw),state,fv);
+    
+    
+    (*(interface->searcher_data->actions[action])).update(fv,delta,step);
+    
+    Py_INCREF(Py_None);
+    return Py_None;
+};
+
 /** stuffs about the module def */
 static PyMethodDef dfabeamMethods[] = {
     //{"system",  spam_system, METH_VARARGS,"Execute a shell command."},
@@ -166,6 +221,8 @@ static PyMethodDef dfabeamMethods[] = {
     {"new",  searcher_new, METH_O,""},
     {"delete",  searcher_delete, METH_O,""},
     {"set_raw",  set_raw, METH_O,""},
+    {"set_action",  set_action, METH_O,""},
+    {"update_action",  update_action, METH_O,""},
     //{"test_map",  test_map, METH_O,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };

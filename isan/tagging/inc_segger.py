@@ -4,19 +4,12 @@ import sys
 import isan.tagging.cws_codec as tagging_codec
 import isan.tagging.eval as tagging_eval
 import isan.common.perceptrons as perceptrons
-import isan.tagging.cwsfeature as cwsfeature
 import isan.tagging.dfabeam as dfabeam
 """
 一个增量搜索模式的中文分词模块
 """
 
-class Default_Features_inC :
-    def set_raw(self,raw):
-        cwsfeature.set_raw(raw)
-    def __call__(self,span):
-        return cwsfeature.get_features(span)
-
-class Default_Features :
+class Default_Features_s :
     def set_raw(self,raw):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
@@ -78,29 +71,20 @@ class Segmentation_Actions(dict):
             actions.append('s')
         return actions
 
-    def __init__(self):
-        self['s']=perceptrons.Weights()#特征
-        self['c']=perceptrons.Weights()#特征
+    def __init__(self,beam):
+
+        self.dfabeam=beam
+        dfabeam.set_action([self.dfabeam,'s'])
+        dfabeam.set_action([self.dfabeam,'c'])
+
 
     def average(self,step):
-        for v in self.values():
-            v.average(step)
-    def new_action(self,action):
-        self[action]=perceptrons.Weights()
+        pass
         
 class Segmentation_Stats(perceptrons.Base_Stats):
-    def __init__(self,actions,features):
-        self.actions=actions
-        self.features=features
+    def __init__(self):
         #初始状态 (解析位置，上一个位置结果，上上个位置结果，当前词长)
         self.init=(0,'|','|',0)
-    def gen_next_stats(self,stat,set_Y=None):
-        """
-        由现有状态产生合法新状态
-        """
-        ind,last,_,wordl=stat
-        yield 's',(ind+1,'s',last,1)
-        yield 'c',(ind+1,'c',last,wordl+1)
 
     def _actions_to_stats(self,actions):
         stat=self.init
@@ -114,96 +98,39 @@ class Segmentation_Stats(perceptrons.Base_Stats):
         yield stat
 
 
-class Segmentation_Space(perceptrons.Base_Decoder):
+class Segmentation_Space:
     """
     线性搜索
     value = [alphas,betas]
     alpha = [score, delta, action, link]
     """
-    #def debug(self):
-    #    """
-    #    used to generate lattice
-    #    """
-    #    self.searcher.backward()
-    #    sequence=self.searcher.sequence
-    #    for i,d in enumerate(sequence):
-    #        for stat,alpha_beta in d.items():
-    #            if alpha_beta[1]:
-    #                for beta,db,action,n_stat in alpha_beta[1]:
-    #                    if beta==None:continue
-    #                    delta=alpha_beta[0][0][0]+beta-self.searcher.best_score
-    #                    if action=='s':
-    #                        pass
-    
+   
     def keygen_for_c(self,stat,nexts):
-        fv=self.features(stat)#得到当前状态的特征向量
-        #nexts=[]
-        for action,key in self.stats.gen_next_stats(stat,self.set_Y):
-            nexts.append((key,action,self.actions[action](fv)))
-        return
-        #f2=[x for x in fv]
-        #fv+=f2+f2
-        #print(nexts)
-        #input()
-        #return nexts
+        ind,last,_,wordl=stat
+        nexts.append(((ind+1,'s',last,1),'s'))
+        nexts.append(((ind+1,'c',last,wordl+1),'c'))
+        return None
+        #nexts.extends(self.stats.gen_next_stats(stat))
+        for action,key in self.stats.gen_next_stats(stat):
+            nexts.append((key,action))
+        return None
+
     def __init__(self,beam_width=8):
-        super(Segmentation_Space,self).__init__(beam_width)
-        self.init_data={'alphas':[(0,None,None,None)],'betas':[]}
-        self.features=Default_Features()
-        self.actions=Segmentation_Actions()
-        self.stats=Segmentation_Stats(self.actions,self.features)
-        #dfabeam.set_init([self.stats.init,self.keygen_for_c])
-        self.dfabeam=dfabeam.new([self.stats.init,self.keygen_for_c,8])
+        self.stats=Segmentation_Stats()
+        self.dfabeam=dfabeam.new([
+                self.stats.init,
+                self.keygen_for_c,
+                beam_width])
+        self.actions=Segmentation_Actions(self.dfabeam)
+        self.stats.dfabeam=self.dfabeam
 
 
     def __del__(self):
         self.delete(self.dfabeam)
-        pass
 
-    def search(self,raw,set_Y=None):
-        self.raw=raw
-        self.set_Y=set_Y
-        self.features.set_raw(raw)
+    def search(self,raw):
         dfabeam.set_raw([self.dfabeam,raw])
-        re=dfabeam.search([self.dfabeam,len(raw)+1])
-        self.sequence=[{}for x in range(len(raw)+2)]
-        return re
-        self.sequence=[{}for x in range(len(raw)+2)]
-        self.forward()
-        res=self.make_result()
-        #print(res)
-        #print(re)
-        return res
-
-    def gen_next(self,ind,stat):
-        """
-        根据第ind步的状态stat，产生新状态，并计算data
-        """
-        fv=self.features(stat)#得到当前状态的特征向量
-        alpha_beta=self.sequence[ind][stat]
-        beam=self.sequence[ind+1]
-        for action,key in self.stats.gen_next_stats(stat,self.set_Y):
-            if key not in beam:
-                beam[key]={'alphas':[],'betas':[]}
-            value=self.actions[action](fv)
-            beam[key]['alphas'].append((alpha_beta['alphas'][0][0]+value,value,action,stat))
-
-    def make_result(self):
-        """
-        由alphas中间的记录计算actions
-        """
-        sequence=self.sequence
-        result=[]
-        item=sequence[-1][self.thrink(len(sequence)-1)[0]]['alphas'][0]
-        self.best_score=item[0]
-        ind=len(sequence)-2
-        while True :
-            if item[3]==None: break
-            result.append(item[2])
-            item=sequence[ind][item[3]]['alphas'][0]
-            ind-=1
-        result.reverse()
-        return result
+        return dfabeam.search([self.dfabeam,len(raw)+1])
 
 
 class Model(perceptrons.Base_Model):
