@@ -17,7 +17,6 @@ struct Triple{
 template<class KEY,class ACTION,class SCORE>
 class DFA_Beam_Searcher_Data{
 public:
-    int x;
     virtual void gen_next(KEY&,std::vector<Triple<KEY,ACTION,SCORE> >&){std::cout<<"oh no\n";};
 };
 
@@ -89,7 +88,7 @@ public:
         this->data=data;
     };
     ~DFA_Beam_Searcher(){
-        if(data)delete data;
+        
     };
     
     void print_beam(std::vector<std::pair<KEY,State_Info> >& beam){

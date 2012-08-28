@@ -1,4 +1,6 @@
 #pragma once
+#include <vector>
+#include <map>
 
 typedef unsigned short Chinese_Character;
 typedef char Action_Type;
@@ -10,6 +12,10 @@ class String{
 public:
     CHAR* pt;
     size_t length;
+    String(){
+        pt=NULL;
+        this->length=0;
+    };
     String(size_t length){
         pt=new CHAR[length];
         this->length=length;
@@ -25,7 +31,8 @@ public:
         memcpy(pt,buffer,length*sizeof(CHAR));
     };
     ~String(){
-        delete[] pt;
+        if(pt)
+            delete[] pt;
     };
     
     bool operator==(const String &next) const{
@@ -63,4 +70,26 @@ public:
             return value;
         }
     };
+};
+
+template <class RAW, class STATE, class FEATURE_VECTOR>
+class Feature_Generator{
+public:
+    RAW* raw;
+    void set_raw(RAW* raw){
+        this->raw=raw;
+    };
+    virtual void operator()(STATE& key, FEATURE_VECTOR& fv)=0;
+};
+
+template <class RAW, class STATE, class ACTION>
+class State_Generator{
+public:
+    RAW* raw;
+    STATE init_state;
+    void set_raw(RAW* raw){
+        this->raw=raw;
+    };
+    virtual void operator()(STATE& key, std::vector<std::pair<ACTION, STATE> > & nexts)=0;
+
 };

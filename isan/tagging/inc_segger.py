@@ -8,46 +8,6 @@ import isan.tagging.dfabeam as dfabeam
 """
 一个增量搜索模式的中文分词模块
 """
-
-class Default_Features_s :
-    def set_raw(self,raw):
-        """
-        对需要处理的句子做必要的预处理（如缓存特征）
-        """
-        #cwsfeature.set_raw(raw)
-        #return
-        self.raw=raw
-        self.uni_chars=list('###'+raw+'##')
-        self.bi_chars=[self.uni_chars[i]+self.uni_chars[i+1]
-                for i in range(len(self.uni_chars)-1)]
-
-    def __call__(self,span):
-        #return cwsfeature.get_features(span)
-        raw=self.raw
-        
-        uni_chars=self.uni_chars
-        bi_chars=self.bi_chars
-        c_ind=span[0]+2
-        ws_current=span[1]
-        ws_left=span[2]
-        
-        fv=[
-                "ws"+ws_left+ws_current,
-                "c"+uni_chars[c_ind]+ws_current,
-                "r"+uni_chars[c_ind+1]+ws_current,
-                'l'+uni_chars[c_ind-1]+ws_current,
-                "cr"+bi_chars[c_ind]+ws_current,
-                "lc"+bi_chars[c_ind-1]+ws_current,
-                "rr2"+bi_chars[c_ind+1]+ws_current,
-                "l2l"+bi_chars[c_ind-2]+ws_current,
-            ]
-        if len(span)>=4:
-            w_current=raw[span[0]-span[3]:span[0]]
-            fv.append("w"+w_current)
-        fv=[x.encode() for x in fv]
-        return fv
-
-
         
 class Segmentation_Actions(dict):
     @staticmethod
@@ -105,30 +65,64 @@ class Segmentation_Space:
     alpha = [score, delta, action, link]
     """
    
-    def keygen_for_c(self,stat,nexts):
+    def keygen_for_c(self,stat):
         ind,last,_,wordl=stat
-        nexts.append(((ind+1,'s',last,1),'s'))
-        nexts.append(((ind+1,'c',last,wordl+1),'c'))
-        return None
-        #nexts.extends(self.stats.gen_next_stats(stat))
-        for action,key in self.stats.gen_next_stats(stat):
-            nexts.append((key,action))
-        return None
+        nexts=[]
+        nexts.append(('s',(ind+1,'s',last,1)))
+        nexts.append(('c',(ind+1,'c',last,wordl+1)))
+        return nexts
 
+    def gen_feature(self,span):
+        raw=self.raw
+        
+        uni_chars=self.uni_chars
+        bi_chars=self.bi_chars
+        c_ind=span[0]+2
+        ws_current=span[1]
+        ws_left=span[2]
+        
+        fv=[
+                "ws"+ws_left+ws_current,
+                "c"+uni_chars[c_ind]+ws_current,
+                "r"+uni_chars[c_ind+1]+ws_current,
+                'l'+uni_chars[c_ind-1]+ws_current,
+                "cr"+bi_chars[c_ind]+ws_current,
+                "lc"+bi_chars[c_ind-1]+ws_current,
+                "rr2"+bi_chars[c_ind+1]+ws_current,
+                "l2l"+bi_chars[c_ind-2]+ws_current,
+            ]
+        if len(span)>=4:
+            w_current=raw[span[0]-span[3]:span[0]]
+            fv.append("w"+w_current)
+        fv=[x.encode() for x in fv]
+        return fv
+    
     def __init__(self,beam_width=8):
         self.stats=Segmentation_Stats()
-        self.dfabeam=dfabeam.new([
+        self.dfabeam=dfabeam.new(
                 self.stats.init,
-                self.keygen_for_c,
-                beam_width])
+                beam_width,
+                None,
+                #self.keygen_for_c,
+                None,
+                #self.gen_feature,
+                )
         self.actions=Segmentation_Actions(self.dfabeam)
         self.stats.dfabeam=self.dfabeam
 
 
     def __del__(self):
-        self.delete(self.dfabeam)
+        dfabeam.delete(self.dfabeam)
+        pass
+
+    def set_raw(self,raw):
+        self.raw=raw
+        self.uni_chars=list('###'+raw+'##')
+        self.bi_chars=[self.uni_chars[i]+self.uni_chars[i+1]
+                for i in range(len(self.uni_chars)-1)]
 
     def search(self,raw):
+        self.set_raw(raw)
         dfabeam.set_raw([self.dfabeam,raw])
         return dfabeam.search([self.dfabeam,len(raw)+1])
 

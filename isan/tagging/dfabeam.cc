@@ -10,9 +10,94 @@
 
  * */
 
-typedef Weights<String<char> ,Score_Type> Default_Weights;
 
-void list_to_fv(PyObject * list, std::vector<String<char> > & fv){
+class Python_Feature_Generator: public CWS_Feature_Generator{
+public:
+    PyObject * callback;
+    Python_Feature_Generator(PyObject * callback){
+        Py_INCREF(callback);
+        this->callback=callback;
+    };
+    ~Python_Feature_Generator(){
+        Py_DECREF(callback);
+    };
+    void operator()(State_Key& state, Feature_Vector& fv){
+        PyObject * pkey=state.pack();
+        PyObject * arglist=Py_BuildValue("(O)",pkey);
+        
+        PyObject * pfv= PyObject_CallObject(this->callback, arglist);
+        
+        Py_DECREF(pkey);
+        Py_DECREF(arglist);
+        
+        fv.clear();
+        char* buffer;
+        size_t length;
+        long size=PySequence_Size(pfv);
+        PyObject * pf;
+        for(int i=0;i<size;i++){
+            pf=PySequence_GetItem(pfv,i);
+            PyBytes_AsStringAndSize(pf,&buffer,(Py_ssize_t*)&(length));
+            fv.push_back(Feature_String(buffer,length));
+            Py_DECREF(pf);
+        };
+        Py_DECREF(pfv);
+    };
+};
+
+
+class Python_State_Generator: public CWS_State_Generator{
+public:
+    PyObject * callback;
+    Python_State_Generator(PyObject * callback){
+        Py_INCREF(callback);
+        this->callback=callback;
+    };
+    ~Python_State_Generator(){
+        Py_DECREF(callback);
+    };
+    void operator()(State_Key& key, std::vector<std::pair<Action_Type, State_Key> > & nexts){
+        nexts.clear();
+        
+        PyObject * state=key.pack();
+        
+        PyObject * arglist=Py_BuildValue("(O)",state);
+        
+        PyObject * result= PyObject_CallObject(this->callback, arglist);
+
+        
+        long size=PySequence_Size(result);
+        PyObject * tri;
+        PyObject * tmp_item;
+        
+        key.pack_decref(state);Py_CLEAR(arglist);
+        
+        nexts.clear();
+        for(int i=0;i<size;i++){
+            
+            PyObject * tri=PySequence_GetItem(result,i);
+            //std::cout<<PySequence_Size(tri)<<" in\n";
+            PyObject * tmp_item=PySequence_GetItem(tri,0);
+            
+            Action_Type action=*PyUnicode_AS_UNICODE(tmp_item);Py_DECREF(tmp_item);
+            //std::cout<<"ss\n";
+            tmp_item=PySequence_GetItem(tri,1);
+            State_Key next_state(tmp_item);Py_DECREF(tmp_item);
+            //std::cout<<" whin\n";
+            nexts.push_back(std::pair<Action_Type,State_Key>(action,next_state));
+            //std::cout<<" en\n";
+            Py_DECREF(tri);
+        };
+        Py_DECREF(result);
+        
+        //std::cout<<"zkx\n";
+    };
+};
+
+
+typedef Weights<Feature_String ,Score_Type> Default_Weights;
+
+void list_to_fv(PyObject * list, Feature_Vector & fv){
     fv.clear();
     
     long size=PySequence_Size(list);
@@ -28,81 +113,63 @@ void list_to_fv(PyObject * list, std::vector<String<char> > & fv){
 };
 
 
+
+
+/**
+ * 负责： 与searcher沟通，生成 <state,action,score>
+ * 需要：
+ *      给一个原来的 state， 生成 fv 
+ *      给一个原来的 state 生成 <new_state, action>
+ *     fv与 action 生成 score，并 返回
+ * */
 class Searcher_Data : public DFA_Beam_Searcher_Data<State_Key,Action_Type,Score_Type> {
 public:
+    CWS_Feature_Generator * feature_generator;
+    CWS_State_Generator * state_generator;
+    
     State_Key* pinit_key;
-    PyObject *keygen;
     Chinese* raw;
     std::map<Action_Type, Weights<String<char> ,Score_Type>* > actions;
-    Searcher_Data(State_Key* pinit_key,PyObject *keygen){
+    Searcher_Data(State_Key* pinit_key,CWS_State_Generator *state_generator,CWS_Feature_Generator * feature_generator){
+        this->feature_generator=feature_generator;
         this->pinit_key=pinit_key;
-        this->keygen=keygen;
+        this->state_generator=state_generator;
         raw=NULL;
-        this->x=321;
-        Py_INCREF(keygen);
     };
     void gen_next(State_Key& key,std::vector<Triple<State_Key,Action_Type,Score_Type> >& nexts){
+        Feature_Vector fv;
         
-        std::vector<String<char> > fv;
-        
-        
-        PyObject * state=key.pack();
-        PyObject *result =PyList_New(0);
-        PyObject * arglist=Py_BuildValue("(OO)",state,result);
-        
-        PyObject * ret= PyObject_CallObject(this->keygen, arglist);
-        Py_CLEAR(ret);
-        
-        //list_to_fv(ret,fv);
-        default_feature(*raw,key,fv);
-        
-        long size=PySequence_Size(result);
-        PyObject * tri;
-        PyObject * tmp_item;
+        (*this->feature_generator)(key,fv);
         
         
-        key.pack_decref(state);Py_CLEAR(arglist);
+        std::vector<std::pair<Action_Type, State_Key> > action_keys;
+        (*state_generator)(key,action_keys);
         
-        
-        
-        while(nexts.size()>size){
+        while(nexts.size()>action_keys.size()){
             nexts.pop_back();
         };
-        while(nexts.size()<size){
+        while(nexts.size()<action_keys.size()){
             nexts.push_back(Triple<State_Key,Action_Type,Score_Type>());
         };
-
-
-        for(int i=0;i<size;i++){
-            PyObject * tri=PySequence_GetItem(result,i);
-            PyObject * tmp_item=PySequence_GetItem(tri,0);
-            nexts[i].key=State_Key(tmp_item);Py_DECREF(tmp_item);
-            tmp_item=PySequence_GetItem(tri,1);
-            nexts[i].action=*PyUnicode_AS_UNICODE(tmp_item);Py_DECREF(tmp_item);
-            
-            //(*(this->actions[nexts[i].action]))(fv);
-            //std::cout<<(*(this->actions[nexts[i].action])).map->size()<<"\n";
-            //std::cout<<this->actions.size()<<"\n";
-            //std::cout<<fv[0].length<<"\n";
+        
+        
+        for(int i=0;i<action_keys.size();i++){
+            nexts[i].action=action_keys[i].first;
+            nexts[i].key=action_keys[i].second;
             nexts[i].score=(*(this->actions[nexts[i].action]))(fv);
-            //std::cout<<(size_t)weights<<" "<<(size_t)(this->actions[nexts[i].action])<< "\n";
-            //nexts[i].score=PyLong_AsLong(tmp_item);Py_DECREF(tmp_item);
-            Py_DECREF(tri);
         };
-        
-        PySequence_DelSlice(result,0,size);
-        
-        Py_DECREF(result);
     };
     
     ~Searcher_Data(){
-        Py_DECREF(keygen);
-        if(raw)delete raw;
+        
     };
 };
 
 
 
+/**
+ * The main interface between C and Python
+ * */
 class Interface{
 public:
     State_Key *init_key;
@@ -110,12 +177,30 @@ public:
     Searcher_Data* searcher_data;
     DFA_Beam_Searcher<State_Key,Action_Type,Score_Type>* searcher;
     Chinese* raw;
+    CWS_Feature_Generator * feature_generator;
+    CWS_State_Generator * state_generator;
     
-    Interface(State_Key *init_key,PyObject *callback,int beam_width){
+    
+    Interface(State_Key *init_key,int beam_width){
+        feature_generator=new Default_Feature_Generator();
+        state_generator=new Default_State_Generator();
         raw=NULL;
-        searcher_data=new Searcher_Data(init_key,callback);
+        searcher_data=new Searcher_Data(init_key,state_generator,feature_generator);
+        
         this->init_key=init_key;
         searcher=new DFA_Beam_Searcher<State_Key,Action_Type,Score_Type>(searcher_data,beam_width);
+    };
+    void set_raw(Chinese& raw){
+        if(this->raw)delete this->raw;
+        this->raw=new Chinese(raw);
+        this->searcher_data->raw=this->raw;
+        this->feature_generator->set_raw(this->raw);
+    }
+    ~Interface(){
+        delete feature_generator;
+        delete state_generator;
+        delete searcher_data;
+        delete searcher;
     };
 };
 
@@ -134,7 +219,8 @@ search(PyObject *self, PyObject *arg)
 
     
     tmp=PySequence_GetItem(arg,1);
-    std::vector<Action_Type> result=interface->searcher->call(*(interface->init_key),PyLong_AsLong(tmp));
+    State_Key init_k;
+    std::vector<Action_Type> result=interface->searcher->call(init_k,PyLong_AsLong(tmp));
     Py_CLEAR(tmp);
 
     PyObject * list=PyList_New(result.size());
@@ -151,17 +237,27 @@ static PyObject *
 searcher_new(PyObject *self, PyObject *arg)
 {
     
-    PyObject * tmp; 
-    tmp=PySequence_GetItem(arg,0);
-    State_Key* init_key = new State_Key(tmp);
-    Py_CLEAR(tmp);
-
-    PyObject *callback=PySequence_GetItem(arg,1);
-
-    tmp=PySequence_GetItem(arg,2);
-    int beam_width=PyLong_AsLong(tmp);
-    Py_CLEAR(tmp);
-    Interface* interface=new Interface(init_key,callback,beam_width);
+    PyObject * py_init_stat;
+    
+    int beam_width;
+    PyObject * py_state_cb;
+    PyObject * py_feature_cb;
+    PyArg_ParseTuple(arg, "OiOO", &py_init_stat,&beam_width,&py_state_cb,&py_feature_cb);
+    State_Key* init_key = new State_Key(py_init_stat);
+    
+    Interface* interface=new Interface(init_key,beam_width);
+    
+    if(py_feature_cb!=Py_None){
+        delete interface->feature_generator;
+        interface->feature_generator=new Python_Feature_Generator(py_feature_cb);
+    }else{
+    };
+    
+    if(py_state_cb!=Py_None){
+        delete interface->state_generator;
+        interface->state_generator=new Python_State_Generator(py_state_cb);
+    }else{
+    };
     
     
     return PyLong_FromLong((long)interface);
@@ -185,14 +281,17 @@ set_raw(PyObject *self, PyObject *arg)
     Py_CLEAR(tmp);
     PyObject *new_raw=PySequence_GetItem(arg,1);
     long raw_size=PySequence_Size(new_raw);
-    if(interface->searcher_data->raw)delete interface->searcher_data->raw;
-    interface->searcher_data->raw=new Chinese(raw_size);
+    //if(interface->searcher_data->raw)delete interface->searcher_data->raw;
+    //interface->searcher_data->raw=new Chinese(raw_size);
+    
+    Chinese raw(raw_size);
     for(int i=0;i<raw_size;i++){
         PyObject *tmp=PySequence_GetItem(new_raw,i);
-        interface->searcher_data->raw->pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(tmp);
-
+        //interface->searcher_data->raw->pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(tmp);
+        raw.pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(tmp);
         Py_CLEAR(tmp);
     }
+    interface->set_raw(raw);
     Py_CLEAR(new_raw);
     Py_INCREF(Py_None);
     
@@ -241,7 +340,7 @@ update_action(PyObject *self, PyObject *arg)
     Py_CLEAR(tmp);
     
     std::vector<String<char> > fv;
-    default_feature(*(interface->searcher_data->raw),state,fv);
+    (*(interface->feature_generator))(state,fv);
     
     
     (*(interface->searcher_data->actions[action])).update(fv,delta,step);
@@ -255,7 +354,7 @@ static PyMethodDef dfabeamMethods[] = {
     //{"system",  spam_system, METH_VARARGS,"Execute a shell command."},
     //{"add",  spam_add, METH_O,""},
     {"search",  search, METH_O,""},
-    {"new",  searcher_new, METH_O,""},
+    {"new",  searcher_new, METH_VARARGS,""},
     {"delete",  searcher_delete, METH_O,""},
     {"set_raw",  set_raw, METH_O,""},
     {"set_action",  set_action, METH_O,""},
