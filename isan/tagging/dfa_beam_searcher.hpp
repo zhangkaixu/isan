@@ -139,9 +139,11 @@ public:
         for(int step=0;step<steps;step++){
             thrink(step,beam);//thrink, get beam
             //print_beam(beam);
+            //std::cout<<step<<" "<<beam.size()<<" here\n";
             this->sequence.push_back(my_map());
             //gen_next
             for(int i=0;i<beam.size();i++){
+                //std::cout<<"beam "<<i<<"\n";
                 KEY last_key=beam[i].first;
                 SCORE last_score=beam[i].second;
                 //std::cout<<last_state_info.alphas.size()<<"\n";
@@ -149,10 +151,12 @@ public:
                 this->data->gen_next(last_key,nexts);
                 
                 for(int j=0;j<nexts.size();j++){
+                    //std::cout<<"    next "<<j<<"\n";
                     KEY key=nexts[j].key;
                     if (!this->sequence.back().count(key)){
                         this->sequence.back()[key]=State_Info();
                     }
+                    //std::cout<<"here\n";
                     this->sequence.back()[key].alphas.push_back(Alpha());
                     
                     Alpha& alpha=this->sequence.back()[key].alphas.back();

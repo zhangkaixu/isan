@@ -25,6 +25,16 @@ public:
         pt=new CHAR[length];
         memcpy(pt,other.pt,length*sizeof(CHAR));
     };
+    void operator=(const String& other){
+        if(length==other.length){
+            memcpy(pt,other.pt,length*sizeof(CHAR));
+            return;
+        }
+        length=other.length;
+        if (pt)delete[] pt;
+        pt=new CHAR[length];
+        memcpy(pt,other.pt,length*sizeof(CHAR));
+    };
     String(char* buffer, size_t length){
         pt=new CHAR[length];
         this->length=length;
@@ -55,17 +65,10 @@ public:
     class HASH{
     public:
         size_t operator()(const String& cx) const{
+            //std::cout<<sizeof(size_t)<<"\n";
             size_t value=0;
             for(int i=0;i<cx.length;i++){
-                if(i%4==0){
-                    value+=cx.pt[i];
-                }else if(i%4==1){
-                    value+=cx.pt[i]<<8;
-                }else if(i%4==2){
-                    value+=cx.pt[i]<<16;
-                }else{
-                    value+=cx.pt[i]<<24;
-                };
+                value+=cx.pt[i]<<((i%8)*8);
             }
             return value;
         }

@@ -211,6 +211,7 @@ public:
 static PyObject *
 search(PyObject *self, PyObject *arg)
 {
+    //std::cout<<"search begin\n";
     PyObject * tmp; 
     tmp=PySequence_GetItem(arg,0);
     Interface* interface=
@@ -229,6 +230,7 @@ search(PyObject *self, PyObject *arg)
         unsigned int la=result[i];
         PyList_SetItem(list,i,PyUnicode_FromUnicode(&la,1));
     }
+    //std::cout<<"searchend\n";
     return list;
 };
 
