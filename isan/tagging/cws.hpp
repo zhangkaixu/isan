@@ -25,7 +25,7 @@ public:
     };
 };
 
-class State_Key: public State_Type{
+class Default_State_Type: public State_Type{
 public:
     inline short* ind2(){
         return (short*)(pt);
@@ -43,31 +43,35 @@ public:
     };
     
     
-    State_Key(){
+    Default_State_Type(){
         length=sizeof(short)+sizeof(Action_Type)+sizeof(Action_Type)+sizeof(short);
         pt=new char[length];
+        *ind2()=0;
+        *last_action2()='|';
+        *last_last_action2()='|';
+        *sep_ind2()=0;
     };
 
-    void operator=(const State_Key& other){
-        memcpy(pt,other.pt,length*sizeof(char));
-    };
-    State_Key(PyObject* py_key): State_Type(){
-        char* buffer;
-        Py_ssize_t len;
-        int rtn=PyBytes_AsStringAndSize(py_key,&buffer,&len);
-        length=(size_t)len;
-        pt=new char[length];
-        memcpy(pt,buffer,length*sizeof(char));
-        return;
+    //void operator=(const Default_State_Type& other){
+        //memcpy(pt,other.pt,length*sizeof(char));
+    //};
+    //Default_State_Type(PyObject* py_key): State_Type(){
+        //char* buffer;
+        //Py_ssize_t len;
+        //int rtn=PyBytes_AsStringAndSize(py_key,&buffer,&len);
+        //length=(size_t)len;
+        //pt=new char[length];
+        //memcpy(pt,buffer,length*sizeof(char));
+        //return;
         
-    };
+    //};
     
     
 };
 
 
-typedef Feature_Generator<Chinese,State_Key,Feature_Vector> CWS_Feature_Generator;
-typedef State_Generator<Chinese,State_Key,Action_Type> CWS_State_Generator;
+typedef Feature_Generator<Chinese,State_Type,Feature_Vector> CWS_Feature_Generator;
+typedef State_Generator<Chinese,State_Type,Action_Type> CWS_State_Generator;
 
 
 class Default_Feature_Generator: public CWS_Feature_Generator{
@@ -86,7 +90,8 @@ public:
     Default_Feature_Generator(){
         this->raw=NULL;
     };
-    void operator()(State_Key& state, Feature_Vector& fv){
+    void operator()(State_Type& super_state, Feature_Vector& fv){
+        Default_State_Type& state=(Default_State_Type&)super_state;
         int ind=*(short*)state.pt;
         Action_Type left_action=*state.last_action2();
         Action_Type left_left_action=*state.last_last_action2();
@@ -134,9 +139,13 @@ public:
         
     }
     
-    void operator()(State_Key& key, std::vector<std::pair<Action_Type, State_Key> > & nexts){
+    void operator()(State_Type& super_key, std::vector<std::pair<Action_Type, State_Type> > & super_nexts){
+        Default_State_Type& key=(Default_State_Type&)super_key;
+        std::vector<std::pair<Action_Type, Default_State_Type> > & nexts=
+                (std::vector<std::pair<Action_Type, Default_State_Type> > &)super_nexts;
+        
         nexts.clear();
-        nexts.push_back(std::pair<Action_Type, State_Key>());
+        nexts.push_back(std::pair<Action_Type, Default_State_Type>());
         nexts.back().first='s';
         *(short*)nexts.back().second.pt=(*(short*)key.pt)+1;
         *nexts.back().second.last_action2()='s';
@@ -144,7 +153,7 @@ public:
         *nexts.back().second.sep_ind2()=1;
         
         
-        nexts.push_back(std::pair<Action_Type, State_Key>());
+        nexts.push_back(std::pair<Action_Type, Default_State_Type>());
         nexts.back().first='c';
         *(short*)nexts.back().second.pt=(*(short*)key.pt)+1;
         *nexts.back().second.last_action2()='c';

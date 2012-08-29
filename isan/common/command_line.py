@@ -41,7 +41,6 @@ def command_line(task_name,Model,Segmentation_Space):
     #            )
     #    )
     model=Model(args.model_file)
-    model.schema.link_c()
     print('s')
     
     """如果指定了测试集，就测试模型"""

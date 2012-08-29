@@ -13,6 +13,7 @@ class Base_Model(object):
             file=open(model_file,"rb")
             self.schema=pickle.load(file)
             file.close()
+            self.schema.link()
         else:
             self.model_file=model_file
             self.schema=schema
@@ -33,6 +34,7 @@ class Base_Model(object):
         保存模型
         """
         self.schema.average(self.step)
+        self.schema.unlink()
         file=open(self.model_file,'wb')
         pickle.dump(self.schema,file)
         file.close()

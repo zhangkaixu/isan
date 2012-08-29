@@ -13,6 +13,7 @@ import isan.tagging.dfabeam as dfabeam
 class Segmentation_Space:
     
     default_conf={
+            'stat_fmt':"hcch",
             'init':struct.pack("hcch",0,b'|',b'|',0),
             'state_gen':None,
             'feature_gen':None,
@@ -23,12 +24,16 @@ class Segmentation_Space:
         self.conf=self.default_conf
         self.init=self.conf['init']
         self.beam_width=self.conf['beam_width']
+        self.stat_fmt=self.conf['stat_fmt']
+
         self.actions={'s':{},'c':{}}
-        self.link_c()
-    def link_c(self):
+        self.link()
+
+    def link(self):
         self.dfabeam=dfabeam.new(
-                self.init,
                 self.beam_width,
+                #None,
+                self.init,
                 #None,
                 self.keygen_for_c,
                 #None,
@@ -36,8 +41,11 @@ class Segmentation_Space:
                 )
         dfabeam.set_action(self.dfabeam,'s',self.actions['s'])
         dfabeam.set_action(self.dfabeam,'c',self.actions['c'])
+        self.stat_fmt=struct.Struct(self.conf['stat_fmt'])
 
 
+    def unlink(self):
+        self.stat_fmt=None
 
     def __del__(self):
         dfabeam.delete(self.dfabeam)
@@ -65,7 +73,7 @@ class Segmentation_Space:
     
     def _actions_to_stats(self,actions):
         stat=self.init
-        stat=struct.unpack("hcch",stat)
+        stat=self.stat_fmt.unpack(stat)
         for action in actions:
             yield stat
             ind,last,_,wordl=stat
@@ -84,19 +92,19 @@ class Segmentation_Space:
     ### 私有函数 
     def _update_actions(self,actions,delta,step):
         for stat,action in zip(self._actions_to_stats(actions),actions,):
-            stat=struct.pack("hcch",*stat)
+            stat=self.stat_fmt.pack(*stat)
             dfabeam.update_action([self.dfabeam,stat,action,delta,step])
    
     def keygen_for_c(self,stat):
-        stat=struct.unpack("hcch",stat)
+        stat=self.stat_fmt.unpack(stat)
         ind,last,_,wordl=stat
         nexts=[]
-        nexts.append(('s',struct.pack("hcch",ind+1,b's',last,1)))
-        nexts.append(('c',struct.pack("hcch",ind+1,b'c',last,wordl+1)))
+        nexts.append(('s',self.stat_fmt.pack(ind+1,b's',last,1)))
+        nexts.append(('c',self.stat_fmt.pack(ind+1,b'c',last,wordl+1)))
         return nexts
 
     def gen_feature(self,span):
-        span=struct.unpack("hcch",span)
+        span=self.stat_fmt.unpack(span)
         raw=self.raw
         
         uni_chars=self.uni_chars

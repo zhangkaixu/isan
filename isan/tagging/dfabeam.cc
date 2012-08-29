@@ -21,7 +21,7 @@ public:
     ~Python_Feature_Generator(){
         Py_DECREF(callback);
     };
-    void operator()(State_Key& state, Feature_Vector& fv){
+    void operator()(State_Type& state, Feature_Vector& fv){
         PyObject * pkey=state.pack();
         PyObject * arglist=Py_BuildValue("(O)",pkey);
         
@@ -56,7 +56,7 @@ public:
     ~Python_State_Generator(){
         Py_DECREF(callback);
     };
-    void operator()(State_Key& key, std::vector<std::pair<Action_Type, State_Key> > & nexts){
+    void operator()(State_Type& key, std::vector<std::pair<Action_Type, State_Type> > & nexts){
         nexts.clear();
         
         PyObject * state=key.pack();
@@ -82,9 +82,9 @@ public:
             Action_Type action=*PyUnicode_AS_UNICODE(tmp_item);Py_DECREF(tmp_item);
             //std::cout<<"ss\n";
             tmp_item=PySequence_GetItem(tri,1);
-            State_Key next_state(tmp_item);Py_DECREF(tmp_item);
+            State_Type next_state(tmp_item);Py_DECREF(tmp_item);
             //std::cout<<" whin\n";
-            nexts.push_back(std::pair<Action_Type,State_Key>(action,next_state));
+            nexts.push_back(std::pair<Action_Type,State_Type>(action,next_state));
             //std::cout<<" en\n";
             Py_DECREF(tri);
         };
@@ -147,34 +147,34 @@ void list_to_fv(PyObject * list, Feature_Vector & fv){
  *      给一个原来的 state 生成 <new_state, action>
  *     fv与 action 生成 score，并 返回
  * */
-class Searcher_Data : public DFA_Beam_Searcher_Data<State_Key,Action_Type,Score_Type> {
+class Searcher_Data : public DFA_Beam_Searcher_Data<State_Type,Action_Type,Score_Type> {
 public:
     CWS_Feature_Generator * feature_generator;
     CWS_State_Generator * state_generator;
     
-    State_Key* pinit_key;
+    State_Type* pinit_key;
     Chinese* raw;
     std::map<Action_Type, Default_Weights* > actions;
-    Searcher_Data(State_Key* pinit_key,CWS_State_Generator *state_generator,CWS_Feature_Generator * feature_generator){
+    Searcher_Data(State_Type* pinit_key,CWS_State_Generator *state_generator,CWS_Feature_Generator * feature_generator){
         this->feature_generator=feature_generator;
         this->pinit_key=pinit_key;
         this->state_generator=state_generator;
         raw=NULL;
     };
-    void gen_next(State_Key& key,std::vector<Triple<State_Key,Action_Type,Score_Type> >& nexts){
+    void gen_next(State_Type& key,std::vector<Triple<State_Type,Action_Type,Score_Type> >& nexts){
         Feature_Vector fv;
         
         (*this->feature_generator)(key,fv);
         
         
-        std::vector<std::pair<Action_Type, State_Key> > action_keys;
+        std::vector<std::pair<Action_Type, State_Type> > action_keys;
         (*state_generator)(key,action_keys);
         
         while(nexts.size()>action_keys.size()){
             nexts.pop_back();
         };
         while(nexts.size()<action_keys.size()){
-            nexts.push_back(Triple<State_Key,Action_Type,Score_Type>());
+            nexts.push_back(Triple<State_Type,Action_Type,Score_Type>());
         };
         
         
@@ -197,23 +197,23 @@ public:
  * */
 class Interface{
 public:
-    State_Key *init_key;
+    State_Type *init_key;
     PyObject *callback;
     Searcher_Data* searcher_data;
-    DFA_Beam_Searcher<State_Key,Action_Type,Score_Type>* searcher;
+    DFA_Beam_Searcher<State_Type,Action_Type,Score_Type>* searcher;
     Chinese* raw;
     CWS_Feature_Generator * feature_generator;
     CWS_State_Generator * state_generator;
     
     
-    Interface(State_Key *init_key,int beam_width){
+    Interface(State_Type *init_key,int beam_width){
         feature_generator=new Default_Feature_Generator();
         state_generator=new Default_State_Generator();
         raw=NULL;
         searcher_data=new Searcher_Data(init_key,state_generator,feature_generator);
         
         this->init_key=init_key;
-        searcher=new DFA_Beam_Searcher<State_Key,Action_Type,Score_Type>(searcher_data,beam_width);
+        searcher=new DFA_Beam_Searcher<State_Type,Action_Type,Score_Type>(searcher_data,beam_width);
     };
     void set_raw(Chinese& raw){
         if(this->raw)delete this->raw;
@@ -269,10 +269,20 @@ searcher_new(PyObject *self, PyObject *arg)
     int beam_width;
     PyObject * py_state_cb;
     PyObject * py_feature_cb;
-    PyArg_ParseTuple(arg, "OiOO", &py_init_stat,&beam_width,&py_state_cb,&py_feature_cb);
-    State_Key* init_key = new State_Key(py_init_stat);
+    PyArg_ParseTuple(arg, "iOOO", &beam_width,&py_init_stat,&py_state_cb,&py_feature_cb);
+    State_Type* init_key = NULL;
+    if(py_init_stat!=Py_None){
+        init_key = new State_Type(py_init_stat);
+    }else{
+        init_key = new Default_State_Type();
+    };
+    
     
     Interface* interface=new Interface(init_key,beam_width);
+    
+    
+    
+    
     
     if(py_feature_cb!=Py_None){
         delete interface->feature_generator;
@@ -371,7 +381,7 @@ update_action(PyObject *self, PyObject *arg)
             (Interface*)PyLong_AsLong(tmp);
     Py_CLEAR(tmp);
     tmp=PySequence_GetItem(arg,1);
-    State_Key state(tmp);
+    State_Type state(tmp);
     Py_CLEAR(tmp);
     tmp=PySequence_GetItem(arg,2);
     Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(tmp);
