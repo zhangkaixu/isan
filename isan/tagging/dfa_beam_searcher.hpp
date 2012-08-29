@@ -58,10 +58,7 @@ public:
                 }
             }
             if(max_ind){
-                Alpha tmp;
-                tmp=alphas[max_ind];
-                alphas[max_ind]=alphas[0];
-                alphas[0]=tmp;
+                std::swap(alphas[max_ind],alphas[0]);
             }
         };
     };

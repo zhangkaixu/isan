@@ -305,13 +305,10 @@ set_raw(PyObject *self, PyObject *arg)
     Py_CLEAR(tmp);
     PyObject *new_raw=PySequence_GetItem(arg,1);
     long raw_size=PySequence_Size(new_raw);
-    //if(interface->searcher_data->raw)delete interface->searcher_data->raw;
-    //interface->searcher_data->raw=new Chinese(raw_size);
     
     Chinese raw(raw_size);
     for(int i=0;i<raw_size;i++){
         PyObject *tmp=PySequence_GetItem(new_raw,i);
-        //interface->searcher_data->raw->pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(tmp);
         raw.pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(tmp);
         Py_CLEAR(tmp);
     }
@@ -335,50 +332,23 @@ set_action(PyObject *self, PyObject *arg)
     
     
     interface->searcher_data->actions[action]=new Default_Weights(py_dict);
-    //std::cout<<(*interface->searcher_data->actions[action]).map->size()<<"\n";
-    //Py_DECREF(py_action);//Py_DECREF(py_dict);
     Py_INCREF(Py_None);
     return Py_None;
     
     
-    
-    //PyObject * tmp; 
-    //tmp=PySequence_GetItem(arg,0);
-    //Interface* interface=
-            //(Interface*)PyLong_AsLong(tmp);
-    //Py_CLEAR(tmp);
-    //tmp=PySequence_GetItem(arg,1);
-    //Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(tmp);
-    //Py_CLEAR(tmp);
-    
-    //tmp=PySequence_GetItem(arg,2);
-    //Default_Weights* weights=(Default_Weights*)PyLong_AsLong(tmp);
-    //Py_CLEAR(tmp);
-    //interface->searcher_data->actions[action]=new Default_Weights();
-    //Py_INCREF(Py_None);
-    //return Py_None;
 };
 
 static PyObject *
 update_action(PyObject *self, PyObject *arg)
 {
-    PyObject * tmp; 
-    tmp=PySequence_GetItem(arg,0);
-    Interface* interface=
-            (Interface*)PyLong_AsLong(tmp);
-    Py_CLEAR(tmp);
-    tmp=PySequence_GetItem(arg,1);
-    State_Type state(tmp);
-    Py_CLEAR(tmp);
-    tmp=PySequence_GetItem(arg,2);
-    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(tmp);
-    Py_CLEAR(tmp);
-    tmp=PySequence_GetItem(arg,3);
-    long delta=PyLong_AsLong(tmp);
-    Py_CLEAR(tmp);
-    tmp=PySequence_GetItem(arg,4);
-    long step=PyLong_AsLong(tmp);
-    Py_CLEAR(tmp);
+    Interface* interface;
+    PyObject * py_action;
+    PyObject * py_state;
+    long delta=0;
+    long step=0;
+    PyArg_ParseTuple(arg, "IOOii", &interface,&py_state,&py_action,&delta,&step);
+    State_Type state(py_state);
+    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(py_action);
     
     std::vector<String<char> > fv;
     (*(interface->feature_generator))(state,fv);
@@ -418,7 +388,7 @@ static PyMethodDef dfabeamMethods[] = {
     {"delete",  searcher_delete, METH_O,""},
     {"set_raw",  set_raw, METH_O,""},
     {"set_action",  set_action, METH_VARARGS,""},
-    {"update_action",  update_action, METH_O,""},
+    {"update_action",  update_action, METH_VARARGS,""},
     {"export_weights",  export_weights, METH_VARARGS,""},
     //{"test_map",  test_map, METH_O,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
