@@ -57,36 +57,30 @@ public:
         Py_DECREF(callback);
     };
     void operator()(State_Type& key, std::vector<std::pair<Action_Type, State_Type> > & nexts){
-        
         PyObject * state=key.pack();
         PyObject * arglist=Py_BuildValue("(O)",state);
         PyObject * result= PyObject_CallObject(this->callback, arglist);
-
         Py_CLEAR(state);Py_CLEAR(arglist);
         
         long size=PySequence_Size(result);
         PyObject * tri;
         PyObject * tmp_item;
-        
-        
         nexts.clear();
         for(int i=0;i<size;i++){
+            tri=PySequence_GetItem(result,i);
             
-            PyObject * tri=PySequence_GetItem(result,i);
-            PyObject * tmp_item=PySequence_GetItem(tri,0);
-            
-            Action_Type action=*PyUnicode_AS_UNICODE(tmp_item);Py_DECREF(tmp_item);
-            //std::cout<<"ss\n";
+            tmp_item=PySequence_GetItem(tri,0);
+            Action_Type action=*PyUnicode_AS_UNICODE(tmp_item);
+            Py_DECREF(tmp_item);
+
             tmp_item=PySequence_GetItem(tri,1);
-            State_Type next_state(tmp_item);Py_DECREF(tmp_item);
-            //std::cout<<" whin\n";
+            State_Type next_state(tmp_item);
+            Py_DECREF(tmp_item);
+            
             nexts.push_back(std::pair<Action_Type,State_Type>(action,next_state));
-            //std::cout<<" en\n";
             Py_DECREF(tri);
         };
         Py_DECREF(result);
-        
-        //std::cout<<"zkx\n";
     };
 };
 
@@ -157,27 +151,16 @@ public:
         this->state_generator=state_generator;
         raw=NULL;
     };
-    void gen_next(State_Type& key,std::vector<Triple<State_Type,Action_Type,Score_Type> >& nexts){
+    void gen_next(State_Type& key,std::vector<std::pair<Action_Type,State_Type> >& nexts,
+            std::vector<Score_Type>& scores){
         Feature_Vector fv;
         
         (*this->feature_generator)(key,fv);
         
-        
-        std::vector<std::pair<Action_Type, State_Type> > action_keys;
-        (*state_generator)(key,action_keys);
-        
-        while(nexts.size()>action_keys.size()){
-            nexts.pop_back();
-        };
-        while(nexts.size()<action_keys.size()){
-            nexts.push_back(Triple<State_Type,Action_Type,Score_Type>());
-        };
-        
-        
-        for(int i=0;i<action_keys.size();i++){
-            nexts[i].action=action_keys[i].first;
-            nexts[i].key=action_keys[i].second;
-            nexts[i].score=(*(this->actions[nexts[i].action]))(fv);
+        (*state_generator)(key,nexts);
+        scores.resize(nexts.size());
+        for(int i=0;i<nexts.size();i++){
+            scores[i]=(*(this->actions[nexts[i].first]))(fv);
         };
     };
     
@@ -242,7 +225,11 @@ search(PyObject *self, PyObject *arg)
     
     tmp=PySequence_GetItem(arg,1);
 
-    std::vector<Action_Type> result=interface->searcher->call(*interface->init_key,PyLong_AsLong(tmp));
+    
+    //std::cout<<"call searcher\n";
+    std::vector<Action_Type> result;
+    interface->searcher->call(*interface->init_key,PyLong_AsLong(tmp),result);
+    //std::cout<<"called searcher\n";
     Py_CLEAR(tmp);
 
     PyObject * list=PyList_New(result.size());
@@ -267,28 +254,32 @@ searcher_new(PyObject *self, PyObject *arg)
     PyObject * py_feature_cb;
     PyArg_ParseTuple(arg, "iOOO", &beam_width,&py_init_stat,&py_state_cb,&py_feature_cb);
     State_Type* init_key = NULL;
+    //std::cout<<"init_key\n";
     if(py_init_stat!=Py_None){
+        //std::cout<<"  !=None\n";
         init_key = new State_Type(py_init_stat);
     }else{
+        //std::cout<<"  ==None\n";
         init_key = new Default_State_Type();
+        //std::cout<<*(*(Default_State_Type*)init_key).sep_ind2()<<"end\n";
     };
     
+
     
+    //std::cout<<"init_key end\n";
     Interface* interface=new Interface(init_key,beam_width);
-    
-    
-    
     
     
     if(py_feature_cb!=Py_None){
         delete interface->feature_generator;
-        interface->feature_generator=new Python_Feature_Generator(py_feature_cb);
+        interface->searcher_data->feature_generator=new Python_Feature_Generator(py_feature_cb);
     }else{
     };
     
     if(py_state_cb!=Py_None){
         delete interface->state_generator;
-        interface->state_generator=new Python_State_Generator(py_state_cb);
+        //std::cout<<"user state gen\n";
+        interface->searcher_data->state_generator=new Python_State_Generator(py_state_cb);
     }else{
     };
     

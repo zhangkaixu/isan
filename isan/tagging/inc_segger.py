@@ -96,49 +96,54 @@ class Segmentation_Space:
             dfabeam.update_action([self.dfabeam,stat,action,delta,step])
    
     def keygen_for_c(self,stat):
-        stat=self.stat_fmt.unpack(stat)
-        ind,last,_,wordl=stat
-        nexts=[]
-        nexts.append(('s',self.stat_fmt.pack(ind+1,b's',last,1)))
-        nexts.append(('c',self.stat_fmt.pack(ind+1,b'c',last,wordl+1)))
-        return nexts
+        ind,last,_,wordl=self.stat_fmt.unpack(stat)
+        return [('s',self.stat_fmt.pack(ind+1,b's',last,1)),
+            ('c',self.stat_fmt.pack(ind+1,b'c',last,wordl+1))]
 
     def gen_feature(self,span):
         span=self.stat_fmt.unpack(span)
         raw=self.raw
-        
         uni_chars=self.uni_chars
         bi_chars=self.bi_chars
+        
+
+        #fmt1=struct.Struct("c3sc")
+
         c_ind=span[0]+2
-        ws_current=span[1].decode()
-        ws_left=span[2].decode()
-        fv=[
-                "ws"+ws_left+ws_current,
-                "c"+uni_chars[c_ind]+ws_current,
-                "r"+uni_chars[c_ind+1]+ws_current,
-                'l'+uni_chars[c_ind-1]+ws_current,
-                "cr"+bi_chars[c_ind]+ws_current,
-                "lc"+bi_chars[c_ind-1]+ws_current,
-                "rr2"+bi_chars[c_ind+1]+ws_current,
-                "l2l"+bi_chars[c_ind-2]+ws_current,
-            ]
-        if len(span)>=4:
-            w_current=raw[span[0]-span[3]:span[0]]
-            fv.append("w"+w_current)
-        fv=[x.encode() for x in fv]
+        ws_current=span[1]
+        ws_left=span[2]
+        w_current=raw[span[0]-span[3]:span[0]]
+        #x=struct.pack("c3sc",b"1",uni_chars[c_ind],ws_current)
+        fv=[ 
+                #struct.pack("csc",b'0',ws_current,ws_left),
+                b'0'+ws_current+ws_left,
+                b"1"+uni_chars[c_ind]+ws_current,
+                b"2"+uni_chars[c_ind+1]+ws_current,
+                b'3'+uni_chars[c_ind-1]+ws_current,
+                #fmt1.pack(b"1",uni_chars[c_ind],ws_current),
+                #fmt1.pack(b"2",uni_chars[c_ind+1],ws_current),
+                #fmt1.pack(b'3',uni_chars[c_ind-1],ws_current),
+                
+                b"a"+bi_chars[c_ind]+ws_current,
+                b"b"+bi_chars[c_ind-1]+ws_current,
+                b"c"+bi_chars[c_ind+1]+ws_current,
+                b"d"+bi_chars[c_ind-2]+ws_current,
+                b"w"+w_current.encode(),
+                ]
         return fv
     
 
     def set_raw(self,raw):
         self.raw=raw
-        self.uni_chars=list('###'+raw+'##')
+        self.uni_chars=list(x.encode() for x in '###'+raw+'##')
         self.bi_chars=[self.uni_chars[i]+self.uni_chars[i+1]
                 for i in range(len(self.uni_chars)-1)]
 
     def search(self,raw):
         self.set_raw(raw)
         dfabeam.set_raw([self.dfabeam,raw])
-        return dfabeam.search([self.dfabeam,len(raw)+1])
+        ret=dfabeam.search([self.dfabeam,len(raw)+1])
+        return ret
 
 
 class Model(perceptrons.Base_Model):

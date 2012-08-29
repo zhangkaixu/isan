@@ -144,17 +144,16 @@ public:
         std::vector<std::pair<Action_Type, Default_State_Type> > & nexts=
                 (std::vector<std::pair<Action_Type, Default_State_Type> > &)super_nexts;
         
-        nexts.clear();
-        nexts.push_back(std::pair<Action_Type, Default_State_Type>());
-        nexts.back().first='s';
-        *(short*)nexts.back().second.pt=(*(short*)key.pt)+1;
-        *nexts.back().second.last_action2()='s';
-        *nexts.back().second.last_last_action2()=*key.last_action2();
-        *nexts.back().second.sep_ind2()=1;
+        nexts.resize(2);
+        nexts[0].first='s';
+        *(short*)nexts[0].second.pt=(*(short*)key.pt)+1;
+        *nexts[0].second.last_action2()='s';
+        *nexts[0].second.last_last_action2()=*key.last_action2();
+        *nexts[0].second.sep_ind2()=1;
         
         
-        nexts.push_back(std::pair<Action_Type, Default_State_Type>());
-        nexts.back().first='c';
+
+        nexts[1].first='c';
         *(short*)nexts.back().second.pt=(*(short*)key.pt)+1;
         *nexts.back().second.last_action2()='c';
         *nexts.back().second.last_last_action2()=*key.last_action2();
