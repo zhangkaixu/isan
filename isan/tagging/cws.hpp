@@ -6,80 +6,62 @@ typedef String<char> Feature_String;
 typedef std::vector<Feature_String> Feature_Vector;
 
 
-
-struct State_Key: public String<char>{
-    short* ind;
-    Action_Type* last_action;
-    Action_Type* last_last_action;
-    short* sep_ind;
-    State_Key(){
-        length=sizeof(*ind)+sizeof(*last_action)+sizeof(*last_last_action)+sizeof(*sep_ind);
-        
-        pt=new char[length];
-        ind=(short*)pt;
-        last_action=(Action_Type*)(pt+sizeof(*ind));
-        last_last_action=(Action_Type*)(pt+sizeof(*ind)+sizeof(*last_action));
-        sep_ind=(short*)(pt+sizeof(*ind)+sizeof(*last_action)+sizeof(*last_last_action));
-        *ind=0;
-        *last_action='|';
-        *last_last_action='|';
-        *sep_ind=0;
-    };
-    State_Key(const State_Key& other){
-        //std::cout<<length<<" a\n";
-        length=sizeof(*ind)+sizeof(*last_action)+sizeof(*last_last_action)+sizeof(*sep_ind);
-        pt=new char[length];
-        ind=(short*)pt;
-        last_action=(Action_Type*)(pt+sizeof(*ind));
-        last_last_action=(Action_Type*)(pt+sizeof(*ind)+sizeof(*last_action));
-        sep_ind=(short*)(pt+sizeof(*ind)+sizeof(*last_action)+sizeof(*last_last_action));
-        *ind=*other.ind;
-        *last_action=*other.last_action;
-        *last_last_action=*other.last_last_action;
-        *sep_ind=*other.sep_ind;
-        //std::cout<<"b\n";
-    };
-    void operator=(const State_Key& other){
-        *ind=*other.ind;
-        *last_action=*other.last_action;
-        *last_last_action=*other.last_last_action;
-        *sep_ind=*other.sep_ind;
-    };
-    ~State_Key(){
-    };
-    State_Key(PyObject* py_key){
-        length=sizeof(*ind)+sizeof(*last_action)+sizeof(*last_last_action)+sizeof(*sep_ind);
-        pt=new char[length];
-        ind=(short*)pt;
-        last_action=(Action_Type*)(pt+sizeof(*ind));
-        last_last_action=(Action_Type*)(pt+sizeof(*ind)+sizeof(*last_action));
-        sep_ind=(short*)(pt+sizeof(*ind)+sizeof(*last_action)+sizeof(*last_last_action));
-        PyObject* tmp;
-        tmp=PySequence_GetItem(py_key,0);
-        *this->ind=PyLong_AsLong(tmp);Py_DECREF(tmp);
-        tmp=PySequence_GetItem(py_key,1);
-        *this->last_action=*PyUnicode_AS_UNICODE(tmp);Py_DECREF(tmp);
-        tmp=PySequence_GetItem(py_key,2);
-        *this->last_last_action=*PyUnicode_AS_UNICODE(tmp);Py_DECREF(tmp);
-        tmp=PySequence_GetItem(py_key,3);
-        *this->sep_ind=PyLong_AsLong(tmp);Py_DECREF(tmp);
-    
-    
-    };
+class State_Type: public String<char>{
+public:
     PyObject* pack(){
-        unsigned int la=*this->last_action;
-        unsigned int lla=*this->last_last_action;
-        return PyTuple_Pack(4,
-                PyLong_FromLong(*this->ind),
-                PyUnicode_FromUnicode(&la,1),
-                PyUnicode_FromUnicode(&lla,1),
-                PyLong_FromLong(*this->sep_ind)
-        );
+        return PyBytes_FromStringAndSize(pt,length);
+
+    };
+    State_Type(){
     };
     
-    void pack_decref(PyObject* pack){
-        Py_CLEAR(pack);
+    State_Type(PyObject* py_key){
+        char* buffer;
+        Py_ssize_t len;
+        int rtn=PyBytes_AsStringAndSize(py_key,&buffer,&len);
+        length=(size_t)len;
+        pt=new char[length];
+        memcpy(pt,buffer,length*sizeof(char));        
     };
+};
+
+class State_Key: public State_Type{
+public:
+    inline short* ind2(){
+        return (short*)(pt);
+    };
+    inline Action_Type* last_action2(){
+        return (Action_Type*)(pt+sizeof(short));
+    };
+
+    inline Action_Type* last_last_action2(){
+        return (Action_Type*)(pt+sizeof(short)+sizeof(Action_Type));
+    };
+
+    inline short* sep_ind2(){
+        return (short*)(pt+sizeof(short)+sizeof(Action_Type)+sizeof(Action_Type));
+    };
+    
+    
+    State_Key(){
+        length=sizeof(short)+sizeof(Action_Type)+sizeof(Action_Type)+sizeof(short);
+        pt=new char[length];
+    };
+
+    void operator=(const State_Key& other){
+        memcpy(pt,other.pt,length*sizeof(char));
+    };
+    State_Key(PyObject* py_key): State_Type(){
+        char* buffer;
+        Py_ssize_t len;
+        int rtn=PyBytes_AsStringAndSize(py_key,&buffer,&len);
+        length=(size_t)len;
+        pt=new char[length];
+        memcpy(pt,buffer,length*sizeof(char));
+        return;
+        
+    };
+    
     
 };
 
@@ -105,10 +87,10 @@ public:
         this->raw=NULL;
     };
     void operator()(State_Key& state, Feature_Vector& fv){
-        int ind=*state.ind;
-        Action_Type left_action=*state.last_action;
-        Action_Type left_left_action=*state.last_last_action;
-        long sep_ind=*state.sep_ind;
+        int ind=*(short*)state.pt;
+        Action_Type left_action=*state.last_action2();
+        Action_Type left_left_action=*state.last_last_action2();
+        long sep_ind=*state.sep_ind2();
         
         Chinese_Character char_mid=ind-1>=0?raw->pt[ind-1]:-1;
         Chinese_Character char_right=ind<raw->length?raw->pt[ind]:-1;
@@ -156,18 +138,18 @@ public:
         nexts.clear();
         nexts.push_back(std::pair<Action_Type, State_Key>());
         nexts.back().first='s';
-        *nexts.back().second.ind=*key.ind+1;
-        *nexts.back().second.last_action='s';
-        *nexts.back().second.last_last_action=*key.last_action;
-        *nexts.back().second.sep_ind=1;
+        *(short*)nexts.back().second.pt=(*(short*)key.pt)+1;
+        *nexts.back().second.last_action2()='s';
+        *nexts.back().second.last_last_action2()=*key.last_action2();
+        *nexts.back().second.sep_ind2()=1;
         
         
         nexts.push_back(std::pair<Action_Type, State_Key>());
         nexts.back().first='c';
-        *nexts.back().second.ind=*key.ind+1;
-        *nexts.back().second.last_action='c';
-        *nexts.back().second.last_last_action=*key.last_action;
-        *nexts.back().second.sep_ind=*key.sep_ind+1;
+        *(short*)nexts.back().second.pt=(*(short*)key.pt)+1;
+        *nexts.back().second.last_action2()='c';
+        *nexts.back().second.last_last_action2()=*key.last_action2();
+        *nexts.back().second.sep_ind2()=*key.sep_ind2()+1;
         
     };
 };

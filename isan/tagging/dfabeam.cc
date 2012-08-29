@@ -70,7 +70,7 @@ public:
         PyObject * tri;
         PyObject * tmp_item;
         
-        key.pack_decref(state);Py_CLEAR(arglist);
+        Py_CLEAR(state);Py_CLEAR(arglist);
         
         nexts.clear();
         for(int i=0;i<size;i++){
@@ -245,8 +245,8 @@ search(PyObject *self, PyObject *arg)
 
     
     tmp=PySequence_GetItem(arg,1);
-    State_Key init_k;
-    std::vector<Action_Type> result=interface->searcher->call(init_k,PyLong_AsLong(tmp));
+
+    std::vector<Action_Type> result=interface->searcher->call(*interface->init_key,PyLong_AsLong(tmp));
     Py_CLEAR(tmp);
 
     PyObject * list=PyList_New(result.size());

@@ -1,6 +1,7 @@
 import collections
 import pickle
 import sys
+import struct
 import isan.tagging.cws_codec as tagging_codec
 import isan.tagging.eval as tagging_eval
 import isan.common.perceptrons as perceptrons
@@ -12,7 +13,7 @@ import isan.tagging.dfabeam as dfabeam
 class Segmentation_Space:
     
     default_conf={
-            'init':(0,'|','|',0),
+            'init':struct.pack("hcch",0,b'|',b'|',0),
             'state_gen':None,
             'feature_gen':None,
             'beam_width':8,
@@ -28,10 +29,10 @@ class Segmentation_Space:
         self.dfabeam=dfabeam.new(
                 self.init,
                 self.beam_width,
-                None,
-                #self.keygen_for_c,
-                None,
-                #self.gen_feature,
+                #None,
+                self.keygen_for_c,
+                #None,
+                self.gen_feature,
                 )
         dfabeam.set_action(self.dfabeam,'s',self.actions['s'])
         dfabeam.set_action(self.dfabeam,'c',self.actions['c'])
@@ -64,13 +65,14 @@ class Segmentation_Space:
     
     def _actions_to_stats(self,actions):
         stat=self.init
+        stat=struct.unpack("hcch",stat)
         for action in actions:
             yield stat
             ind,last,_,wordl=stat
             if action=='s':
-                stat=(ind+1,'s',last,1)
+                stat=(ind+1,b's',last,1)
             else:
-                stat=(ind+1,'c',last,wordl+1)
+                stat=(ind+1,b'c',last,wordl+1)
         yield stat
     def average(self,step):
         self.actions['s'].update(dfabeam.export_weights(self.dfabeam,step,'s'))
@@ -82,25 +84,26 @@ class Segmentation_Space:
     ### 私有函数 
     def _update_actions(self,actions,delta,step):
         for stat,action in zip(self._actions_to_stats(actions),actions,):
-            dfabeam.update_action([self.dfabeam,stat,action,delta,step])
+            stat=struct.pack("hcch",*stat)
             dfabeam.update_action([self.dfabeam,stat,action,delta,step])
    
     def keygen_for_c(self,stat):
+        stat=struct.unpack("hcch",stat)
         ind,last,_,wordl=stat
         nexts=[]
-        nexts.append(('s',(ind+1,'s',last,1)))
-        nexts.append(('c',(ind+1,'c',last,wordl+1)))
+        nexts.append(('s',struct.pack("hcch",ind+1,b's',last,1)))
+        nexts.append(('c',struct.pack("hcch",ind+1,b'c',last,wordl+1)))
         return nexts
 
     def gen_feature(self,span):
+        span=struct.unpack("hcch",span)
         raw=self.raw
         
         uni_chars=self.uni_chars
         bi_chars=self.bi_chars
         c_ind=span[0]+2
-        ws_current=span[1]
-        ws_left=span[2]
-        
+        ws_current=span[1].decode()
+        ws_left=span[2].decode()
         fv=[
                 "ws"+ws_left+ws_current,
                 "c"+uni_chars[c_ind]+ws_current,
