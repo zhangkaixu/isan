@@ -9,7 +9,38 @@ import isan.tagging.dfabeam as dfabeam
 一个增量搜索模式的中文分词模块
 """
         
-class Segmentation_Actions(dict):
+class Segmentation_Space:
+    
+    default_conf={
+            'init':(0,'|','|',0),
+            'state_gen':None,
+            'feature_gen':None,
+            'beam_width':8,
+
+            }
+    def __init__(self,beam_width=8):
+        self.conf=self.default_conf
+        self.init=self.conf['init']
+        self.beam_width=self.conf['beam_width']
+        self.actions={'s':{},'c':{}}
+        self.link_c()
+    def link_c(self):
+        self.dfabeam=dfabeam.new(
+                self.init,
+                self.beam_width,
+                None,
+                #self.keygen_for_c,
+                None,
+                #self.gen_feature,
+                )
+        dfabeam.set_action(self.dfabeam,'s',self.actions['s'])
+        dfabeam.set_action(self.dfabeam,'c',self.actions['c'])
+
+
+
+    def __del__(self):
+        dfabeam.delete(self.dfabeam)
+
     @staticmethod
     def actions_to_result(actions,raw):
         sen=[]
@@ -30,22 +61,7 @@ class Segmentation_Actions(dict):
                 actions.append('c')
             actions.append('s')
         return actions
-
-    def __init__(self,beam):
-
-        self.dfabeam=beam
-        dfabeam.set_action([self.dfabeam,'s'])
-        dfabeam.set_action([self.dfabeam,'c'])
-
-
-    def average(self,step):
-        pass
-        
-class Segmentation_Stats(perceptrons.Base_Stats):
-    def __init__(self):
-        #初始状态 (解析位置，上一个位置结果，上上个位置结果，当前词长)
-        self.init=(0,'|','|',0)
-
+    
     def _actions_to_stats(self,actions):
         stat=self.init
         for action in actions:
@@ -56,14 +72,18 @@ class Segmentation_Stats(perceptrons.Base_Stats):
             else:
                 stat=(ind+1,'c',last,wordl+1)
         yield stat
-
-
-class Segmentation_Space:
-    """
-    线性搜索
-    value = [alphas,betas]
-    alpha = [score, delta, action, link]
-    """
+    def average(self,step):
+        self.actions['s'].update(dfabeam.export_weights(self.dfabeam,step,'s'))
+        self.actions['c'].update(dfabeam.export_weights(self.dfabeam,step,'c'))
+        pass
+    def update(self,x,std_actions,rst_actions,step):
+        self._update_actions(std_actions,1,step)
+        self._update_actions(rst_actions,-1,step)
+    ### 私有函数 
+    def _update_actions(self,actions,delta,step):
+        for stat,action in zip(self._actions_to_stats(actions),actions,):
+            dfabeam.update_action([self.dfabeam,stat,action,delta,step])
+            dfabeam.update_action([self.dfabeam,stat,action,delta,step])
    
     def keygen_for_c(self,stat):
         ind,last,_,wordl=stat
@@ -97,23 +117,6 @@ class Segmentation_Space:
         fv=[x.encode() for x in fv]
         return fv
     
-    def __init__(self,beam_width=8):
-        self.stats=Segmentation_Stats()
-        self.dfabeam=dfabeam.new(
-                self.stats.init,
-                beam_width,
-                None,
-                #self.keygen_for_c,
-                None,
-                #self.gen_feature,
-                )
-        self.actions=Segmentation_Actions(self.dfabeam)
-        self.stats.dfabeam=self.dfabeam
-
-
-    def __del__(self):
-        dfabeam.delete(self.dfabeam)
-        pass
 
     def set_raw(self,raw):
         self.raw=raw

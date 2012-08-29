@@ -95,7 +95,32 @@ public:
 };
 
 
-typedef Weights<Feature_String ,Score_Type> Default_Weights;
+//typedef Weights<Feature_String ,Score_Type> Default_Weights;
+class Default_Weights : public Weights<Feature_String ,Score_Type>{
+public:
+    PyObject * to_py_dict(){
+        PyObject * dict=PyDict_New();
+        //
+        for(auto it=map->begin();it!=map->end();++it){
+            PyDict_SetItem(dict,PyBytes_FromStringAndSize(it->first.pt,it->first.length),PyLong_FromLong(it->second));
+        };
+        
+        Py_INCREF(dict);
+        return dict;
+    };
+    Default_Weights(PyObject * dict){
+        PyObject *key, *value;
+        Py_ssize_t pos = 0;
+        
+        char* buffer;
+        size_t length;
+        while (PyDict_Next(dict, &pos, &key, &value)) {
+            PyBytes_AsStringAndSize(key,&buffer,(Py_ssize_t*)&(length));
+            (*map)[Feature_String(buffer,length)]=PyLong_AsLong(value);
+        };
+    };
+};
+
 
 void list_to_fv(PyObject * list, Feature_Vector & fv){
     fv.clear();
@@ -129,7 +154,7 @@ public:
     
     State_Key* pinit_key;
     Chinese* raw;
-    std::map<Action_Type, Weights<String<char> ,Score_Type>* > actions;
+    std::map<Action_Type, Default_Weights* > actions;
     Searcher_Data(State_Key* pinit_key,CWS_State_Generator *state_generator,CWS_Feature_Generator * feature_generator){
         this->feature_generator=feature_generator;
         this->pinit_key=pinit_key;
@@ -303,21 +328,38 @@ set_raw(PyObject *self, PyObject *arg)
 static PyObject *
 set_action(PyObject *self, PyObject *arg)
 {
-    PyObject * tmp; 
-    tmp=PySequence_GetItem(arg,0);
-    Interface* interface=
-            (Interface*)PyLong_AsLong(tmp);
-    Py_CLEAR(tmp);
-    tmp=PySequence_GetItem(arg,1);
-    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(tmp);
-    Py_CLEAR(tmp);
     
-    tmp=PySequence_GetItem(arg,2);
-    Weights<String<char> ,Score_Type>* weights=(Weights<String<char> ,Score_Type>*)PyLong_AsLong(tmp);
-    Py_CLEAR(tmp);
-    interface->searcher_data->actions[action]=new Weights<String<char> ,Score_Type>();
+    Interface* interface;
+    int step;
+    PyObject * py_action;
+    PyObject * py_dict;
+    PyArg_ParseTuple(arg, "IOO", &interface,&py_action,&py_dict);
+    Action_Type action=*PyUnicode_AS_UNICODE(py_action);
+    
+    
+    interface->searcher_data->actions[action]=new Default_Weights(py_dict);
+    //std::cout<<(*interface->searcher_data->actions[action]).map->size()<<"\n";
+    //Py_DECREF(py_action);//Py_DECREF(py_dict);
     Py_INCREF(Py_None);
     return Py_None;
+    
+    
+    
+    //PyObject * tmp; 
+    //tmp=PySequence_GetItem(arg,0);
+    //Interface* interface=
+            //(Interface*)PyLong_AsLong(tmp);
+    //Py_CLEAR(tmp);
+    //tmp=PySequence_GetItem(arg,1);
+    //Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(tmp);
+    //Py_CLEAR(tmp);
+    
+    //tmp=PySequence_GetItem(arg,2);
+    //Default_Weights* weights=(Default_Weights*)PyLong_AsLong(tmp);
+    //Py_CLEAR(tmp);
+    //interface->searcher_data->actions[action]=new Default_Weights();
+    //Py_INCREF(Py_None);
+    //return Py_None;
 };
 
 static PyObject *
@@ -351,6 +393,25 @@ update_action(PyObject *self, PyObject *arg)
     return Py_None;
 };
 
+
+static PyObject *
+export_weights(PyObject *self, PyObject *arg)
+{
+    
+    Interface* interface;
+    int step;
+    PyObject * py_action;
+    PyArg_ParseTuple(arg, "IiO", &interface,&step,&py_action);
+    
+    Action_Type action=*PyUnicode_AS_UNICODE(py_action);
+    //Py_DECREF(py_action);
+    
+    interface->searcher_data->actions[action]->average(step);
+    return interface->searcher_data->actions[action]->to_py_dict();
+    
+    //return PyLong_FromLong((long)interface);
+};
+
 /** stuffs about the module def */
 static PyMethodDef dfabeamMethods[] = {
     //{"system",  spam_system, METH_VARARGS,"Execute a shell command."},
@@ -359,8 +420,9 @@ static PyMethodDef dfabeamMethods[] = {
     {"new",  searcher_new, METH_VARARGS,""},
     {"delete",  searcher_delete, METH_O,""},
     {"set_raw",  set_raw, METH_O,""},
-    {"set_action",  set_action, METH_O,""},
+    {"set_action",  set_action, METH_VARARGS,""},
     {"update_action",  update_action, METH_O,""},
+    {"export_weights",  export_weights, METH_VARARGS,""},
     //{"test_map",  test_map, METH_O,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };

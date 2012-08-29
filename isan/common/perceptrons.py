@@ -1,24 +1,6 @@
 #!/usr/bin/python3
 import pickle
 import collections
-import isan.tagging.dfabeam as dfabeam
-
-
-class Base_Stats(object):
-    """
-    需要实现
-    self.init 初始状态
-    self.gen_next_stats
-    self._actions_to_stats
-    """
-    def update(self,x,std_actions,rst_actions,step):
-        self._update_actions(std_actions,1,step)
-        self._update_actions(rst_actions,-1,step)
-    ### 私有函数 
-    def _update_actions(self,actions,delta,step):
-        for stat,action in zip(self._actions_to_stats(actions),actions,):
-            dfabeam.update_action([self.dfabeam,stat,action,delta,step])
-            dfabeam.update_action([self.dfabeam,stat,action,delta,step])
 
 class Base_Model(object):
     def __init__(self,model_file,schema=None,**conf):
@@ -34,8 +16,6 @@ class Base_Model(object):
         else:
             self.model_file=model_file
             self.schema=schema
-        self.actions=self.schema.actions
-        self.stats=self.schema.stats
         self.step=0
 
     def test(self,test_file):
@@ -52,7 +32,7 @@ class Base_Model(object):
         """
         保存模型
         """
-        self.actions.average(self.step)
+        self.schema.average(self.step)
         file=open(self.model_file,'wb')
         pickle.dump(self.schema,file)
         file.close()
@@ -61,7 +41,7 @@ class Base_Model(object):
         解码，读入生句子，返回词的数组
         """
         rst_actions=self.schema.search(raw)
-        hat_y=self.actions.actions_to_result(rst_actions,raw)
+        hat_y=self.schema.actions_to_result(rst_actions,raw)
         return hat_y
     def _learn_sentence(self,raw,y,set_Y=None):
         """
@@ -69,13 +49,13 @@ class Base_Model(object):
         """
         self.step+=1#学习步数加一
         if y:
-            std_actions=self.actions.result_to_actions(y)#得到标准动作
+            std_actions=self.schema.result_to_actions(y)#得到标准动作
         else:
             std_actions=self.schema.search(raw,set_Y)
         rst_actions=self.schema.search(raw)#得到解码后动作
-        hat_y=self.actions.actions_to_result(rst_actions,raw)#得到解码后结果
+        hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
         if y!=hat_y:#如果动作不一致，则更新
-            self.stats.update(raw,std_actions,rst_actions,self.step)
+            self.schema.update(raw,std_actions,rst_actions,self.step)
         return y,hat_y
         
     def train(self,training_file,iteration=5):

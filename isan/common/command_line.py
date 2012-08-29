@@ -36,11 +36,13 @@ def command_line(task_name,Model,Segmentation_Space):
         print("使用模型文件%s进行%s"%(make_color(args.model_file),
                     task_name),file=sys.stderr)
     
-    model=Model(args.model_file,
-                Segmentation_Space(beam_width=int(args.beam_width)
-                )
-        )
+    #model=Model(args.model_file,
+    #            Segmentation_Space(beam_width=int(args.beam_width)
+    #            )
+    #    )
     model=Model(args.model_file)
+    model.schema.link_c()
+    print('s')
     
     """如果指定了测试集，就测试模型"""
     if args.test_file:

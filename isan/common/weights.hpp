@@ -40,21 +40,32 @@ public:
     };
     VALUE operator()(const std::vector<KEY>& fv){
         VALUE value=0;
+        //int miss=0;
         typename Map::const_iterator got;
         for(int i=0;i<fv.size();i++){
             got = map->find(fv[i]);
-            if(got!=map->end())value+=got->second;
+            if(got!=map->end()){
+                value+=got->second;
+            }else{
+                
+            }
             //if(map->count(fv[i]))value+=(*map)[fv[i]];
         };
         return value;
     };
     void average(int step){
         typename Map::iterator it;
-        for(it=acc_map.begin();it!=acc_map.end();++it){
-            KEY& key=(*it).first;
+        //std::cout<<step<<"\n";
+        for(it=acc_map->begin();it!=acc_map->end();++it){
+            const KEY& key=(*it).first;
             VALUE value=(*it).second;
-            map[key]=(VALUE)
-                    (((double)(map[key]-value))/step+0.5);
+            //std::cout<<(*map)[key]<<" "<<(*acc_map)[key]<<" ";
+            (*map)[key]=(VALUE)
+                    (
+                        ((double)((*map)[key]-value/step))*1000
+                        +0.5
+                    );
+            //std::cout<<(*map)[key]<<"\n";
         };
     };
 };
