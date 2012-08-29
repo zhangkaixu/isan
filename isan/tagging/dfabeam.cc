@@ -57,26 +57,22 @@ public:
         Py_DECREF(callback);
     };
     void operator()(State_Type& key, std::vector<std::pair<Action_Type, State_Type> > & nexts){
-        nexts.clear();
         
         PyObject * state=key.pack();
-        
         PyObject * arglist=Py_BuildValue("(O)",state);
-        
         PyObject * result= PyObject_CallObject(this->callback, arglist);
 
+        Py_CLEAR(state);Py_CLEAR(arglist);
         
         long size=PySequence_Size(result);
         PyObject * tri;
         PyObject * tmp_item;
         
-        Py_CLEAR(state);Py_CLEAR(arglist);
         
         nexts.clear();
         for(int i=0;i<size;i++){
             
             PyObject * tri=PySequence_GetItem(result,i);
-            //std::cout<<PySequence_Size(tri)<<" in\n";
             PyObject * tmp_item=PySequence_GetItem(tri,0);
             
             Action_Type action=*PyUnicode_AS_UNICODE(tmp_item);Py_DECREF(tmp_item);
