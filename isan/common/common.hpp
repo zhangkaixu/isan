@@ -37,7 +37,7 @@ public:
         (*_ref_count)++;
     };
     void operator=(const Smart_String& other){
-        *_ref_count--;
+        (*_ref_count)--;
         if(!*_ref_count){
             delete[] _ref_count;
             if(pt)delete[] pt;
@@ -48,7 +48,7 @@ public:
         (*_ref_count)++;
     };
     ~Smart_String(){
-        *_ref_count--;
+        (*_ref_count)--;
         if(!*_ref_count){
             delete[] _ref_count;
             if(pt)delete[] pt;

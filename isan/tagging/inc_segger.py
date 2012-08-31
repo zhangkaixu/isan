@@ -37,12 +37,12 @@ class Segmentation_Space:
                 
         self.dfabeam=dfabeam.new(
                 self.beam_width,
-                #None,
-                self.init_stat,
-                #None,
-                self.gen_actions_and_stats,
-                #None,
-                self.gen_features,
+                None,
+                #self.init_stat,
+                None,
+                #self.gen_actions_and_stats,
+                None,
+                #self.gen_features,
                 )
         for k,v in self.weights.items():
         
