@@ -1,7 +1,5 @@
 from struct import Struct
 class Segger:
-
-    actions=['s','c']
     stat_fmt=Struct('HccH')
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0))
 
@@ -39,14 +37,13 @@ class Segger:
 
     def gen_features(self,span):
         span=self.stat_fmt.unpack(span)
-        raw=self.raw
         uni_chars=self.uni_chars
         bi_chars=self.bi_chars
 
         c_ind=span[0]+2
         ws_current=span[1]
         ws_left=span[2]
-        w_current=raw[span[0]-span[3]:span[0]]
+        w_current=self.raw[span[0]-span[3]:span[0]]
         fv=[ 
                 b'0'+ws_current+ws_left,
                 b"1"+uni_chars[c_ind]+ws_current,

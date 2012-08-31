@@ -15,12 +15,12 @@ import isan.tagging.default_segger as segger
 class Segmentation_Space:
     def __init__(self,beam_width=8):
         self.beam_width=beam_width
+        self.weights={}
         self.link()
 
     def link(self,segger=segger.Segger()):
         self.segger=segger
         func_list={
-                'actions': None,
                 'init_stat': None,
                 'stat_fmt_str': None,
                 'actions_to_result': None,
@@ -35,8 +35,6 @@ class Segmentation_Space:
             else:
                 setattr(self,func,dft_attr)
                 
-        if not hasattr(self,'weights'):
-            self.weights={a:{} for a in self.actions}
         self.dfabeam=dfabeam.new(
                 self.beam_width,
                 #None,
@@ -76,13 +74,13 @@ class Segmentation_Space:
    
 
     def average(self,step):
-        for k,v in self.weights.items():
-            v.update(dfabeam.export_weights(self.dfabeam,step,k))
+        for k,v in dfabeam.export_weights(self.dfabeam,step):
+            self.weights.setdefault(k,{}).update(v)
 
     def search(self,raw):
         self.set_raw(raw)
-        dfabeam.set_raw([self.dfabeam,raw])
-        ret=dfabeam.search([self.dfabeam,len(raw)+1])
+        dfabeam.set_raw(self.dfabeam,raw)
+        ret=dfabeam.search(self.dfabeam,len(raw)+1)
         return ret
     
 

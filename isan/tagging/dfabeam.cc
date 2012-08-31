@@ -98,6 +98,8 @@ public:
         Py_INCREF(dict);
         return dict;
     };
+    Default_Weights(){
+    }
     Default_Weights(PyObject * dict){
         PyObject *key, *value;
         Py_ssize_t pos = 0;
@@ -161,6 +163,11 @@ public:
         (*state_generator)(key,nexts);
         scores.resize(nexts.size());
         for(int i=0;i<nexts.size();i++){
+            auto got=this->actions.find(nexts[i].first);
+            if(got==this->actions.end()){
+                this->actions[nexts[i].first]=new Default_Weights();
+            }
+            //this->actions[action]=new Default_Weights(py_dict);
             scores[i]=(*(this->actions[nexts[i].first]))(fv);
         };
     };
@@ -216,22 +223,17 @@ public:
 static PyObject *
 search(PyObject *self, PyObject *arg)
 {
-    //std::cout<<"search begin\n";
-    PyObject * tmp; 
-    tmp=PySequence_GetItem(arg,0);
-    Interface* interface=
-            (Interface*)PyLong_AsLong(tmp);
-    Py_CLEAR(tmp);
 
-    
-    tmp=PySequence_GetItem(arg,1);
+    Interface* interface;
+    unsigned long steps;
+    PyArg_ParseTuple(arg, "LL", &interface,&steps);
+
 
     
     //std::cout<<"call searcher\n";
     std::vector<Action_Type> result;
-    interface->searcher->call(interface->init_key,PyLong_AsLong(tmp),result);
+    interface->searcher->call(interface->init_key,steps,result);
     //std::cout<<"called searcher\n";
-    Py_CLEAR(tmp);
 
     PyObject * list=PyList_New(result.size());
     
@@ -295,22 +297,17 @@ searcher_delete(PyObject *self, PyObject *arg){
 static PyObject *
 set_raw(PyObject *self, PyObject *arg)
 {
-    PyObject * tmp; 
-    tmp=PySequence_GetItem(arg,0);
-    Interface* interface=
-            (Interface*)PyLong_AsLong(tmp);
-    Py_CLEAR(tmp);
-    PyObject *new_raw=PySequence_GetItem(arg,1);
+    Interface* interface;
+    PyObject *new_raw;
+    PyArg_ParseTuple(arg, "LO", &interface,&new_raw);
     long raw_size=PySequence_Size(new_raw);
     
     Chinese raw(raw_size);
     for(int i=0;i<raw_size;i++){
         PyObject *tmp=PySequence_GetItem(new_raw,i);
         raw.pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(tmp);
-        Py_CLEAR(tmp);
     }
     interface->set_raw(raw);
-    Py_CLEAR(new_raw);
     Py_INCREF(Py_None);
     
     return Py_None;
@@ -324,7 +321,7 @@ set_action(PyObject *self, PyObject *arg)
     int step;
     PyObject * py_action;
     PyObject * py_dict;
-    PyArg_ParseTuple(arg, "IOO", &interface,&py_action,&py_dict);
+    PyArg_ParseTuple(arg, "LOO", &interface,&py_action,&py_dict);
     Action_Type action=*PyUnicode_AS_UNICODE(py_action);
     
     
@@ -343,7 +340,7 @@ update_action(PyObject *self, PyObject *arg)
     PyObject * py_state;
     long delta=0;
     long step=0;
-    PyArg_ParseTuple(arg, "IOOii", &interface,&py_state,&py_action,&delta,&step);
+    PyArg_ParseTuple(arg, "LOOii", &interface,&py_state,&py_action,&delta,&step);
     State_Type state(py_state);
     Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(py_action);
     
@@ -364,14 +361,25 @@ export_weights(PyObject *self, PyObject *arg)
     
     Interface* interface;
     int step;
-    PyObject * py_action;
-    PyArg_ParseTuple(arg, "IiO", &interface,&step,&py_action);
+    PyArg_ParseTuple(arg, "Li", &interface,&step);
     
-    Action_Type action=*PyUnicode_AS_UNICODE(py_action);
-    //Py_DECREF(py_action);
     
-    interface->searcher_data->actions[action]->average(step);
-    return interface->searcher_data->actions[action]->to_py_dict();
+    PyObject * list=PyList_New(0);
+    for(auto iter=interface->searcher_data->actions.begin();
+            iter!=interface->searcher_data->actions.end();
+            ++iter){
+        unsigned int la=iter->first;
+        iter->second->average(step);
+        PyList_Append(
+                list,
+                PyTuple_Pack(2,
+                    PyUnicode_FromUnicode(&la,1),
+                    iter->second->to_py_dict()
+                    )
+                );
+
+    }
+    return list;
     
     //return PyLong_FromLong((long)interface);
 };
@@ -382,8 +390,8 @@ static PyMethodDef dfabeamMethods[] = {
     //{"add",  spam_add, METH_O,""},
     {"new",  searcher_new, METH_VARARGS,""},
     {"delete",  searcher_delete, METH_O,""},
-    {"set_raw",  set_raw, METH_O,""},
-    {"search",  search, METH_O,""},
+    {"set_raw",  set_raw, METH_VARARGS,""},
+    {"search",  search, METH_VARARGS,""},
     {"set_action",  set_action, METH_VARARGS,""},
     {"update_action",  update_action, METH_VARARGS,""},
     {"export_weights",  export_weights, METH_VARARGS,""},
