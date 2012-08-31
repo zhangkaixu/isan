@@ -272,14 +272,16 @@ searcher_new(PyObject *self, PyObject *arg)
     
     if(py_feature_cb!=Py_None){
         delete interface->feature_generator;
-        interface->searcher_data->feature_generator=new Python_Feature_Generator(py_feature_cb);
+        interface->feature_generator=new Python_Feature_Generator(py_feature_cb);
+        interface->searcher_data->feature_generator=interface->feature_generator;
     }else{
     };
     
     if(py_state_cb!=Py_None){
         delete interface->state_generator;
         //std::cout<<"user state gen\n";
-        interface->searcher_data->state_generator=new Python_State_Generator(py_state_cb);
+        interface->state_generator=new Python_State_Generator(py_state_cb);
+        interface->searcher_data->state_generator=interface->state_generator;
     }else{
     };
     
