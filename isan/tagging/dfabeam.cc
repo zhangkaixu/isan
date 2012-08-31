@@ -111,17 +111,20 @@ public:
     };
 };
 
-
-void list_to_fv(PyObject * list, Feature_Vector & fv){
-    fv.clear();
-    
-    long size=PySequence_Size(list);
+inline void bytes_to_string(PyObject * bytes, Smart_String<char>& string){
     char* buffer;
     size_t length;
+    PyBytes_AsStringAndSize(bytes,&buffer,(Py_ssize_t*)&(length));
+    string=Feature_String(buffer,length);
+};
+
+inline void list_to_fv(PyObject * list, Feature_Vector & fv){
+    fv.clear();
+    long size=PySequence_Size(list);
     for(int i=0;i<size;i++){
+        fv.push_back(Feature_String());
         PyObject * bytes=PySequence_GetItem(list,i);
-        PyBytes_AsStringAndSize(bytes,&buffer,(Py_ssize_t*)&(length));
-        fv.push_back(String<char>(buffer,length));
+        bytes_to_string(bytes,fv.back());
         Py_DECREF(bytes);
     };
     Py_DECREF(list);
@@ -278,8 +281,6 @@ searcher_new(PyObject *self, PyObject *arg)
     }else{
     };
     
-    int x;
-    std::cin>>x;
     return PyLong_FromLong((long)interface);
 };
 
@@ -346,7 +347,7 @@ update_action(PyObject *self, PyObject *arg)
     State_Type state(py_state);
     Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(py_action);
     
-    std::vector<String<char> > fv;
+    Feature_Vector fv;
     (*(interface->feature_generator))(state,fv);
     
     
@@ -379,10 +380,10 @@ export_weights(PyObject *self, PyObject *arg)
 static PyMethodDef dfabeamMethods[] = {
     //{"system",  spam_system, METH_VARARGS,"Execute a shell command."},
     //{"add",  spam_add, METH_O,""},
-    {"search",  search, METH_O,""},
     {"new",  searcher_new, METH_VARARGS,""},
     {"delete",  searcher_delete, METH_O,""},
     {"set_raw",  set_raw, METH_O,""},
+    {"search",  search, METH_O,""},
     {"set_action",  set_action, METH_VARARGS,""},
     {"update_action",  update_action, METH_VARARGS,""},
     {"export_weights",  export_weights, METH_VARARGS,""},

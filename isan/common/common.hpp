@@ -3,49 +3,60 @@
 #include <map>
 
 typedef unsigned short Chinese_Character;
-typedef char Action_Type;
 typedef int Score_Type;
+typedef unsigned char Action_Type;
 
-
-template<class CHAR>
-class String{
+template<class ITEM>
+class Smart_String{
 public:
-    CHAR* pt;
+    ITEM* pt;
     size_t length;
-    String(){
+    size_t* _ref_count;
+    Smart_String(){
         pt=NULL;
-        this->length=0;
+        length=0;
+        _ref_count=new size_t[1];
+        *_ref_count=1;
     };
-    String(size_t length){
-        pt=new CHAR[length];
+    Smart_String(ITEM* buffer, size_t length){
+        _ref_count=new size_t[1];
+        *_ref_count=1;
+        pt=new ITEM[length];
+        this->length=length;
+        memcpy(pt,buffer,length*sizeof(ITEM));
+    };
+    Smart_String(size_t length){
+        _ref_count=new size_t[1];
+        *_ref_count=1;
+        pt=new ITEM[length];
         this->length=length;
     };
-    String(const String& other){
+    Smart_String(const Smart_String& other){
+        pt=other.pt;
         length=other.length;
-        pt=new CHAR[length];
-        memcpy(pt,other.pt,length*sizeof(CHAR));
+        _ref_count=other._ref_count;
+        (*_ref_count)++;
     };
-    void operator=(const String& other){
-        if(length==other.length){
-            memcpy(pt,other.pt,length*sizeof(CHAR));
-            return;
+    void operator=(const Smart_String& other){
+        *_ref_count--;
+        if(!*_ref_count){
+            delete[] _ref_count;
+            if(pt)delete[] pt;
         }
+        pt=other.pt;
         length=other.length;
-        if (pt)delete[] pt;
-        pt=new CHAR[length];
-        memcpy(pt,other.pt,length*sizeof(CHAR));
+        _ref_count=other._ref_count;
+        (*_ref_count)++;
     };
-    String(char* buffer, size_t length){
-        pt=new CHAR[length];
-        this->length=length;
-        memcpy(pt,buffer,length*sizeof(CHAR));
+    ~Smart_String(){
+        *_ref_count--;
+        if(!*_ref_count){
+            delete[] _ref_count;
+            if(pt)delete[] pt;
+        }
     };
-    ~String(){
-        if(pt)
-            delete[] pt;
-    };
-    
-    bool operator==(const String &next) const{
+
+    inline bool operator==(const Smart_String &next) const{
         if(length!=next.length)
             return false;
         for(int i=0;i<length;i++){
@@ -53,7 +64,7 @@ public:
         }
         return true;
     };
-    bool operator<(const String& next)const{
+    bool operator<(const Smart_String& next)const{
         if(length<next.length)return 1;
         if(length>next.length)return 0;
         for(int i=0;i<length;i++){
@@ -64,8 +75,7 @@ public:
     };
     class HASH{
     public:
-        size_t operator()(const String& cx) const{
-            //std::cout<<sizeof(size_t)<<"\n";
+        inline size_t operator()(const Smart_String& cx) const{
             size_t value=0;
             for(int i=0;i<cx.length;i++){
                 value+=cx.pt[i]<<((i%8)*8);
@@ -74,6 +84,7 @@ public:
         }
     };
 };
+
 
 template <class RAW, class STATE, class FEATURE_VECTOR>
 class Feature_Generator{

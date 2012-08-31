@@ -1,12 +1,12 @@
 #pragma once
 #include "isan/common/common.hpp"
 
-typedef String<Chinese_Character> Chinese;
-typedef String<char> Feature_String;
+typedef Smart_String<Chinese_Character> Chinese;
+typedef Smart_String<char> Feature_String;
 typedef std::vector<Feature_String> Feature_Vector;
 
 
-class State_Type: public String<char>{
+class State_Type: public Smart_String<char>{
 public:
     PyObject* pack(){
         return PyBytes_FromStringAndSize(pt,length);
@@ -114,17 +114,17 @@ public:
         Four f_right_right2={7,(char_right),(char_right2),(left_action)};
         
         fv.clear();
-        fv.push_back(String<char>((char*)&f_trans,sizeof(f_trans)));
-        fv.push_back(String<char>((char*)&f_mid,sizeof(f_mid)));
-        fv.push_back(String<char>((char*)&f_right,sizeof(f_right)));
-        fv.push_back(String<char>((char*)&f_left,sizeof(f_left)));
+        fv.push_back(Feature_String((char*)&f_trans,sizeof(f_trans)));
+        fv.push_back(Feature_String((char*)&f_mid,sizeof(f_mid)));
+        fv.push_back(Feature_String((char*)&f_right,sizeof(f_right)));
+        fv.push_back(Feature_String((char*)&f_left,sizeof(f_left)));
         
-        fv.push_back(String<char>((char*)&f_mid_right,sizeof(f_mid_right)));
-        fv.push_back(String<char>((char*)&f_left_mid,sizeof(f_left_mid)));
-        fv.push_back(String<char>((char*)&f_left2_left,sizeof(f_left2_left)));
-        fv.push_back(String<char>((char*)&f_right_right2,sizeof(f_right_right2)));
+        fv.push_back(Feature_String((char*)&f_mid_right,sizeof(f_mid_right)));
+        fv.push_back(Feature_String((char*)&f_left_mid,sizeof(f_left_mid)));
+        fv.push_back(Feature_String((char*)&f_left2_left,sizeof(f_left2_left)));
+        fv.push_back(Feature_String((char*)&f_right_right2,sizeof(f_right_right2)));
         
-        fv.push_back(String<char>(1+sizeof(Chinese_Character)*sep_ind));
+        fv.push_back(Feature_String(1+sizeof(Chinese_Character)*sep_ind));
         fv.back().pt[0]=8;
         for(int i=0;i<sep_ind;i++)
             *(Chinese_Character *) (fv.back().pt+1+i*sizeof(Chinese_Character))= raw->pt[ind-sep_ind+i];
