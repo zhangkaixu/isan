@@ -1,33 +1,26 @@
 from struct import Struct
 class Segger:
-    stat_fmt=Struct('HccH')
+    sep=11
+    com=22
+    stat_fmt=Struct('hcch')
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0))
 
     def actions_to_result(self,actions,raw):
+        last_sep=0
         sen=[]
-        cache=''
-        for c,a in zip(raw,actions[1:]):
-            cache+=c
-            if a=='s':
-                sen.append(cache)
-                cache=''
-        if cache:
-            sen.append(cache)
+        for i,a in enumerate(actions[1:]):
+            if a==self.sep or i==len(actions)-1:
+                sen.append(raw[last_sep:i+1])
+                last_sep=i+1
         return sen
+    
     def result_to_actions(self,y):
-        actions=['s']
-        for w in y:
-            for i in range(len(w)-1):
-                actions.append('c')
-            actions.append('s')
-        return actions
-
-
+        return sum(([self.com]*(len(w)-1)+[self.sep] for w in y),[self.sep])
 
     def gen_actions_and_stats(self,stat):
         ind,last,_,wordl=self.stat_fmt.unpack(stat)
-        return [('s',self.stat_fmt.pack(ind+1,b's',last,1)),
-                ('c',self.stat_fmt.pack(ind+1,b'c',last,wordl+1))]
+        return [(self.sep,self.stat_fmt.pack(ind+1,b's',last,1)),
+                (self.com,self.stat_fmt.pack(ind+1,b'c',last,wordl+1))]
 
     def set_raw(self,raw):
         self.raw=raw
@@ -44,6 +37,7 @@ class Segger:
         ws_current=span[1]
         ws_left=span[2]
         w_current=self.raw[span[0]-span[3]:span[0]]
+
         fv=[ 
                 b'0'+ws_current+ws_left,
                 b"1"+uni_chars[c_ind]+ws_current,

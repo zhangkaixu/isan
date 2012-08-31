@@ -4,7 +4,6 @@
 
 typedef unsigned short Chinese_Character;
 typedef int Score_Type;
-typedef unsigned char Action_Type;
 
 template<class ITEM>
 class Smart_String{
@@ -85,6 +84,7 @@ public:
     };
 };
 
+typedef unsigned char Action_Type;
 
 template <class RAW, class STATE, class FEATURE_VECTOR>
 class Feature_Generator{

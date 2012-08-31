@@ -70,7 +70,7 @@ public:
             tri=PySequence_GetItem(result,i);
             
             tmp_item=PySequence_GetItem(tri,0);
-            Action_Type action=*PyUnicode_AS_UNICODE(tmp_item);
+            Action_Type action=PyLong_AsLong(tmp_item);
             Py_DECREF(tmp_item);
 
             tmp_item=PySequence_GetItem(tri,1);
@@ -167,7 +167,6 @@ public:
             if(got==this->actions.end()){
                 this->actions[nexts[i].first]=new Default_Weights();
             }
-            //this->actions[action]=new Default_Weights(py_dict);
             scores[i]=(*(this->actions[nexts[i].first]))(fv);
         };
     };
@@ -238,8 +237,7 @@ search(PyObject *self, PyObject *arg)
     PyObject * list=PyList_New(result.size());
     
     for(int i=0;i<result.size();i++){
-        unsigned int la=result[i];
-        PyList_SetItem(list,i,PyUnicode_FromUnicode(&la,1));
+        PyList_SetItem(list,i,PyLong_FromLong(result[i]));
     }
     //std::cout<<"searchend\n";
     return list;
@@ -321,8 +319,8 @@ set_action(PyObject *self, PyObject *arg)
     int step;
     PyObject * py_action;
     PyObject * py_dict;
-    PyArg_ParseTuple(arg, "LOO", &interface,&py_action,&py_dict);
-    Action_Type action=*PyUnicode_AS_UNICODE(py_action);
+    Action_Type action;
+    PyArg_ParseTuple(arg, "LBO", &interface,&action,&py_dict);
     
     
     interface->searcher_data->actions[action]=new Default_Weights(py_dict);
@@ -336,13 +334,12 @@ static PyObject *
 update_action(PyObject *self, PyObject *arg)
 {
     Interface* interface;
-    PyObject * py_action;
     PyObject * py_state;
     long delta=0;
     long step=0;
-    PyArg_ParseTuple(arg, "LOOii", &interface,&py_state,&py_action,&delta,&step);
+    Action_Type action;
+    PyArg_ParseTuple(arg, "LOBii", &interface,&py_state,&action,&delta,&step);
     State_Type state(py_state);
-    Action_Type action=(Action_Type)* PyUnicode_AS_UNICODE(py_action);
     
     Feature_Vector fv;
     (*(interface->feature_generator))(state,fv);
@@ -368,20 +365,16 @@ export_weights(PyObject *self, PyObject *arg)
     for(auto iter=interface->searcher_data->actions.begin();
             iter!=interface->searcher_data->actions.end();
             ++iter){
-        unsigned int la=iter->first;
         iter->second->average(step);
         PyList_Append(
                 list,
                 PyTuple_Pack(2,
-                    PyUnicode_FromUnicode(&la,1),
+                    PyLong_FromLong(iter->first),
                     iter->second->to_py_dict()
                     )
                 );
-
     }
     return list;
-    
-    //return PyLong_FromLong((long)interface);
 };
 
 /** stuffs about the module def */
