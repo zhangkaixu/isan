@@ -2,7 +2,7 @@ from struct import Struct
 class Segger:
 
     actions=['s','c']
-    stat_fmt=Struct('hcch')
+    stat_fmt=Struct('HccH')
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0))
 
     def actions_to_result(self,actions,raw):

@@ -22,12 +22,12 @@ class Segmentation_Space:
         func_list={
                 'actions': None,
                 'init_stat': None,
-                'stat_fmt_str':'hcch',
+                'stat_fmt_str': None,
                 'actions_to_result': None,
                 'result_to_actions': None,
                 'gen_actions_and_stats': None,
-                'actions_to_stats':self._actions_to_stats,
                 'gen_features': None,
+                'actions_to_stats':self._actions_to_stats,
                 }
         for func,dft_attr in func_list.items():
             if hasattr(self.segger,func):
