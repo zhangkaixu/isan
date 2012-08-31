@@ -142,12 +142,10 @@ public:
     CWS_Feature_Generator * feature_generator;
     CWS_State_Generator * state_generator;
     
-    State_Type* pinit_key;
     Chinese* raw;
     std::map<Action_Type, Default_Weights* > actions;
-    Searcher_Data(State_Type* pinit_key,CWS_State_Generator *state_generator,CWS_Feature_Generator * feature_generator){
+    Searcher_Data(CWS_State_Generator *state_generator,CWS_Feature_Generator * feature_generator){
         this->feature_generator=feature_generator;
-        this->pinit_key=pinit_key;
         this->state_generator=state_generator;
         raw=NULL;
     };
@@ -176,7 +174,7 @@ public:
  * */
 class Interface{
 public:
-    State_Type *init_key;
+    State_Type init_key;
     PyObject *callback;
     Searcher_Data* searcher_data;
     DFA_Beam_Searcher<State_Type,Action_Type,Score_Type>* searcher;
@@ -185,11 +183,11 @@ public:
     CWS_State_Generator * state_generator;
     
     
-    Interface(State_Type *init_key,int beam_width){
+    Interface(State_Type init_key,int beam_width){
         feature_generator=new Default_Feature_Generator();
         state_generator=new Default_State_Generator();
         raw=NULL;
-        searcher_data=new Searcher_Data(init_key,state_generator,feature_generator);
+        searcher_data=new Searcher_Data(state_generator,feature_generator);
         
         this->init_key=init_key;
         searcher=new DFA_Beam_Searcher<State_Type,Action_Type,Score_Type>(searcher_data,beam_width);
@@ -228,7 +226,7 @@ search(PyObject *self, PyObject *arg)
     
     //std::cout<<"call searcher\n";
     std::vector<Action_Type> result;
-    interface->searcher->call(*interface->init_key,PyLong_AsLong(tmp),result);
+    interface->searcher->call(interface->init_key,PyLong_AsLong(tmp),result);
     //std::cout<<"called searcher\n";
     Py_CLEAR(tmp);
 
@@ -254,20 +252,16 @@ searcher_new(PyObject *self, PyObject *arg)
     PyObject * py_feature_cb;
     PyArg_ParseTuple(arg, "iOOO", &beam_width,&py_init_stat,&py_state_cb,&py_feature_cb);
     State_Type* init_key = NULL;
-    //std::cout<<"init_key\n";
     if(py_init_stat!=Py_None){
-        //std::cout<<"  !=None\n";
         init_key = new State_Type(py_init_stat);
     }else{
-        //std::cout<<"  ==None\n";
         init_key = new Default_State_Type();
-        //std::cout<<*(*(Default_State_Type*)init_key).sep_ind2()<<"end\n";
     };
     
 
     
-    //std::cout<<"init_key end\n";
-    Interface* interface=new Interface(init_key,beam_width);
+    Interface* interface=new Interface(*init_key,beam_width);
+    delete init_key;
     
     
     if(py_feature_cb!=Py_None){
@@ -279,13 +273,13 @@ searcher_new(PyObject *self, PyObject *arg)
     
     if(py_state_cb!=Py_None){
         delete interface->state_generator;
-        //std::cout<<"user state gen\n";
         interface->state_generator=new Python_State_Generator(py_state_cb);
         interface->searcher_data->state_generator=interface->state_generator;
     }else{
     };
     
-    
+    int x;
+    std::cin>>x;
     return PyLong_FromLong((long)interface);
 };
 
