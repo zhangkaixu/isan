@@ -92,10 +92,13 @@ public:
         PyObject * dict=PyDict_New();
         //
         for(auto it=map->begin();it!=map->end();++it){
-            PyDict_SetItem(dict,PyBytes_FromStringAndSize(it->first.pt,it->first.length),PyLong_FromLong(it->second));
+            PyObject * key=PyBytes_FromStringAndSize(it->first.pt,it->first.length);
+            PyObject * value=PyLong_FromLong(it->second);
+            PyDict_SetItem(dict,key,value);
+            Py_DECREF(key);
+            Py_DECREF(value);
         };
         
-        Py_INCREF(dict);
         return dict;
     };
     Default_Weights(){
@@ -113,7 +116,7 @@ public:
     };
 };
 
-inline void bytes_to_string(PyObject * bytes, Smart_String<char>& string){
+inline void bytes_to_string(PyObject * bytes, Feature_String& string){
     char* buffer;
     size_t length;
     PyBytes_AsStringAndSize(bytes,&buffer,(Py_ssize_t*)&(length));
@@ -172,7 +175,11 @@ public:
     };
     
     ~Searcher_Data(){
-        
+        for(auto iter=actions.begin();
+            iter!=actions.end();
+            ++iter){
+            delete iter->second;
+        }
     };
 };
 
@@ -304,6 +311,7 @@ set_raw(PyObject *self, PyObject *arg)
     for(int i=0;i<raw_size;i++){
         PyObject *tmp=PySequence_GetItem(new_raw,i);
         raw.pt[i]=(Chinese_Character)*PyUnicode_AS_UNICODE(tmp);
+        Py_DECREF(tmp);
     }
     interface->set_raw(raw);
     Py_INCREF(Py_None);

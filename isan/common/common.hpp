@@ -5,6 +5,7 @@
 typedef unsigned short Chinese_Character;
 typedef int Score_Type;
 
+
 template<class ITEM>
 class Smart_String{
 public:
