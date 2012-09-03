@@ -140,25 +140,28 @@ public:
         
     }
     
-    void operator()(State_Type& super_key, std::vector<std::pair<Action_Type, State_Type> > & super_nexts){
+    void operator()(State_Type& super_key, std::vector<Action_Type>& next_actions,
+            std::vector< State_Type > & super_states){
         Default_State_Type& key=(Default_State_Type&)super_key;
-        std::vector<std::pair<Action_Type, Default_State_Type> > & nexts=
-                (std::vector<std::pair<Action_Type, Default_State_Type> > &)super_nexts;
+        std::vector<Default_State_Type > & next_states=
+                (std::vector<Default_State_Type> &)super_states;
         
-        nexts.clear();
-        nexts.resize(2);
-        nexts[0].first=11;
-        (*nexts[0].second.ind2())=(*key.ind2())+1;
-        *nexts[0].second.last_action2()=11;
-        *nexts[0].second.last_last_action2()=*key.last_action2();
-        *nexts[0].second.sep_ind2()=1;
+        next_actions.clear();
+        next_actions.resize(2);
+        next_states.clear();
+        next_states.resize(2);
+        next_actions[0]=11;
+        (*next_states[0].ind2())=(*key.ind2())+1;
+        *next_states[0].last_action2()=11;
+        *next_states[0].last_last_action2()=*key.last_action2();
+        *next_states[0].sep_ind2()=1;
         
         
 
-        nexts[1].first=22;
-        *nexts.back().second.ind2()=(*key.ind2())+1;
-        *nexts.back().second.last_action2()=22;
-        *nexts.back().second.last_last_action2()=*key.last_action2();
-        *nexts.back().second.sep_ind2()=*key.sep_ind2()+1;
+        next_actions[1]=22;
+        *next_states.back().ind2()=(*key.ind2())+1;
+        *next_states.back().last_action2()=22;
+        *next_states.back().last_last_action2()=*key.last_action2();
+        *next_states.back().sep_ind2()=*key.sep_ind2()+1;
     };
 };

@@ -17,7 +17,8 @@ struct Triple{
 template<class KEY,class ACTION,class SCORE>
 class DFA_Beam_Searcher_Data{
 public:
-    virtual void gen_next(KEY&,std::vector<std::pair<ACTION,KEY> >&,std::vector<SCORE>&){std::cout<<"oh no\n";};
+    //virtual void gen_next(KEY&,std::vector<std::pair<ACTION,KEY> >&,std::vector<SCORE>&){std::cout<<"oh no\n";};
+    virtual void gen_next(KEY&,std::vector<ACTION>&, std::vector<KEY>&, std::vector<SCORE>&){std::cout<<"oh no\n";};
 };
 
 
@@ -129,7 +130,8 @@ public:
     };
     void call(KEY& init_key,int steps,std::vector<ACTION>& result){
         std::vector<std::pair<KEY,SCORE> > beam;
-        std::vector<std::pair<ACTION,KEY> > nexts;
+        std::vector<ACTION> next_actions;
+        std::vector<KEY> next_keys;
         std::vector<SCORE> scores;
         typename my_map::iterator got;
         
@@ -154,12 +156,12 @@ public:
 
                 //std::cout<<"key "<<(int)*(char*)&last_key<<"\n";
                 //std::cout<<"call gen_next "<<"\n";
-                this->data->gen_next(last_key,nexts,scores);
+                this->data->gen_next(last_key,next_actions,next_keys,scores);
                 //std::cout<<"gen_next ed "<<"\n";
                 
-                for(int j=0;j<nexts.size();j++){
+                for(int j=0;j<next_actions.size();j++){
                     //std::cout<<"    next "<<j<<"\n";
-                    KEY& key=nexts[j].second;
+                    KEY& key=next_keys[j];
                     got=this_map.find(key);
                     if(got==this_map.end()){
                         this_map[key]=State_Info();
@@ -168,7 +170,7 @@ public:
                     this_map[key].alphas.push_back(Alpha(
                                 last_score+scores[j],
                                 scores[j],
-                                nexts[j].first,
+                                next_actions[j],
                                 last_key
                                 ));
                 };

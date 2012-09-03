@@ -7,7 +7,6 @@
 #include "isan/common/weights.hpp"
 /**
  * g++ dfabeam.cc -I /usr/include/python3.2mu -shared -o dfabeam.so -fPIC -O3
-
  * */
 
 
@@ -56,7 +55,7 @@ public:
     ~Python_State_Generator(){
         Py_DECREF(callback);
     };
-    void operator()(State_Type& key, std::vector<std::pair<Action_Type, State_Type> > & nexts){
+    void operator()(State_Type& key, std::vector<Action_Type>&next_actions,std::vector<State_Type> & next_states){
         PyObject * state=key.pack();
         PyObject * arglist=Py_BuildValue("(O)",state);
         PyObject * result= PyObject_CallObject(this->callback, arglist);
@@ -65,19 +64,19 @@ public:
         long size=PySequence_Size(result);
         PyObject * tri;
         PyObject * tmp_item;
-        nexts.clear();
+        next_actions.resize(2);
+        next_states.clear();
         for(int i=0;i<size;i++){
             tri=PySequence_GetItem(result,i);
             
             tmp_item=PySequence_GetItem(tri,0);
-            Action_Type action=PyLong_AsLong(tmp_item);
+            next_actions[i]=(PyLong_AsLong(tmp_item));
             Py_DECREF(tmp_item);
 
             tmp_item=PySequence_GetItem(tri,1);
-            State_Type next_state(tmp_item);
+            next_states.push_back(State_Type(tmp_item));
             Py_DECREF(tmp_item);
             
-            nexts.push_back(std::pair<Action_Type,State_Type>(action,next_state));
             Py_DECREF(tri);
         };
         Py_DECREF(result);
@@ -116,25 +115,6 @@ public:
     };
 };
 
-inline void bytes_to_string(PyObject * bytes, Feature_String& string){
-    char* buffer;
-    size_t length;
-    PyBytes_AsStringAndSize(bytes,&buffer,(Py_ssize_t*)&(length));
-    string=Feature_String(buffer,length);
-};
-
-inline void list_to_fv(PyObject * list, Feature_Vector & fv){
-    fv.clear();
-    long size=PySequence_Size(list);
-    for(int i=0;i<size;i++){
-        fv.push_back(Feature_String());
-        PyObject * bytes=PySequence_GetItem(list,i);
-        bytes_to_string(bytes,fv.back());
-        Py_DECREF(bytes);
-    };
-    Py_DECREF(list);
-};
-
 
 
 
@@ -157,20 +137,20 @@ public:
         this->state_generator=state_generator;
         raw=NULL;
     };
-    void gen_next(State_Type& key,std::vector<std::pair<Action_Type,State_Type> >& nexts,
+    void gen_next(State_Type& key,std::vector<Action_Type>& next_actions,std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores){
         Feature_Vector fv;
         
         (*this->feature_generator)(key,fv);
         
-        (*state_generator)(key,nexts);
-        scores.resize(nexts.size());
-        for(int i=0;i<nexts.size();i++){
-            auto got=this->actions.find(nexts[i].first);
+        (*state_generator)(key,next_actions,next_states);
+        scores.resize(next_actions.size());
+        for(int i=0;i<next_actions.size();i++){
+            auto got=this->actions.find(next_actions[i]);
             if(got==this->actions.end()){
-                this->actions[nexts[i].first]=new Default_Weights();
+                this->actions[next_actions[i]]=new Default_Weights();
             }
-            scores[i]=(*(this->actions[nexts[i].first]))(fv);
+            scores[i]=(*(this->actions[next_actions[i]]))(fv);
         };
     };
     
@@ -254,7 +234,6 @@ search(PyObject *self, PyObject *arg)
 static PyObject *
 searcher_new(PyObject *self, PyObject *arg)
 {
-    
     PyObject * py_init_stat;
     
     int beam_width;
@@ -268,11 +247,8 @@ searcher_new(PyObject *self, PyObject *arg)
         init_key = new Default_State_Type();
     };
     
-
-    
     Interface* interface=new Interface(*init_key,beam_width);
     delete init_key;
-    
     
     if(py_feature_cb!=Py_None){
         delete interface->feature_generator;
@@ -322,7 +298,6 @@ set_raw(PyObject *self, PyObject *arg)
 static PyObject *
 set_action(PyObject *self, PyObject *arg)
 {
-    
     Interface* interface;
     int step;
     PyObject * py_action;
@@ -330,12 +305,10 @@ set_action(PyObject *self, PyObject *arg)
     Action_Type action;
     PyArg_ParseTuple(arg, "LBO", &interface,&action,&py_dict);
     
-    
     interface->searcher_data->actions[action]=new Default_Weights(py_dict);
+
     Py_INCREF(Py_None);
     return Py_None;
-    
-    
 };
 
 static PyObject *
@@ -351,8 +324,6 @@ update_action(PyObject *self, PyObject *arg)
     
     Feature_Vector fv;
     (*(interface->feature_generator))(state,fv);
-    
-    
     (*(interface->searcher_data->actions[action])).update(fv,delta,step);
     
     Py_INCREF(Py_None);
@@ -374,14 +345,18 @@ export_weights(PyObject *self, PyObject *arg)
             iter!=interface->searcher_data->actions.end();
             ++iter){
         iter->second->average(step);
+        PyObject * k=PyLong_FromLong(iter->first);
+        PyObject * v=iter->second->to_py_dict();
         PyList_Append(
                 list,
                 PyTuple_Pack(2,
-                    PyLong_FromLong(iter->first),
-                    iter->second->to_py_dict()
+                    k,
+                    v
                     )
                 );
-    }
+        Py_DECREF(k);
+        Py_DECREF(v);
+    };
     return list;
 };
 

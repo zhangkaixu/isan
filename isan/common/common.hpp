@@ -105,6 +105,6 @@ public:
     void set_raw(RAW* raw){
         this->raw=raw;
     };
-    virtual void operator()(STATE& key, std::vector<std::pair<ACTION, STATE> > & nexts)=0;
+    virtual void operator()(STATE& key, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
 
 };

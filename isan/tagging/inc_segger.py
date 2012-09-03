@@ -45,7 +45,6 @@ class Segmentation_Space:
                 self.gen_features,
                 )
         for k,v in self.weights.items():
-        
             dfabeam.set_action(self.dfabeam,k,v)
 
 

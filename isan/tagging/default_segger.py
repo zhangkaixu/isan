@@ -9,7 +9,7 @@ class Segger:
         last_sep=0
         sen=[]
         for i,a in enumerate(actions[1:]):
-            if a==self.sep or i==len(actions)-1:
+            if a==self.sep or i==len(actions)-2:
                 sen.append(raw[last_sep:i+1])
                 last_sep=i+1
         return sen
