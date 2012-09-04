@@ -1,7 +1,7 @@
 #include <vector>
 #include <map>
 //#include <unordered_map>
-//#include <ext/hash_map>
+#include <ext/hash_map>
 #include <algorithm>
 
 
@@ -17,7 +17,6 @@ struct Triple{
 template<class KEY,class ACTION,class SCORE>
 class DFA_Beam_Searcher_Data{
 public:
-    //virtual void gen_next(KEY&,std::vector<std::pair<ACTION,KEY> >&,std::vector<SCORE>&){std::cout<<"oh no\n";};
     virtual void gen_next(KEY&,std::vector<ACTION>&, std::vector<KEY>&, std::vector<SCORE>&){std::cout<<"oh no\n";};
 };
 
@@ -46,8 +45,6 @@ public:
     
     struct State_Info{
         std::vector<Alpha> alphas;
-        
-        
         void max_top(){
             if(alphas.size()==0){
                 return;
@@ -63,8 +60,8 @@ public:
             }
         };
     };
-    typedef std::map<KEY,State_Info> my_map;
-    //typedef __gnu_cxx::hash_map<KEY,State_Info,typename KEY::HASH> my_map;
+    //typedef std::map<KEY,State_Info> my_map;
+    typedef __gnu_cxx::hash_map<KEY,State_Info,typename KEY::HASH> my_map;
     //bool state_comp_less(const std::pair<KEY,State_Info>& first, const std::pair<KEY,State_Info>& second) const{
     //    return first.second.alphas[0].score < second.second.alphas[0].score;
     //};
@@ -86,23 +83,20 @@ public:
     DFA_Beam_Searcher_Data<KEY,ACTION,SCORE>* data;
     std::vector< my_map > sequence;
     
-    
-    
     DFA_Beam_Searcher(DFA_Beam_Searcher_Data<KEY,ACTION,SCORE>* data,int beam_width){
         this->beam_width=beam_width;
         this->data=data;
     };
     ~DFA_Beam_Searcher(){
-        
     };
     
-    void print_beam(std::vector<std::pair<KEY,State_Info> >& beam){
+    void _print_beam(std::vector<std::pair<KEY,SCORE> >& beam){
         for(int j=0;j<beam.size();j++){
-            for(int i=0;i<beam[j].second.alphas.size();i++){
-                std::cout<<j<<" "<<i<<" "<<(char)beam[j].second.alphas[i].last_action<<" "<<beam[j].second.alphas[i].score<<"\n";
-            };
+            std::cout<<j<<":"<<(int)beam[j].second<<" ";
         }
         std::cout<<"\n";
+        int x;
+        std::cin>>x;
     };
     
     inline void thrink(int step,std::vector<std::pair<KEY,SCORE> >& top_n){
@@ -127,6 +121,7 @@ public:
                 }
             }
         };
+        sort(top_n.begin(),top_n.end(),state_comp_less);
     };
     void call(KEY& init_key,int steps,std::vector<ACTION>& result){
         std::vector<std::pair<KEY,SCORE> > beam;

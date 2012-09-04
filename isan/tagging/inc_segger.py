@@ -4,9 +4,9 @@ import sys
 import struct
 import isan.tagging.cws_codec as tagging_codec
 import isan.tagging.eval as tagging_eval
-import isan.common.perceptrons as perceptrons
 import isan.tagging.dfabeam as dfabeam
 import isan.tagging.default_segger as segger
+from isan.common.perceptrons import Base_Model as Model
 """
 一个增量搜索模式的中文分词模块
 """
@@ -47,6 +47,8 @@ class Segmentation_Space:
         for k,v in self.weights.items():
             dfabeam.set_action(self.dfabeam,k,v)
 
+        self.codec=tagging_codec
+        self.Eval=tagging_eval.TaggingEval
 
     def unlink(self):
         self.actions_to_result=None
@@ -56,6 +58,8 @@ class Segmentation_Space:
         self.gen_features=None
         self.stat_fmt=None
         self.segger=None
+        self.codec=None
+        self.Eval=None
 
     def __del__(self):
         dfabeam.delete(self.dfabeam)
@@ -92,16 +96,4 @@ class Segmentation_Space:
                 if action==a:
                     stat=s
         yield stat
-
-class Model(perceptrons.Base_Model):
-    """
-    模型
-    """
-    def __init__(self,model_file,schema=None):
-        """
-        初始化
-        """
-        super(Model,self).__init__(model_file,schema)
-        self.codec=tagging_codec
-        self.Eval=tagging_eval.TaggingEval
 
