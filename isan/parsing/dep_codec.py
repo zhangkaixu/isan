@@ -11,7 +11,7 @@ def decode(line):
         word,tag,head_ind,arc_type=arc.split('_')
         head_ind=int(head_ind)
         sen.append((word,tag,head_ind,arc_type))
-    return to_raw(sen),sen,None
+    return {'raw':to_raw(sen),'y':sen}
         
 
 def to_raw(line):
