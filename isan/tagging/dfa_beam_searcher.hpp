@@ -81,7 +81,7 @@ public:
     
     int beam_width;
     DFA_Beam_Searcher_Data<KEY,ACTION,SCORE>* data;
-    std::vector< my_map > sequence;
+    std::vector< my_map* > sequence;
     
     DFA_Beam_Searcher(DFA_Beam_Searcher_Data<KEY,ACTION,SCORE>* data,int beam_width){
         this->beam_width=beam_width;
@@ -102,7 +102,7 @@ public:
     inline void thrink(int step,std::vector<std::pair<KEY,SCORE> >& top_n){
         top_n.clear();
         
-        my_map* map=&(this->sequence[step]);
+        my_map* map=(this->sequence[step]);
         typename my_map::iterator it;
         for (it=map->begin() ; it != map->end(); ++it ){
             it->second.max_top();
@@ -130,19 +130,23 @@ public:
         std::vector<SCORE> scores;
         typename my_map::iterator got;
         
+        if(sequence.size()){
+            for(int i=0;i<sequence.size();i++)
+                delete sequence[i];
+        }
         this->sequence.clear();
-        this->sequence.push_back(my_map());
+        this->sequence.push_back(new my_map());
         
-        this->sequence.back()[init_key]=State_Info();
-        this->sequence.back()[init_key].alphas.push_back(Alpha());
-        this->sequence.back()[init_key].alphas[0].score=0;
+        (*this->sequence.back())[init_key]=State_Info();
+        (*this->sequence.back())[init_key].alphas.push_back(Alpha());
+        (*this->sequence.back())[init_key].alphas[0].score=0;
         
         for(int step=0;step<steps;step++){
             thrink(step,beam);//thrink, get beam
             //print_beam(beam);
             //std::cout<<step<<" "<<beam.size()<<" here\n";
-            this->sequence.push_back(my_map());
-            my_map& this_map=this->sequence.back();
+            this->sequence.push_back(new my_map());
+            my_map& this_map=(*this->sequence.back());
             //gen_next
             for(int i=0;i<beam.size();i++){
                 //std::cout<<"beam "<<i<<"\n";
@@ -176,14 +180,14 @@ public:
         //make result
         thrink(steps,beam);
         sort(beam.begin(),beam.end(),state_comp_less);
-        Alpha& item=sequence[steps][beam.back().first].alphas[0];
+        Alpha& item=(*sequence[steps])[beam.back().first].alphas[0];
 
         result.resize(steps);
         int ind=steps-1;
         while(ind>=0){
             //std::cout<<ind<<" "<<item.last_action<<"\n";
             result[ind]=item.last_action;
-            item=sequence[ind][item.last_key].alphas[0];
+            item=(*sequence[ind])[item.last_key].alphas[0];
             ind--;
         };
     };
