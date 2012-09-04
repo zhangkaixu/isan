@@ -1,10 +1,31 @@
 from struct import Struct
+import isan.tagging.eval as tagging_eval
+
+
+"""
+You do the best, we do the rest!
+
+来看看如何建造一个中文分词模型
+只需要编写最核心的代码，其它代码我都已经编好了
+"""
 class Segger:
+    class codec:
+        @staticmethod
+        def decode(line):
+            if not line: return []
+            seq=[word for word in line.split()]
+            raw=''.join(seq)
+            return {'raw':raw,
+                    'y':seq,
+                    'Y_a' : None,
+                    'Y_b' : None,
+                    }
+        def encode():
+            pass
+
+
     sep=11
     com=22
-    stat_fmt=Struct('hcch')
-    init_stat=stat_fmt.pack(*(0,b'0',b'0',0))
-
     def actions_to_result(self,actions,raw):
         last_sep=0
         sen=[]
@@ -16,6 +37,13 @@ class Segger:
     
     def result_to_actions(self,y):
         return sum(([self.com]*(len(w)-1)+[self.sep] for w in y),[self.sep])
+
+
+    stat_fmt=Struct('hcch')
+    init_stat=stat_fmt.pack(*(0,b'0',b'0',0))
+
+    def set_Y(self,Y):
+        pass
 
     def gen_actions_and_stats(self,stat):
         ind,last,_,wordl=self.stat_fmt.unpack(stat)
@@ -50,3 +78,4 @@ class Segger:
                 b"w"+w_current.encode(),
                 ]
         return fv
+    Eval=tagging_eval.TaggingEval

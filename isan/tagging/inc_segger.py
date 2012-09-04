@@ -28,6 +28,8 @@ class Segmentation_Space:
                 'gen_actions_and_stats': None,
                 'gen_features': None,
                 'actions_to_stats':self._actions_to_stats,
+                'codec': None,
+                'Eval': None,
                 }
         for func,dft_attr in func_list.items():
             if hasattr(self.segger,func):
@@ -47,8 +49,6 @@ class Segmentation_Space:
         for k,v in self.weights.items():
             dfabeam.set_action(self.dfabeam,k,v)
 
-        self.codec=tagging_codec
-        self.Eval=tagging_eval.TaggingEval
 
     def unlink(self):
         self.actions_to_result=None
@@ -81,8 +81,9 @@ class Segmentation_Space:
         for k,v in dfabeam.export_weights(self.dfabeam,step):
             self.weights.setdefault(k,{}).update(v)
 
-    def search(self,raw):
+    def search(self,raw,Y=None):
         self.set_raw(raw)
+        self.segger.set_Y(Y)
         dfabeam.set_raw(self.dfabeam,raw)
         ret=dfabeam.search(self.dfabeam,len(raw)+1)
         return ret
