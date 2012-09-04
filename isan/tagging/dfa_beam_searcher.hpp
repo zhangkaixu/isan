@@ -60,28 +60,36 @@ public:
             }
         };
     };
-    //typedef std::map<KEY,State_Info> my_map;
-    typedef __gnu_cxx::hash_map<KEY,State_Info,typename KEY::HASH> my_map;
+    //typedef std::map<KEY,State_Info> My_Map;
+    typedef __gnu_cxx::hash_map<KEY,State_Info,typename KEY::HASH> My_Map;
     //bool state_comp_less(const std::pair<KEY,State_Info>& first, const std::pair<KEY,State_Info>& second) const{
     //    return first.second.alphas[0].score < second.second.alphas[0].score;
     //};
     class CompareFoo{
     public:
-        bool operator()(const std::pair<KEY,SCORE>& first, const std::pair<KEY,SCORE>& second) const{
-            return first.second > second.second;
+        bool operator()(const std::pair<KEY,Alpha*>& first, const std::pair<KEY,Alpha*>& second) const{
+            if( first.second->score > second.second->score) return true;
+            if( first.second->score < second.second->score) return false;
+            if( first.second->inc > second.second->inc) return true;
+            if( first.second->inc < second.second->inc) return false;
+            return false;
         }
     } state_comp_greater;
     
     class CompareFoo2{
     public:
-        bool operator()(const std::pair<KEY,SCORE>& first, const std::pair<KEY,SCORE>& second) const{
-            return first.second < second.second;
+        bool operator()(const std::pair<KEY,Alpha*>& first, const std::pair<KEY,Alpha*>& second) const{
+            if( first.second->score < second.second->score) return true;
+            if( first.second->score > second.second->score) return false;
+            if( first.second->inc < second.second->inc) return true;
+            if( first.second->inc > second.second->inc) return false;
+            return false;
         }
     } state_comp_less;
     
     int beam_width;
     DFA_Beam_Searcher_Data<KEY,ACTION,SCORE>* data;
-    std::vector< my_map* > sequence;
+    std::vector< My_Map* > sequence;
     
     DFA_Beam_Searcher(DFA_Beam_Searcher_Data<KEY,ACTION,SCORE>* data,int beam_width){
         this->beam_width=beam_width;
@@ -99,24 +107,24 @@ public:
         std::cin>>x;
     };
     
-    inline void thrink(int step,std::vector<std::pair<KEY,SCORE> >& top_n){
+    inline void thrink(int step,std::vector<std::pair<KEY,Alpha*> >& top_n){
         top_n.clear();
         
-        my_map* map=(this->sequence[step]);
-        typename my_map::iterator it;
+        My_Map* map=(this->sequence[step]);
+        typename My_Map::iterator it;
         for (it=map->begin() ; it != map->end(); ++it ){
             it->second.max_top();
             //std::cout<<"in thrink "<<it->second.alphas.size()<<"\n";
             if (top_n.size()<this->beam_width){//if top_n is not full
-                top_n.push_back(std::pair<KEY,SCORE>((*it).first,(*it).second.alphas[0].score));
+                top_n.push_back(std::pair<KEY,Alpha*>((*it).first,&(*it).second.alphas[0]));
                 if(top_n.size()==this->beam_width){//full, make this a (min)heap
                     make_heap(top_n.begin(),top_n.end(),state_comp_greater);
                 }
             }else{
-                if(top_n.front().second<(*it).second.alphas[0].score){//greater than the top of the heap
+                if(top_n.front().second->score<(*it).second.alphas[0].score){//greater than the top of the heap
                     pop_heap(top_n.begin(),top_n.end(),state_comp_greater);
                     top_n.pop_back();
-                    top_n.push_back(std::pair<KEY,SCORE>((*it).first,(*it).second.alphas[0].score));
+                    top_n.push_back(std::pair<KEY,Alpha*>((*it).first,&(*it).second.alphas[0]));
                     push_heap(top_n.begin(),top_n.end(),state_comp_greater);
                 }
             }
@@ -124,18 +132,18 @@ public:
         sort(top_n.begin(),top_n.end(),state_comp_less);
     };
     void call(KEY& init_key,int steps,std::vector<ACTION>& result){
-        std::vector<std::pair<KEY,SCORE> > beam;
+        std::vector<std::pair<KEY,Alpha*> > beam;
         std::vector<ACTION> next_actions;
         std::vector<KEY> next_keys;
         std::vector<SCORE> scores;
-        typename my_map::iterator got;
+        typename My_Map::iterator got;
         
         if(sequence.size()){
             for(int i=0;i<sequence.size();i++)
                 delete sequence[i];
         }
         this->sequence.clear();
-        this->sequence.push_back(new my_map());
+        this->sequence.push_back(new My_Map());
         
         (*this->sequence.back())[init_key]=State_Info();
         (*this->sequence.back())[init_key].alphas.push_back(Alpha());
@@ -145,13 +153,13 @@ public:
             thrink(step,beam);//thrink, get beam
             //print_beam(beam);
             //std::cout<<step<<" "<<beam.size()<<" here\n";
-            this->sequence.push_back(new my_map());
-            my_map& this_map=(*this->sequence.back());
+            this->sequence.push_back(new My_Map());
+            My_Map& this_map=(*this->sequence.back());
             //gen_next
             for(int i=0;i<beam.size();i++){
                 //std::cout<<"beam "<<i<<"\n";
                 KEY& last_key=beam[i].first;
-                SCORE& last_score=beam[i].second;
+                SCORE& last_score=beam[i].second->score;
 
                 //std::cout<<"key "<<(int)*(char*)&last_key<<"\n";
                 //std::cout<<"call gen_next "<<"\n";
