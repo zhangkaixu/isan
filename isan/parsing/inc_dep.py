@@ -31,10 +31,14 @@ class Weights(dict):
             if self[k]==0:del self[k]
         del self.acc
 
-class Stats :
-    def __init__(self):
-        #初始状态 (解析位置，上一个位置结果，上上个位置结果，当前词长)
-        self.init=(0,(0,0),(None,None,None))
+
+class Decoder:
+    """
+    线性搜索
+    value = [alphas,betas]
+    alpha = [score, delta, action, link]
+    """
+    init=(0,(0,0),(None,None,None))
     def shift(self,raw,stat):
         ind,_,stack_top=stat
         if ind>=len(raw): return None
@@ -68,13 +72,6 @@ class Stats :
         ind,last,_,wordl=stat
         yield 's',(ind+1,'s',last,1)
         yield 'c',(ind+1,'c',last,wordl+1)
-
-class Decoder:
-    """
-    线性搜索
-    value = [alphas,betas]
-    alpha = [score, delta, action, link]
-    """
     def thrink(self,ind):
         #找到最好的alphas
         for k,v in self.sequence[ind].items():
@@ -92,7 +89,7 @@ class Decoder:
         return [stat for stat,_ in beam]
     def forward(self,get_step=lambda x:len(x)+1):
         #前向搜索
-        self.sequence[0][self.stats.init]=dict(self.init_data)#初始化第一个状态
+        self.sequence[0][self.init]=dict(self.init_data)#初始化第一个状态
         for ind in range(get_step(self.raw)):
             for stat in self.thrink(ind):
                 self.gen_next(ind,stat)
@@ -164,7 +161,6 @@ class Decoder:
         self.beam_width=beam_width#搜索柱宽度
         self.init_data={'pi':set(),
                     'alphas':[{0 : 0, 'v' : 0, 'a': None }]}#初始状态
-        self.stats=Stats()
         self.actions={}
         
         self.actions['s']=Weights()#特征
@@ -232,7 +228,6 @@ class Decoder:
 
     def search(self,raw):
         self.raw=raw
-        self.stats.raw=raw
         self.set_raw(raw)
         self.sequence=[{} for i in range(2*len(raw))]
         #self.sequence[0][self.stats.init]={'pi':set(),
@@ -253,7 +248,7 @@ class Decoder:
         predictors=stat_info['pi']
         c,v=alphas[0][0],alphas[0]['v']
         #shift
-        key=self.stats.shift(self.raw,stat)
+        key=self.shift(self.raw,stat)
         if key:
             if key not in self.sequence[ind+1]:
                 self.sequence[ind+1][key]={'pi':set(),'alphas':[]}
@@ -273,7 +268,7 @@ class Decoder:
             #last_xi=self.shift_weights(last_fv)
             last_xi=self.actions['s'](last_fv)
             last_c,last_v=last_stat_info['alphas'][0][0],last_stat_info['alphas'][0]['v']
-            lkey,rkey=self.stats.reduce(self.raw,stat,predictor)
+            lkey,rkey=self.reduce(self.raw,stat,predictor)
             #left-reduce
             if lkey :
                 if lkey not in self.sequence[ind+1]:
@@ -389,6 +384,7 @@ class Decoder:
         self._find_result(step,stat,0,step,actions,stats)
         return actions    
 
+    codec=codec
 
 class Model(perceptrons.Base_Model):
     """
@@ -399,5 +395,4 @@ class Model(perceptrons.Base_Model):
         初始化
         """
         super(Model,self).__init__(model_file,schema)
-        self.codec=codec
 

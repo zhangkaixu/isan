@@ -25,7 +25,7 @@ class Base_Model(object):
         """
         eval=self.schema.Eval()
         for line in open(test_file):
-            raw,y,set_Y=self.codec.decode(line.strip())
+            raw,y,set_Y=self.schema.codec.decode(line.strip())
             hat_y=self(raw)
             eval(y,hat_y)
         eval.print_result()
@@ -68,10 +68,9 @@ class Base_Model(object):
             if type(training_file)==str:training_file=[training_file]
             for t_file in training_file:
                 for line in open(t_file):#迭代每个句子
-                    rtn=self.codec.decode(line.strip())#得到标准输出
+                    rtn=self.schema.codec.decode(line.strip())#得到标准输出
                     if not rtn:continue
                     raw,y,set_Y=rtn
-                    #raw=self.codec.to_raw(y)#得到标准输入
                     y,hat_y=self._learn_sentence(raw,y,set_Y)#根据（输入，输出）学习参数，顺便得到解码结果
                     eval(y,hat_y)#根据解码结果和标准输出，评价效果
             eval.print_result()#打印评测结果
