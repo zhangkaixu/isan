@@ -12,29 +12,54 @@ class Dep:
     def gen_features(self,stat):
         ind,_,stack_top=stat
         s0,s1,s2_t=stack_top
-        s0_w,s0_t,s0l_t,s0r_t=None,None,None,None
+
+        s0_w,s0_t,s0l_t,s0r_t='','','',''
         if s0:
             s0_w,s0_t,s0l_t,s0r_t=s0
-        s1_w,s1_t,s1l_t,s1r_t=None,None,None,None
+        s1_w,s1_t,s1l_t,s1r_t='','','',''
         if s1:
             s1_w,s1_t,s1l_t,s1r_t=s1
-        q0_w,q0_t=self.raw[ind] if ind<len(self.raw) else (None,None)
-        q1_w,q1_t=self.raw[ind+1] if ind+1<len(self.raw) else (None,None)
+        q0_w,q0_t=self.raw[ind] if ind<len(self.raw) else ('','')
+        q1_w,q1_t=self.raw[ind+1] if ind+1<len(self.raw) else ('','')
+        if s2_t is None : s2_t=''
+        if s1_t is None : s1_t=''
+        if s0_t is None : s0_t=''
+        if s0l_t is None : s0l_t=''
+        if s0r_t is None : s0r_t=''
+        if s1l_t is None : s1l_t=''
+        if s1r_t is None : s1r_t=''
         
-        fv=[('s1w',s0_w),('s1t',s0_t),('s1ws1t',s0_w,s0_t),
-            ('s2w',s1_w),('s2t',s1_t),('s2ws2t',s1_w,s1_t),
-            ('q0w',q0_w),('q0t',q0_t),('q0wq0t',q0_w,q0_t),
-            ('s1ws2w',s0_w,s1_w),('s1ts2t',s0_t,s1_t),
-            ('s1tq0t',s0_t,q0_t),('s1ws1ts2t',s0_w,s0_t,s1_t),
-            ('s1ts2ws2t',s0_t,s1_w,s1_t),('s1ws1ts2w',s0_w,s0_t,s1_w),
-            ('s1ws2ws2t',s0_w,s1_w,s1_t),('s1ws1ts2ws2t',s0_w,s0_t,s1_w,s1_t),
-            ('s1tq0tq1t',s0_t,q0_t,q1_t),('s1ts2tq0t',s0_t,s1_t,q0_t),
-            ('s1wq0tq1t',s0_w,q0_t,q1_t),('s1ws2tq0t',s0_w,s1_t,q0_t),
-            ('s0ts1ts0lt',s0_t,s1_t,s0l_t),('s0ts1ts0rt',s0_t,s1_t,s0r_t),
-            ('s0ts1ts1lt',s0_t,s1_t,s1l_t),('s0ts1ts1rt',s0_t,s1_t,s1r_t),
-            ('s0ts0ws0lt',s0_t,s0_w,s0l_t),('s0ts0ws0rt',s0_t,s0_w,s0r_t),
-            ('s0ts1ts2t',s0_t,s1_t,s2_t),
+        fv=[
+                's1w'+s0_w,
+                's1t'+s0_t,
+                's1ws1t'+s0_w+s0_t,
+                's2w'+s1_w,
+                's2t'+s1_t,
+                's2ws2t'+s1_w+s1_t,
+                'q0w'+q0_w,
+                'q0t'+q0_t,
+                'q0wq0t'+q0_w+q0_t,
+                's1ws2w'+s0_w+s1_w,
+                's1ts2t'+s0_t+s1_t,
+                's1tq0t'+s0_t+q0_t,
+                's1ws1ts2t'+s0_w+s0_t+s1_t,
+                's1ts2ws2t'+s0_t+s1_w+s1_t,
+                's1ws1ts2w'+s0_w+s0_t+s1_w,
+                's1ws2ws2t'+s0_w+s1_w+s1_t,
+                ('s1ws1ts2ws2t'+s0_w+s0_t+s1_w+s1_t),
+                ('s1tq0tq1t'+s0_t+q0_t+q1_t),
+                ('s1ts2tq0t'+s0_t+s1_t+q0_t),
+                ('s1wq0tq1t'+s0_w+q0_t+q1_t),
+                ('s1ws2tq0t'+s0_w+s1_t+q0_t),
+                ('s0ts1ts0lt'+s0_t+s1_t+s0l_t),
+                ('s0ts1ts0rt'+s0_t+s1_t+s0r_t),
+                ('s0ts1ts1lt'+s0_t+s1_t+s1l_t),
+                ('s0ts1ts1rt'+s0_t+s1_t+s1r_t),
+                ('s0ts0ws0lt'+s0_t+s0_w+s0l_t),
+                ('s0ts0ws0rt'+s0_t+s0_w+s0r_t),
+                ('s0ts1ts2t'+s0_t+s1_t+s2_t),
                 ]
+        fv=[s.encode() for s in fv]
         return fv
     @staticmethod
     def actions_to_result(actions,raw):
@@ -104,22 +129,22 @@ class Dep:
         stack=[]
         ind=0
         for action in actions:
-            stat=(ind,(0,0),(tuple(stack[-1]) if len(stack)>0 else None,
-                        tuple(stack[-2]) if len(stack)>1 else None,
-                        tuple(stack[-3][1]) if len(stack)>2 else None,
+            stat=(ind,(0,0)if not stack else (stack[-1][4],stack[-1][5]),(tuple(stack[-1][:4]) if len(stack)>0 else None,
+                tuple(stack[-2][:4]) if len(stack)>1 else None,
+                        stack[-3][1] if len(stack)>2 else None,
                         ))
             yield stat
             if action=='s':
-                stack.append([self.raw[ind][0],self.raw[ind][1],None,None])
+                stack.append([self.raw[ind][0],self.raw[ind][1],None,None,ind,ind+1])
                 ind+=1
             else:
-                left=stack[-2][0]
-                right=stack[-1][1]
                 if action=='l':
                     stack[-2][3]=stack[-1][1]
+                    stack[-2][5]=stack[-1][5]
                     stack.pop()
                 if action=='r':
                     stack[-1][2]=stack[-2][1]
+                    stack[-1][4]=stack[-2][4]
                     stack[-2]=stack[-1]
                     stack.pop()
     def shift(self,stat):

@@ -1,5 +1,4 @@
 
-import pickle
 import collections
 class Weights(dict):
     """

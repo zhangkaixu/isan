@@ -61,6 +61,4 @@ class Decoder:
         res=self.push_down.forward(lambda x:2*len(x)-1)
         return res
 
-
-
 Model=perceptrons.Base_Model
