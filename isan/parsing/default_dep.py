@@ -1,7 +1,9 @@
+import pickle
 import isan.parsing.dep_codec as codec
 import isan.parsing.eval as eval
 class Dep:
-    init=(0,(0,0),(None,None,None))
+    #init=(0,(0,0),(None,None,None))
+    init=pickle.dumps((0,(0,0),(None,None,None)))
     Eval=eval.Eval
     codec=codec
     def set_raw(self,raw):
@@ -10,6 +12,7 @@ class Dep:
         """
         self.raw=raw
     def gen_features(self,stat):
+        stat=pickle.loads(stat)
         ind,_,stack_top=stat
         s0,s1,s2_t=stack_top
 
@@ -67,13 +70,13 @@ class Dep:
         stack=[]
         arcs=[]
         for a in actions:
-            if a=='s':
+            if a==ord('s'):
                 stack.append(ind)
                 ind+=1
-            elif a=='l':
+            elif a==ord('l'):
                 arcs.append((stack[-1],stack[-2]))
                 stack.pop()
-            elif a=='r':
+            elif a==ord('r'):
                 arcs.append((stack[-2],stack[-1]))
                 stack[-2]=stack[-1]
                 stack.pop()
@@ -86,7 +89,7 @@ class Dep:
         cache=''
         for c,a in zip(raw,actions[1:]):
             cache+=c
-            if a=='s':
+            if a==ord('s'):
                 sen.append(cache)
                 cache=''
         if cache:
@@ -106,15 +109,15 @@ class Dep:
             if head!=-1 :
                 record[head][2]+=1
         for ind,head in enumerate(result):
-            actions.append('s')
+            actions.append(ord('s'))
             stack.append([ind,result[ind],record[ind][2]])
             while len(stack)>=2:
                 if stack[-1][2]==0 and stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
-                    actions.append('l')
+                    actions.append(ord('l'))
                     stack.pop()
                     stack[-1][2]-=1
                 elif stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
-                    actions.append('r')
+                    actions.append(ord('r'))
                     stack[-2]=stack[-1]
                     stack.pop()
                     stack[-1][2]-=1
@@ -123,7 +126,7 @@ class Dep:
         assert(len(actions)==2*len(result)-1)
         return actions
     def actions_to_stats(self,actions):
-        sn=sum(1 if a=='s' else 0 for a in actions)
+        sn=sum(1 if a==ord('s') else 0 for a in actions)
         assert(sn*2-1==len(actions))
         stat=None
         stack=[]
@@ -133,25 +136,26 @@ class Dep:
                 tuple(stack[-2][:4]) if len(stack)>1 else None,
                         stack[-3][1] if len(stack)>2 else None,
                         ))
-            yield stat
-            if action=='s':
+            yield pickle.dumps(stat)
+            if action==ord('s'):
                 stack.append([self.raw[ind][0],self.raw[ind][1],None,None,ind,ind+1])
                 ind+=1
             else:
-                if action=='l':
+                if action==ord('l'):
                     stack[-2][3]=stack[-1][1]
                     stack[-2][5]=stack[-1][5]
                     stack.pop()
-                if action=='r':
+                if action==ord('r'):
                     stack[-1][2]=stack[-2][1]
                     stack[-1][4]=stack[-2][4]
                     stack[-2]=stack[-1]
                     stack.pop()
     def shift(self,stat):
+        stat=pickle.loads(stat)
         raw=self.raw
         ind,_,stack_top=stat
         if ind>=len(raw): return []
-        return [
+        rtn= [
                 ('s',
                 (ind+1,
                 (ind,ind+1),
@@ -160,13 +164,18 @@ class Dep:
                         stack_top[1][1] if stack_top[1] else None)
                 ))
                 ]
+        rtn= [(ord(k),pickle.dumps(s)) for k,s in rtn]
+        return rtn
+
     def reduce(self,stat,predictor):
+        stat=pickle.loads(stat)
         raw=self.raw
         ind,span,stack_top=stat
+        predictor=pickle.loads(predictor)
         _,p_span,_=predictor
         s0,s1,s2=stack_top
         if s0==None or s1==None:return []
-        return [
+        rtn= [
             ('l',(ind,
                 (p_span[0],span[1]),
                 ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2]))),
@@ -175,3 +184,5 @@ class Dep:
                 ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2]))),
              
              ]
+        rtn= [(ord(k),pickle.dumps(s)) for k,s in rtn]
+        return rtn

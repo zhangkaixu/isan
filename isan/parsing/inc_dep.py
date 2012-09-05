@@ -1,4 +1,5 @@
 import sys
+import isan.parsing.pushdown as pd
 import isan.common.perceptrons as perceptrons
 from isan.parsing.push_down import Push_Down
 from isan.parsing.default_dep import Dep
@@ -46,10 +47,7 @@ class Decoder:
     def _update_actions(self,actions,delta,step):
         length=0
         for stat,action in zip(self.actions_to_stats(actions),actions):
-            fv=self.gen_features(stat)
-            if action not in self.actions:
-                self.actions.new_action(action)
-            self.actions[action].updates(fv,delta,step)
+            pd.update_action(self.push_down.pushdown,stat,action,delta,step)
             length+=1
         return length
     def average(self,steps):

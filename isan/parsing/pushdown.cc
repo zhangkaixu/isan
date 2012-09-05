@@ -27,6 +27,36 @@ public:
         memcpy(pt,buffer,length*sizeof(char));        
     };
 };
+class Default_Weights : public Weights<Feature_String ,Score_Type>{
+public:
+    PyObject * to_py_dict(){
+        PyObject * dict=PyDict_New();
+        //
+        for(auto it=map->begin();it!=map->end();++it){
+            PyObject * key=PyBytes_FromStringAndSize(it->first.pt,it->first.length);
+            PyObject * value=PyLong_FromLong(it->second);
+            PyDict_SetItem(dict,key,value);
+            Py_DECREF(key);
+            Py_DECREF(value);
+        };
+        
+        return dict;
+    };
+    Default_Weights(){
+    }
+    Default_Weights(PyObject * dict){
+        PyObject *key, *value;
+        Py_ssize_t pos = 0;
+        
+        char* buffer;
+        size_t length;
+        while (PyDict_Next(dict, &pos, &key, &value)) {
+            PyBytes_AsStringAndSize(key,&buffer,(Py_ssize_t*)&(length));
+            (*map)[Feature_String(buffer,length)]=PyLong_AsLong(value);
+        };
+    };
+};
+
 
 /**
  * */
@@ -81,15 +111,25 @@ class Python_Push_Down_Data : public Push_Down_Data<Action_Type,State_Type,Score
 public:
     PyObject* shift_callback;
     PyObject* reduce_callback;
-    Python_Push_Down_Data(PyObject* shift_callback,PyObject* reduce_callback){
+    Parser_Feature_Generator * feature_generator;
+    std::map<Action_Type, Default_Weights* > actions;
+
+    Python_Push_Down_Data(PyObject* shift_callback,PyObject* reduce_callback,
+            Parser_Feature_Generator* feature_generator){
         this->shift_callback=shift_callback;
         this->reduce_callback=reduce_callback;
+        this->feature_generator=feature_generator;
         Py_INCREF(shift_callback);
         Py_INCREF(reduce_callback);
     };
     ~Python_Push_Down_Data(){
         Py_DECREF(shift_callback);
         Py_DECREF(reduce_callback);
+        for(auto iter=actions.begin();
+            iter!=actions.end();
+            ++iter){
+            delete iter->second;
+        }
     };
 
     void shift(
@@ -103,17 +143,23 @@ public:
         PyObject * result= PyObject_CallObject(this->shift_callback, arglist);
         Py_CLEAR(py_state);Py_CLEAR(arglist);
 
+        Feature_Vector fv;
+        (*feature_generator)(state,fv);
+        //std::cout<<fv.size()<<"\n";
+
 
         long size=PySequence_Size(result);
         PyObject * tri;
         PyObject * tmp_item;
-        next_actions.resize(2);
+        next_actions.resize(size);
+        scores.resize(size);
         next_states.clear();
         for(int i=0;i<size;i++){
             tri=PySequence_GetItem(result,i);
             
             tmp_item=PySequence_GetItem(tri,0);
             next_actions[i]=(PyLong_AsLong(tmp_item));
+            auto action=next_actions[i];
             Py_DECREF(tmp_item);
 
             tmp_item=PySequence_GetItem(tri,1);
@@ -121,6 +167,12 @@ public:
             Py_DECREF(tmp_item);
             
             Py_DECREF(tri);
+            
+            auto got=actions.find(action);
+            if(got==actions.end()){
+                actions[action]=new Default_Weights();
+            };
+            scores[i]=(*actions[action])(fv);
         };
         Py_DECREF(result);
     };
@@ -143,15 +195,21 @@ public:
     int beam_width;
     Python_Push_Down_Data * data;
     Python_Push_Down * push_down;
+    Python_Feature_Generator* feature_generator;
     
     
     Interface(State_Type init_state,int beam_width,
             PyObject * py_shift_callback,
-            PyObject * py_reduce_callback
+            PyObject * py_reduce_callback,
+            PyObject * py_feature_cb
             ){
         this->init_state=init_state;
         this->beam_width=beam_width;
-        this->data=new Python_Push_Down_Data(py_shift_callback,py_reduce_callback);
+        feature_generator=new Python_Feature_Generator(py_feature_cb);
+        this->data=new Python_Push_Down_Data(
+                py_shift_callback,
+                py_reduce_callback,
+                feature_generator);
         this->push_down=new Python_Push_Down(this->data,beam_width);
 
     };
@@ -160,6 +218,7 @@ public:
     ~Interface(){
         delete this->data;
         delete this->push_down;
+        delete feature_generator;
     };
 };
 
@@ -179,9 +238,9 @@ pushdown_new(PyObject *self, PyObject *arg)
             &py_feature_cb);
     State_Type* init_key = NULL;
     init_key = new State_Type(py_init_stat);
-    
     Interface* interface=new Interface(*init_key,beam_width,
-            py_shift_callback,py_reduce_callback);
+            py_shift_callback,py_reduce_callback,
+        py_feature_cb);
     delete init_key;
     return PyLong_FromLong((long)interface);
 };
@@ -211,13 +270,85 @@ search(PyObject *self, PyObject *arg)
     return Py_None;
 };
 
+static PyObject *
+set_action(PyObject *self, PyObject *arg)
+{
+    Interface* interface;
+    int step;
+    PyObject * py_action;
+    PyObject * py_dict;
+    Action_Type action;
+    PyArg_ParseTuple(arg, "LBO", &interface,&action,&py_dict);
+    
+    interface->data->actions[action]=new Default_Weights(py_dict);
 
+    Py_INCREF(Py_None);
+    return Py_None;
+};
+
+static PyObject *
+update_action(PyObject *self, PyObject *arg)
+{
+    Interface* interface;
+    PyObject * py_state;
+    long delta=0;
+    long step=0;
+    Action_Type action;
+    PyArg_ParseTuple(arg, "LOBii", &interface,&py_state,&action,&delta,&step);
+    State_Type state(py_state);
+    
+    Feature_Vector fv;
+    (*(interface->feature_generator))(state,fv);
+
+    auto& actions=interface->data->actions;
+    auto got=actions.find(action);
+    if(got==actions.end()){
+        actions[action]=new Default_Weights();
+    };
+
+    (*(interface->data->actions[action])).update(fv,delta,step);
+    
+    Py_INCREF(Py_None);
+    return Py_None;
+};
+
+static PyObject *
+call(PyObject *self, PyObject *arg){
+    Interface* interface;
+    Action_Type action;
+    PyObject * list;
+    PyArg_ParseTuple(arg, "LBO", &interface,&action,&list);
+
+    auto& actions=interface->data->actions;
+    auto got=actions.find(action);
+    if(got==actions.end()){
+        actions[action]=new Default_Weights();
+    };
+    
+    Feature_Vector fv;
+    
+    long size=PySequence_Size(list);
+    char* buffer;
+    size_t length;
+    for(int i=0;i<size;i++){
+        PyObject * bytes=PySequence_GetItem(list,i);
+        PyBytes_AsStringAndSize(bytes,&buffer,(Py_ssize_t*)&(length));
+        fv.push_back(Feature_String(buffer,length));
+        Py_DECREF(bytes);
+    };
+    long value=(*actions[action])(fv);
+
+    return PyLong_FromLong(value);
+};
 
 /** stuffs about the module def */
 static PyMethodDef pushdownMethods[] = {
     {"new",  pushdown_new, METH_VARARGS,""},
     {"delete",  pushdown_delete, METH_O,""},
     {"search",  search, METH_VARARGS,""},
+    {"set_action",  set_action, METH_VARARGS,""},
+    {"update_action",  update_action, METH_VARARGS,""},
+    {"call",  call, METH_VARARGS,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 static struct PyModuleDef pushdownmodule = {

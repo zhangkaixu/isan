@@ -64,7 +64,7 @@ public:
         long size=PySequence_Size(result);
         PyObject * tri;
         PyObject * tmp_item;
-        next_actions.resize(2);
+        next_actions.resize(size);
         next_states.clear();
         for(int i=0;i<size;i++){
             tri=PySequence_GetItem(result,i);

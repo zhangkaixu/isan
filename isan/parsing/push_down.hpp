@@ -50,7 +50,7 @@ public:
     };
     struct State_Info{
         std::vector<Alpha> alphas;
-        typedef __gnu_cxx::hash_map< std::pair<int,STATE> ,int> predictors;
+        __gnu_cxx::hash_map< std::pair<int,STATE> ,SCORE> predictors;
         /*  */
         void max_top(){
             if(alphas.size()==0)return;
@@ -151,7 +151,6 @@ public:
         (*this->sequence.back())[init_key].alphas.push_back(Alpha());
         
         for(int step=0;step<steps;step++){
-            //std::cout<<step<<"\n";
             thrink(step,beam);//thrink, get beam
             /*gen next step*/
             this->sequence.push_back(new My_Map());
@@ -163,6 +162,19 @@ public:
                 SCORE& last_sub_score=beam[i].second->sub_score;
                 
                 data->shift(last_state,shift_actions,shifted_states,shift_scores);
+                for(int j=0;j<shift_actions.size();j++){
+                    auto& next_state=shifted_states[j];
+                    auto got=this_map.find(next_state);
+                    if(got==this_map.end()){
+                        this_map[next_state]=State_Info();
+                    };
+                    auto next_state_info=this_map[next_state];
+                    //next_state_info.predictors[std::pair<int,STATE>(step,last_state)]=shift_scores[j];
+                    
+                    
+
+
+                };
 
             };
         };
