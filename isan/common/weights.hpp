@@ -4,6 +4,9 @@
 #include <map>
 #include "isan/common/common.hpp"
 
+
+namespace isan{
+
 template<class KEY,class VALUE>
 class Weights{
 public:
@@ -69,3 +72,34 @@ public:
         };
     };
 };
+class Default_Weights : public Weights<Feature_String ,Score_Type>{
+public:
+    PyObject * to_py_dict(){
+        PyObject * dict=PyDict_New();
+        //
+        for(auto it=map->begin();it!=map->end();++it){
+            PyObject * key=PyBytes_FromStringAndSize(it->first.pt,it->first.length);
+            PyObject * value=PyLong_FromLong(it->second);
+            PyDict_SetItem(dict,key,value);
+            Py_DECREF(key);
+            Py_DECREF(value);
+        };
+        
+        return dict;
+    };
+    Default_Weights(){
+    }
+    Default_Weights(PyObject * dict){
+        PyObject *key, *value;
+        Py_ssize_t pos = 0;
+        
+        char* buffer;
+        size_t length;
+        while (PyDict_Next(dict, &pos, &key, &value)) {
+            PyBytes_AsStringAndSize(key,&buffer,(Py_ssize_t*)&(length));
+            (*map)[Feature_String(buffer,length)]=PyLong_AsLong(value);
+        };
+    };
+};
+
+};//isan

@@ -5,117 +5,7 @@
 #include "dfa_beam_searcher.hpp"
 #include "cws.hpp"
 #include "isan/common/weights.hpp"
-/**
- * g++ dfabeam.cc -I /usr/include/python3.2mu -shared -o dfabeam.so -fPIC -O3
- * */
-
-
-class Python_Feature_Generator: public CWS_Feature_Generator{
-public:
-    PyObject * callback;
-    Python_Feature_Generator(PyObject * callback){
-        Py_INCREF(callback);
-        this->callback=callback;
-    };
-    ~Python_Feature_Generator(){
-        Py_DECREF(callback);
-    };
-    void operator()(const State_Type& state, Feature_Vector& fv){
-        PyObject * pkey=state.pack();
-        PyObject * arglist=Py_BuildValue("(O)",pkey);
-        
-        PyObject * pfv= PyObject_CallObject(this->callback, arglist);
-        
-        Py_DECREF(pkey);
-        Py_DECREF(arglist);
-        
-        fv.clear();
-        char* buffer;
-        size_t length;
-        long size=PySequence_Size(pfv);
-        PyObject * pf;
-        for(int i=0;i<size;i++){
-            pf=PySequence_GetItem(pfv,i);
-            PyBytes_AsStringAndSize(pf,&buffer,(Py_ssize_t*)&(length));
-            fv.push_back(Feature_String(buffer,length));
-            Py_DECREF(pf);
-        };
-        Py_DECREF(pfv);
-    };
-};
-
-
-class Python_State_Generator: public CWS_State_Generator{
-public:
-    PyObject * callback;
-    Python_State_Generator(PyObject * callback){
-        Py_INCREF(callback);
-        this->callback=callback;
-    };
-    ~Python_State_Generator(){
-        Py_DECREF(callback);
-    };
-    void operator()(State_Type& key, std::vector<Action_Type>&next_actions,std::vector<State_Type> & next_states){
-        PyObject * state=key.pack();
-        PyObject * arglist=Py_BuildValue("(O)",state);
-        PyObject * result= PyObject_CallObject(this->callback, arglist);
-        Py_CLEAR(state);Py_CLEAR(arglist);
-        
-        long size=PySequence_Size(result);
-        PyObject * tri;
-        PyObject * tmp_item;
-        next_actions.resize(size);
-        next_states.clear();
-        for(int i=0;i<size;i++){
-            tri=PySequence_GetItem(result,i);
-            
-            tmp_item=PySequence_GetItem(tri,0);
-            next_actions[i]=(PyLong_AsLong(tmp_item));
-            Py_DECREF(tmp_item);
-
-            tmp_item=PySequence_GetItem(tri,1);
-            next_states.push_back(State_Type(tmp_item));
-            Py_DECREF(tmp_item);
-            
-            Py_DECREF(tri);
-        };
-        Py_DECREF(result);
-    };
-};
-
-
-//typedef Weights<Feature_String ,Score_Type> Default_Weights;
-class Default_Weights : public Weights<Feature_String ,Score_Type>{
-public:
-    PyObject * to_py_dict(){
-        PyObject * dict=PyDict_New();
-        //
-        for(auto it=map->begin();it!=map->end();++it){
-            PyObject * key=PyBytes_FromStringAndSize(it->first.pt,it->first.length);
-            PyObject * value=PyLong_FromLong(it->second);
-            PyDict_SetItem(dict,key,value);
-            Py_DECREF(key);
-            Py_DECREF(value);
-        };
-        
-        return dict;
-    };
-    Default_Weights(){
-    }
-    Default_Weights(PyObject * dict){
-        PyObject *key, *value;
-        Py_ssize_t pos = 0;
-        
-        char* buffer;
-        size_t length;
-        while (PyDict_Next(dict, &pos, &key, &value)) {
-            PyBytes_AsStringAndSize(key,&buffer,(Py_ssize_t*)&(length));
-            (*map)[Feature_String(buffer,length)]=PyLong_AsLong(value);
-        };
-    };
-};
-
-
+using namespace isan;
 
 
 /**
@@ -125,14 +15,15 @@ public:
  *      给一个原来的 state 生成 <new_state, action>
  *     fv与 action 生成 score，并 返回
  * */
+
 class Searcher_Data : public DFA_Beam_Searcher_Data<State_Type,Action_Type,Score_Type> {
 public:
-    CWS_Feature_Generator * feature_generator;
-    CWS_State_Generator * state_generator;
+    General_Feature_Generator * feature_generator;
+    General_State_Generator * state_generator;
     
     Chinese* raw;
     std::map<Action_Type, Default_Weights* > actions;
-    Searcher_Data(CWS_State_Generator *state_generator,CWS_Feature_Generator * feature_generator){
+    Searcher_Data(General_State_Generator *state_generator,General_Feature_Generator * feature_generator){
         this->feature_generator=feature_generator;
         this->state_generator=state_generator;
         raw=NULL;
@@ -175,8 +66,8 @@ public:
     Searcher_Data* searcher_data;
     DFA_Beam_Searcher<State_Type,Action_Type,Score_Type>* searcher;
     Chinese* raw;
-    CWS_Feature_Generator * feature_generator;
-    CWS_State_Generator * state_generator;
+    General_Feature_Generator * feature_generator;
+    General_State_Generator * state_generator;
     
     
     Interface(State_Type init_key,int beam_width){

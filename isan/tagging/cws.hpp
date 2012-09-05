@@ -1,29 +1,8 @@
 #pragma once
 #include "isan/common/common.hpp"
 
-typedef Smart_String<Chinese_Character> Chinese;
-typedef Smart_String<char> Feature_String;
-typedef std::vector<Feature_String> Feature_Vector;
 
-
-class State_Type: public Smart_String<char>{
-public:
-    PyObject* pack() const{
-        return PyBytes_FromStringAndSize(pt,length);
-
-    };
-    State_Type(){
-    };
-    
-    State_Type(PyObject* py_key){
-        char* buffer;
-        Py_ssize_t len;
-        int rtn=PyBytes_AsStringAndSize(py_key,&buffer,&len);
-        length=(size_t)len;
-        pt=new char[length];
-        memcpy(pt,buffer,length*sizeof(char));        
-    };
-};
+namespace isan{
 
 class Default_State_Type: public State_Type{
 public:
@@ -55,11 +34,9 @@ public:
 };
 
 
-typedef Feature_Generator<Chinese,State_Type,Feature_Vector> CWS_Feature_Generator;
-typedef State_Generator<Chinese,State_Type,Action_Type> CWS_State_Generator;
 
 
-class Default_Feature_Generator: public CWS_Feature_Generator{
+class Default_Feature_Generator: public General_Feature_Generator{
 public:
     struct Three{
         char a;
@@ -117,7 +94,7 @@ public:
 };
 
 
-class Default_State_Generator: public CWS_State_Generator{
+class Default_State_Generator: public General_State_Generator{
 public:
 
     Default_State_Generator(){
@@ -149,3 +126,6 @@ public:
         *next_states.back().sep_ind2()=*key.sep_ind2()+1;
     };
 };
+
+
+};//isan

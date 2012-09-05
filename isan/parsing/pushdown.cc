@@ -6,104 +6,7 @@
 #include "isan/common/weights.hpp"
 #include "isan/parsing/push_down.hpp"
 
-namespace isan{
-
-typedef Smart_String<Chinese_Character> Chinese;
-typedef Smart_String<char> Feature_String;
-typedef std::vector<Feature_String> Feature_Vector;
-class State_Type: public Smart_String<char>{
-public:
-    PyObject* pack() const{
-        return PyBytes_FromStringAndSize(pt,length);
-    };
-    State_Type(){
-    };
-    State_Type(PyObject* py_key){
-        char* buffer;
-        Py_ssize_t len;
-        int rtn=PyBytes_AsStringAndSize(py_key,&buffer,&len);
-        length=(size_t)len;
-        pt=new char[length];
-        memcpy(pt,buffer,length*sizeof(char));        
-    };
-};
-class Default_Weights : public Weights<Feature_String ,Score_Type>{
-public:
-    PyObject * to_py_dict(){
-        PyObject * dict=PyDict_New();
-        //
-        for(auto it=map->begin();it!=map->end();++it){
-            PyObject * key=PyBytes_FromStringAndSize(it->first.pt,it->first.length);
-            PyObject * value=PyLong_FromLong(it->second);
-            PyDict_SetItem(dict,key,value);
-            Py_DECREF(key);
-            Py_DECREF(value);
-        };
-        
-        return dict;
-    };
-    Default_Weights(){
-    }
-    Default_Weights(PyObject * dict){
-        PyObject *key, *value;
-        Py_ssize_t pos = 0;
-        
-        char* buffer;
-        size_t length;
-        while (PyDict_Next(dict, &pos, &key, &value)) {
-            PyBytes_AsStringAndSize(key,&buffer,(Py_ssize_t*)&(length));
-            (*map)[Feature_String(buffer,length)]=PyLong_AsLong(value);
-        };
-    };
-};
-
-
-/**
- * */
-
-typedef Feature_Generator<Chinese,State_Type,Feature_Vector> Parser_Feature_Generator;
-typedef State_Generator<Chinese,State_Type,Action_Type> CWS_State_Generator;
-
-
-class Python_Feature_Generator: public Parser_Feature_Generator{
-public:
-    PyObject * callback;
-    Python_Feature_Generator(PyObject * callback){
-        Py_INCREF(callback);
-        this->callback=callback;
-    };
-    ~Python_Feature_Generator(){
-        Py_DECREF(callback);
-    };
-    void operator()(const State_Type& state, Feature_Vector& fv){
-        PyObject * pkey=state.pack();
-        PyObject * arglist=Py_BuildValue("(O)",pkey);
-        
-        PyObject * pfv= PyObject_CallObject(this->callback, arglist);
-        
-        Py_DECREF(pkey);
-        Py_DECREF(arglist);
-        
-        fv.clear();
-        char* buffer;
-        size_t length;
-        long size=PySequence_Size(pfv);
-        PyObject * pf;
-        for(int i=0;i<size;i++){
-            pf=PySequence_GetItem(pfv,i);
-            PyBytes_AsStringAndSize(pf,&buffer,(Py_ssize_t*)&(length));
-            fv.push_back(Feature_String(buffer,length));
-            Py_DECREF(pf);
-        };
-        Py_DECREF(pfv);
-    };
-};
-
-
-
-
-
-
+using namespace isan;
 
 
 typedef Push_Down<Action_Type,State_Type,Score_Type> Python_Push_Down;
@@ -111,11 +14,11 @@ class Python_Push_Down_Data : public Push_Down_Data<Action_Type,State_Type,Score
 public:
     PyObject* shift_callback;
     PyObject* reduce_callback;
-    Parser_Feature_Generator * feature_generator;
+    General_Feature_Generator * feature_generator;
     std::map<Action_Type, Default_Weights* > actions;
 
     Python_Push_Down_Data(PyObject* shift_callback,PyObject* reduce_callback,
-            Parser_Feature_Generator* feature_generator){
+            General_Feature_Generator* feature_generator){
         this->shift_callback=shift_callback;
         this->reduce_callback=reduce_callback;
         this->feature_generator=feature_generator;
@@ -410,4 +313,3 @@ PyInit_pushdown(void)
 }
 
 
-};//end of isan
