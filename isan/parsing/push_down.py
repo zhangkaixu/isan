@@ -1,6 +1,7 @@
 
 import pickle
 import collections
+import isan.parsing.pushdown as pd
 class Weights(dict):
     """
     感知器特征的权重
@@ -25,6 +26,24 @@ class Weights(dict):
         del self.acc
 
 class Push_Down:
+    def cshift(self,stat):
+        stat=pickle.loads(stat)
+        raw=self.raw
+        ind,_,stack_top=stat
+        if ind>=len(raw): return []
+        rtn= [
+                ('s',
+                (ind+1,
+                (ind,ind+1),
+                ((raw[ind][0],raw[ind][1],None,None),
+                        stack_top[0],
+                        stack_top[1][1] if stack_top[1] else None)
+                ))
+                ]
+        rtn= [(ord(k),pickle.dumps(s)) for k,s in rtn]
+        return rtn
+
+
     def __init__(self,schema,beam_width):
         self.schema=schema
         self.beam_width=beam_width
@@ -35,6 +54,8 @@ class Push_Down:
         self.actions=self.schema.actions
         self.init_data={'pi':set(),
                     'alphas':[{0 : 0, 'v' : 0, 'a': None }]}#初始状态
+        self.pushdown=pd.new(self.beam_width,pickle.dumps(self.init),self.cshift,self.reduce,
+                self.gen_features)
     def set_raw(self,raw):
         self.raw=raw
         self.sequence=[{} for i in range(2*len(raw))]
@@ -48,6 +69,7 @@ class Push_Down:
         beam=beam[:min(len(beam),self.beam_width)]
         return [stat for stat,_ in beam]
     def forward(self,get_step=lambda x:len(x)+1):
+        pd.search(self.pushdown,get_step(self.raw))
         #前向搜索
         self.sequence[0][self.init]=dict(self.init_data)#初始化第一个状态
         for ind in range(get_step(self.raw)):
