@@ -17,6 +17,10 @@ public:
     General_Feature_Generator * feature_generator;
     std::map<Action_Type, Default_Weights* > actions;
 
+    State_Type cached_state;
+    std::map<Action_Type, Score_Type> cached_scores;
+    Feature_Vector fv;
+
     Python_Push_Down_Data(PyObject* shift_callback,PyObject* reduce_callback,
             General_Feature_Generator* feature_generator){
         this->shift_callback=shift_callback;
@@ -24,6 +28,7 @@ public:
         this->feature_generator=feature_generator;
         Py_INCREF(shift_callback);
         Py_INCREF(reduce_callback);
+        cached_state=State_Type();
     };
     ~Python_Push_Down_Data(){
         Py_DECREF(shift_callback);
@@ -46,9 +51,11 @@ public:
         PyObject * result= PyObject_CallObject(this->shift_callback, arglist);
         Py_CLEAR(py_state);Py_CLEAR(arglist);
 
-        Feature_Vector fv;
-        (*feature_generator)(state,fv);
-        //std::cout<<fv.size()<<"\n";
+        if(!(cached_state==state)){
+            (*feature_generator)(state,fv);
+            cached_state=state;
+            cached_scores.clear();
+        }
 
 
         long size=PySequence_Size(result);
@@ -94,9 +101,12 @@ public:
         Py_CLEAR(py_predictor);Py_CLEAR(arglist);
 
         
-        Feature_Vector fv;
-        (*feature_generator)(state,fv);
-        //std::cout<<fv.size()<<"\n";
+        if(!(cached_state==state)){
+            (*feature_generator)(state,fv);
+            cached_state=state;
+            cached_scores.clear();
+        };
+
 
 
         long size=PySequence_Size(result);
@@ -123,7 +133,12 @@ public:
             if(got==actions.end()){
                 actions[action]=new Default_Weights();
             };
-            scores[i]=(*actions[action])(fv);
+            auto got2=cached_scores.find(action);
+            if(got2!=cached_scores.end()){
+                scores[i]=got2->second;
+            }else{
+                cached_scores[action]=scores[i]=(*actions[action])(fv);
+            }
         };
 
 
