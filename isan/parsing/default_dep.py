@@ -169,7 +169,6 @@ class Dep:
 
     def reduce(self,stat,predictor):
         stat=pickle.loads(stat)
-        raw=self.raw
         ind,span,stack_top=stat
         predictor=pickle.loads(predictor)
         _,p_span,_=predictor

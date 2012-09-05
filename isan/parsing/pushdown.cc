@@ -13,7 +13,7 @@ typedef Smart_String<char> Feature_String;
 typedef std::vector<Feature_String> Feature_Vector;
 class State_Type: public Smart_String<char>{
 public:
-    PyObject* pack(){
+    PyObject* pack() const{
         return PyBytes_FromStringAndSize(pt,length);
     };
     State_Type(){
@@ -75,7 +75,7 @@ public:
     ~Python_Feature_Generator(){
         Py_DECREF(callback);
     };
-    void operator()(State_Type& state, Feature_Vector& fv){
+    void operator()(const State_Type& state, Feature_Vector& fv){
         PyObject * pkey=state.pack();
         PyObject * arglist=Py_BuildValue("(O)",pkey);
         
@@ -158,7 +158,7 @@ public:
             tri=PySequence_GetItem(result,i);
             
             tmp_item=PySequence_GetItem(tri,0);
-            next_actions[i]=(PyLong_AsLong(tmp_item));
+            next_actions[i]=(PyLong_AsUnsignedLong(tmp_item));
             auto action=next_actions[i];
             Py_DECREF(tmp_item);
 
@@ -177,12 +177,54 @@ public:
         Py_DECREF(result);
     };
     void reduce(
-            State_Type& state, 
-            State_Type& predictor,
-            std::vector<Action_Type>& actions,
+            const State_Type& state, 
+            const State_Type& predictor,
+            std::vector<Action_Type>& next_actions,
             std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores
             ){
+        PyObject * py_state=state.pack();
+        PyObject * py_predictor=predictor.pack();
+        PyObject * arglist=Py_BuildValue("(OO)",py_state,py_predictor);
+        PyObject * result= PyObject_CallObject(this->reduce_callback, arglist);
+        Py_CLEAR(py_state);
+        Py_CLEAR(py_predictor);Py_CLEAR(arglist);
+
+        
+        Feature_Vector fv;
+        (*feature_generator)(state,fv);
+        //std::cout<<fv.size()<<"\n";
+
+
+        long size=PySequence_Size(result);
+        PyObject * tri;
+        PyObject * tmp_item;
+        next_actions.resize(size);
+        scores.resize(size);
+        next_states.clear();
+        for(int i=0;i<size;i++){
+            tri=PySequence_GetItem(result,i);
+            
+            tmp_item=PySequence_GetItem(tri,0);
+            next_actions[i]=(PyLong_AsUnsignedLong(tmp_item));
+            auto action=next_actions[i];
+            Py_DECREF(tmp_item);
+
+            tmp_item=PySequence_GetItem(tri,1);
+            next_states.push_back(State_Type(tmp_item));
+            Py_DECREF(tmp_item);
+            
+            Py_DECREF(tri);
+            
+            auto got=actions.find(action);
+            if(got==actions.end()){
+                actions[action]=new Default_Weights();
+            };
+            scores[i]=(*actions[action])(fv);
+        };
+
+
+        Py_DECREF(result);
     };
 };
 
@@ -263,11 +305,12 @@ search(PyObject *self, PyObject *arg)
     std::vector<Action_Type> result;
     (*interface->push_down)(interface->init_state,steps,result);
 
-    //PyObject * list=PyList_New(result.size());
+    PyObject * list=PyList_New(result.size());
+    for(int i=0;i<result.size();i++){
+        PyList_SetItem(list,i,PyLong_FromUnsignedLong(result[i]));
+    }
     
-    //return list;
-    Py_INCREF(Py_None);
-    return Py_None;
+    return list;
 };
 
 static PyObject *

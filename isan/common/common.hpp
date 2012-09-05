@@ -94,7 +94,7 @@ public:
     void set_raw(RAW* raw){
         this->raw=raw;
     };
-    virtual void operator()(STATE& key, FEATURE_VECTOR& fv)=0;
+    virtual void operator()(const STATE& key, FEATURE_VECTOR& fv)=0;
 };
 
 template <class RAW, class STATE, class ACTION>
