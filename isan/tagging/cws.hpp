@@ -8,7 +8,7 @@ typedef std::vector<Feature_String> Feature_Vector;
 
 class State_Type: public Smart_String<char>{
 public:
-    PyObject* pack(){
+    PyObject* pack() const{
         return PyBytes_FromStringAndSize(pt,length);
 
     };
@@ -52,22 +52,6 @@ public:
         *last_last_action2()='0';
         *sep_ind2()=0;
     };
-
-    //void operator=(const Default_State_Type& other){
-        //memcpy(pt,other.pt,length*sizeof(char));
-    //};
-    //Default_State_Type(PyObject* py_key): State_Type(){
-        //char* buffer;
-        //Py_ssize_t len;
-        //int rtn=PyBytes_AsStringAndSize(py_key,&buffer,&len);
-        //length=(size_t)len;
-        //pt=new char[length];
-        //memcpy(pt,buffer,length*sizeof(char));
-        //return;
-        
-    //};
-    
-    
 };
 
 
@@ -91,7 +75,7 @@ public:
     Default_Feature_Generator(){
         this->raw=NULL;
     };
-    void operator()(State_Type& super_state, Feature_Vector& fv){
+    void operator()(const State_Type& super_state, Feature_Vector& fv){
         Default_State_Type& state=(Default_State_Type&)super_state;
         int ind=*(short*)state.pt;
         Action_Type left_action=*state.last_action2();
