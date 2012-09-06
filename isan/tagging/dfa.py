@@ -1,4 +1,3 @@
-
 import isan.tagging.dfabeam as dfabeam
 
 
@@ -24,7 +23,8 @@ class DFA:
         return dfabeam.export_weights(self.dfa,step)
 
     def set_raw(self,raw):
+        self.raw=raw
         dfabeam.set_raw(self.dfa,raw)
-    def search(self,step):
-        return dfabeam.search(self.dfa,step)
+    def search(self):
+        return dfabeam.search(self.dfa,len(self.raw)+1)
 

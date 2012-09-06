@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 import pickle
-from isan.tagging.dfa import DFA as Searcher
 
 class Base_Model(object):
-    def __init__(self,model_file,schema=None,searcher=Searcher,beam_width=8,**conf):
+    def __init__(self,model_file,schema=None,Searcher=None,beam_width=8,**conf):
         """
         初始化
         schema： 如果不设置，则读取已有模型。如果设置，就是学习新模型
@@ -49,7 +48,7 @@ class Base_Model(object):
     def search(self,raw):
         self.schema.set_raw(raw)
         self.searcher.set_raw(raw)
-        return self.searcher.search(len(raw)+1)
+        return self.searcher.search()
 
     def __call__(self,raw):
         """
