@@ -71,10 +71,14 @@ class Base_Model(object):
 
         #update
         if y!=hat_y:#如果动作不一致，则更新
-            self.schema.update(raw,std_actions,rst_actions,self.step)
-
-        #return
+            self.update(std_actions,rst_actions)
         return y,hat_y
+    def update(self,std_actions,rst_actions):
+        for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
+            self.schema.update_weights(stat,action,1,self.step)
+        for stat,action in zip(self.schema.actions_to_stats(rst_actions),rst_actions):
+            self.schema.update_weights(stat,action,-1,self.step)
+
         
     def train(self,training_file,iteration=5):
         """

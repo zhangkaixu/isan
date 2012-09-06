@@ -43,6 +43,8 @@ class Decoder:
         self._update_actions(std_actions,1,step)
         self._update_actions(rst_actions,-1,step)
     ### 私有函数 
+    def update_weights(self,stat,action,delta,step):
+        self.push_down.update(stat,action,delta,step)
     def _update_actions(self,actions,delta,step):
         for stat,action in zip(self.actions_to_stats(actions),actions):
             self.push_down.update(stat,action,delta,step)

@@ -45,6 +45,15 @@ class Segger:
     def set_Y(self,Y):
         pass
 
+    def actions_to_stats(self,actions):
+        stat=self.init_stat
+        for action in actions:
+            yield stat
+            for a,s in self.gen_actions_and_stats(stat):
+                if action==a:
+                    stat=s
+        yield stat
+
     def gen_actions_and_stats(self,stat):
         ind,last,_,wordl=self.stat_fmt.unpack(stat)
         return [(self.sep,self.stat_fmt.pack(ind+1,b's',last,1)),
