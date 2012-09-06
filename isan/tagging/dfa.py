@@ -6,11 +6,12 @@ import isan.tagging.dfabeam as dfabeam
 class DFA:
     def __init__(self,schema,beam_width):
         self.dfa=dfabeam.new(
-                schema.beam_width,
+                beam_width,
                 schema.init_stat,
                 schema.gen_actions_and_stats,
                 schema.gen_features,
                 )
+        
     def set_action(self,action,d):
         dfabeam.set_action(self.dfa,action,d)
         

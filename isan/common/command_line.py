@@ -1,6 +1,5 @@
 import sys
 import argparse
-from isan.tagging.dfa import DFA as Searcher
 
 def make_color(s):
     #return '\033[32;01m%s\033[1;m'%s  #green
@@ -8,7 +7,7 @@ def make_color(s):
     return '\033[36;01m%s\033[1;m'%s #blue
 
 
-def command_line(task_name,Model,Segmentation_Space,Searcher=Searcher):
+def command_line(task_name,Model,Segmentation_Space,Searcher):
     parser=argparse.ArgumentParser(description=task_name+"模型")
     parser.add_argument('model_file',help='模型文件')
     parser.add_argument('--train',help='训练文件',action='append')
@@ -26,7 +25,7 @@ def command_line(task_name,Model,Segmentation_Space,Searcher=Searcher):
                         make_color(args.model_file)),file=sys.stderr)
         model=Model(args.model_file,
                     Segmentation_Space(),
-                    Searcher,beam_width=args.beam_width,
+                    Searcher,beam_width=int(args.beam_width),
             )
         model.train(args.train,int(args.iteration))
         model.save()
@@ -38,7 +37,7 @@ def command_line(task_name,Model,Segmentation_Space,Searcher=Searcher):
                     task_name),file=sys.stderr)
     
     model=Model(args.model_file,
-                    Searcher=Searcher,beam_width=args.beam_width
+                    Searcher=Searcher,beam_width=int(args.beam_width)
                     )
     print('s')
     
