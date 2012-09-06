@@ -1,5 +1,6 @@
 import sys
 import argparse
+from isan.tagging.dfa import DFA as Searcher
 
 def make_color(s):
     #return '\033[32;01m%s\033[1;m'%s  #green
@@ -7,7 +8,7 @@ def make_color(s):
     return '\033[36;01m%s\033[1;m'%s #blue
 
 
-def command_line(task_name,Model,Segmentation_Space):
+def command_line(task_name,Model,Segmentation_Space,Searcher=Searcher):
     parser=argparse.ArgumentParser(description=task_name+"模型")
     parser.add_argument('model_file',help='模型文件')
     parser.add_argument('--train',help='训练文件',action='append')
@@ -24,8 +25,8 @@ def command_line(task_name,Model,Segmentation_Space):
                         task_name,
                         make_color(args.model_file)),file=sys.stderr)
         model=Model(args.model_file,
-                    Segmentation_Space(beam_width=int(args.beam_width)
-                    )
+                    Segmentation_Space(),
+                    Searcher,beam_width=args.beam_width,
             )
         model.train(args.train,int(args.iteration))
         model.save()
@@ -36,11 +37,9 @@ def command_line(task_name,Model,Segmentation_Space):
         print("使用模型文件%s进行%s"%(make_color(args.model_file),
                     task_name),file=sys.stderr)
     
-    #model=Model(args.model_file,
-    #            Segmentation_Space(beam_width=int(args.beam_width)
-    #            )
-    #    )
-    model=Model(args.model_file)
+    model=Model(args.model_file,
+                    Searcher=Searcher,beam_width=args.beam_width
+                    )
     print('s')
     
     """如果指定了测试集，就测试模型"""

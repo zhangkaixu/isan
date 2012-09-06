@@ -1,24 +1,30 @@
 #!/usr/bin/python3
 import pickle
-import collections
+from isan.tagging.dfa import DFA as Searcher
 
 class Base_Model(object):
-    def __init__(self,model_file,schema=None,**conf):
+    def __init__(self,model_file,schema=None,searcher=Searcher,beam_width=8,**conf):
         """
         初始化
         schema： 如果不设置，则读取已有模型。如果设置，就是学习新模型
         """
+        self.beam_width=beam_width;
         self.conf=conf
         if schema==None:
             file=open(model_file,"rb")
             self.schema=pickle.load(file)
             file.close()
-            self.schema.link()
         else:
             self.model_file=model_file
             self.schema=schema
+            self.schema.weights={}
+        self.searcher=Searcher(self.schema,beam_width)
+        for k,v in self.schema.weights.items():
+            self.searcher.set_action(k,v)
         self.step=0
 
+    def __del__(self):
+        del self.searcher
     def test(self,test_file):
         """
         测试
@@ -35,16 +41,21 @@ class Base_Model(object):
         """
         保存模型
         """
-        self.schema.average(self.step)
-        self.schema.unlink()
+        for k,v in self.searcher.export_weights(self.step):
+            self.schema.weights.setdefault(k,{}).update(v)
         file=open(self.model_file,'wb')
         pickle.dump(self.schema,file)
         file.close()
+    def search(self,raw):
+        self.schema.set_raw(raw)
+        self.searcher.set_raw(raw)
+        return self.searcher.search(len(raw)+1)
+
     def __call__(self,raw):
         """
         解码，读入生句子，返回词的数组
         """
-        rst_actions=self.schema.search(raw)
+        rst_actions=self.search(raw)
         hat_y=self.schema.actions_to_result(rst_actions,raw)
         return hat_y
     def _learn_sentence(self,arg):
@@ -63,10 +74,10 @@ class Base_Model(object):
         if y and not Y_b:
             std_actions=self.schema.result_to_actions(y)#得到标准动作
         else:
-            std_actions=self.schema.search(raw,Y_b)
+            std_actions=self.search(raw)
 
         #get result actions
-        rst_actions=self.schema.search(raw,Y_a)#得到解码后动作
+        rst_actions=self.search(raw)#得到解码后动作
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
 
         #update
@@ -75,9 +86,9 @@ class Base_Model(object):
         return y,hat_y
     def update(self,std_actions,rst_actions):
         for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
-            self.schema.update_weights(stat,action,1,self.step)
+            self.searcher.update_action(stat,action,1,self.step)
         for stat,action in zip(self.schema.actions_to_stats(rst_actions),rst_actions):
-            self.schema.update_weights(stat,action,-1,self.step)
+            self.searcher.update_action(stat,action,-1,self.step)
 
         
     def train(self,training_file,iteration=5):
