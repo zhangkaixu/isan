@@ -47,7 +47,7 @@ public:
             std::vector<Score_Type>& scores
             ){
         PyObject * py_state=state.pack();
-        PyObject * arglist=Py_BuildValue("(O)",py_state);
+        PyObject * arglist=PyTuple_Pack(1,py_state);
         PyObject * result= PyObject_CallObject(this->shift_callback, arglist);
         Py_CLEAR(py_state);Py_CLEAR(arglist);
 
@@ -65,8 +65,8 @@ public:
         scores.resize(size);
         next_states.clear();
         for(int i=0;i<size;i++){
-            tri=PySequence_GetItem(result,i);
-            
+            tri=PyList_GetItem(result,i);
+
             tmp_item=PySequence_GetItem(tri,0);
             next_actions[i]=(PyLong_AsUnsignedLong(tmp_item));
             auto action=next_actions[i];
@@ -76,7 +76,6 @@ public:
             next_states.push_back(State_Type(tmp_item));
             Py_DECREF(tmp_item);
             
-            Py_DECREF(tri);
             
             auto got=actions.find(action);
             if(got==actions.end()){

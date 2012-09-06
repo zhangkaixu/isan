@@ -1,4 +1,3 @@
-
 import collections
 import isan.parsing.pushdown as pd
 
@@ -12,3 +11,7 @@ class Push_Down:
     def forward(self,get_step=lambda x:len(x)+1):
         c_rst=pd.search(self.pushdown,get_step(self.raw))
         return c_rst
+    
+    def update(self,stat,action,delta,step):
+        pd.update_action(self.pushdown,stat,action,delta,step)
+

@@ -1,12 +1,6 @@
-import collections
-import pickle
-import sys
-import struct
-import isan.tagging.cws_codec as tagging_codec
-import isan.tagging.eval as tagging_eval
-import isan.tagging.dfabeam as dfabeam
 import isan.tagging.default_segger as segger
 from isan.common.perceptrons import Base_Model as Model
+import isan.tagging.dfa as dfa
 """
 一个增量搜索模式的中文分词模块
 """
@@ -14,55 +8,45 @@ from isan.common.perceptrons import Base_Model as Model
 
 class Segmentation_Space:
     def __init__(self,beam_width=8):
+        self.func_list={
+                'init_stat': None,
+                'actions_to_result': None,
+                'result_to_actions': None,
+                'actions_to_stats':"_actions_to_stats",
+                'gen_actions_and_stats': None,
+                'gen_features': None,
+                'codec': None,
+                'Eval': None,
+                }
+
         self.beam_width=beam_width
         self.weights={}
         self.link()
 
     def link(self,segger=segger.Segger()):
         self.segger=segger
-        func_list={
-                'init_stat': None,
-                'stat_fmt_str': None,
-                'actions_to_result': None,
-                'result_to_actions': None,
-                'gen_actions_and_stats': None,
-                'gen_features': None,
-                'actions_to_stats':self._actions_to_stats,
-                'codec': None,
-                'Eval': None,
-                }
-        for func,dft_attr in func_list.items():
+        for func,dft_attr in self.func_list.items():
             if hasattr(self.segger,func):
                 setattr(self,func,getattr(self.segger,func))
             else:
-                setattr(self,func,dft_attr)
+                setattr(self,func,getattr(self,dft_attr))
                 
-        self.dfabeam=dfabeam.new(
-                self.beam_width,
-                #None,
-                self.init_stat,
-                #None,
-                self.gen_actions_and_stats,
-                #None,
-                self.gen_features,
-                )
+        self.dfa=dfa.DFA(self,self.beam_width)
         for k,v in self.weights.items():
-            dfabeam.set_action(self.dfabeam,k,v)
+            self.dfa.set_action(k,v)
 
 
     def unlink(self):
-        self.actions_to_result=None
-        self.result_to_actions=None
-        self.actions_to_stats=None
-        self.gen_actions_and_stats=None
-        self.gen_features=None
-        self.stat_fmt=None
+        for func in self.func_list:
+            if hasattr(self,func):
+                delattr(self,func)
         self.segger=None
-        self.codec=None
-        self.Eval=None
+
+        del self.dfa
+        self.dfa=None
 
     def __del__(self):
-        dfabeam.delete(self.dfabeam)
+        self.unlink()
 
     #特征相关
     def set_raw(self,raw):
@@ -74,18 +58,18 @@ class Segmentation_Space:
         self._update_actions(rst_actions,-1,step)
     def _update_actions(self,actions,delta,step):
         for stat,action in zip(self.actions_to_stats(actions),actions,):
-            dfabeam.update_action(self.dfabeam,stat,action,delta,step)
+            self.dfa.update_action(stat,action,delta,step)
    
 
     def average(self,step):
-        for k,v in dfabeam.export_weights(self.dfabeam,step):
+        for k,v in self.dfa.export_weights(step):
             self.weights.setdefault(k,{}).update(v)
 
     def search(self,raw,Y=None):
         self.set_raw(raw)
         self.segger.set_Y(Y)
-        dfabeam.set_raw(self.dfabeam,raw)
-        ret=dfabeam.search(self.dfabeam,len(raw)+1)
+        self.dfa.set_raw(raw)
+        ret=self.dfa.search(len(raw)+1)
         return ret
     
 

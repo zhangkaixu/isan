@@ -1,6 +1,5 @@
 import sys
-import isan.parsing.pushdown as pd
-import isan.common.perceptrons as perceptrons
+from isan.common.perceptrons import Base_Model as Model
 from isan.parsing.push_down import Push_Down
 from isan.parsing.default_dep import Dep
 
@@ -16,9 +15,9 @@ class Decoder:
         self.init=self.parser.init
         self.actions_to_result=self.parser.actions_to_result
         self.result_to_actions=self.parser.result_to_actions
+        self.actions_to_stats=self.parser.actions_to_stats
         self.set_raw=self.parser.set_raw
         self.gen_features=self.parser.gen_features
-        self.actions_to_stats=self.parser.actions_to_stats
         self.shift=self.parser.shift
         self.reduce=self.parser.reduce
         self.Eval=self.parser.Eval
@@ -41,15 +40,13 @@ class Decoder:
 
 
     def update(self,x,std_actions,rst_actions,step):
-        length=self._update_actions(std_actions,1,step)
-        length=self._update_actions(rst_actions,-1,step)
+        self._update_actions(std_actions,1,step)
+        self._update_actions(rst_actions,-1,step)
     ### 私有函数 
     def _update_actions(self,actions,delta,step):
-        length=0
         for stat,action in zip(self.actions_to_stats(actions),actions):
-            pd.update_action(self.push_down.pushdown,stat,action,delta,step)
-            length+=1
-        return length
+            self.push_down.update(stat,action,delta,step)
+
     def average(self,steps):
         for v in self.actions.values():
             v.average(steps)
@@ -59,4 +56,3 @@ class Decoder:
         res=self.push_down.forward(lambda x:2*len(x)-1)
         return res
 
-Model=perceptrons.Base_Model

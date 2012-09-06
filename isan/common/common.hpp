@@ -61,12 +61,13 @@ public:
     inline bool operator==(const Smart_String &next) const{
         if(length!=next.length)
             return false;
+        if(pt==next.pt)return true;
         for(int i=0;i<length;i++){
             if(pt[i]!=next.pt[i])return false;
         }
         return true;
     };
-    bool operator<(const Smart_String& next)const{
+    inline bool operator<(const Smart_String& next)const{
         if(length<next.length)return 1;
         if(length>next.length)return 0;
         for(int i=0;i<length;i++){
@@ -148,10 +149,8 @@ public:
     };
     void operator()(const State_Type& state, Feature_Vector& fv){
         PyObject * pkey=state.pack();
-        PyObject * arglist=Py_BuildValue("(O)",pkey);
-        
+        PyObject * arglist=PyTuple_Pack(1,pkey);
         PyObject * pfv= PyObject_CallObject(this->callback, arglist);
-        
         Py_DECREF(pkey);
         Py_DECREF(arglist);
         
@@ -159,12 +158,9 @@ public:
         char* buffer;
         size_t length;
         long size=PySequence_Size(pfv);
-        PyObject * pf;
         for(int i=0;i<size;i++){
-            pf=PySequence_GetItem(pfv,i);
-            PyBytes_AsStringAndSize(pf,&buffer,(Py_ssize_t*)&(length));
+            PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,i),&buffer,(Py_ssize_t*)&(length));
             fv.push_back(Feature_String(buffer,length));
-            Py_DECREF(pf);
         };
         Py_DECREF(pfv);
     };

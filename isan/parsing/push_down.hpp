@@ -148,10 +148,9 @@ public:
         std::vector<std::pair<STATE,Alpha*> > beam;
         std::vector<ACTION> shift_actions;
         std::vector<SCORE> shift_scores;
+        std::vector<STATE> shifted_states;
         std::vector<ACTION> reduce_actions;
         std::vector<SCORE> reduce_scores;
-        
-        std::vector<STATE> shifted_states;
         std::vector<STATE> reduced_states;
         
         //clear the sequence, release memory
@@ -180,6 +179,7 @@ public:
                 SCORE& last_sub_score=beam[i].second->sub_score;
                 auto& predictors=(*sequence[step])[last_state].predictors;
                 
+                data->shift(last_state,shift_actions,shifted_states,shift_scores);
                 data->shift(last_state,shift_actions,shifted_states,shift_scores);
                 for(int j=0;j<shift_actions.size();j++){
                     //std::cout<<"    j "<<j<<"\n";
