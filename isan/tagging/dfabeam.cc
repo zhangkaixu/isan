@@ -112,13 +112,9 @@ search(PyObject *self, PyObject *arg)
     Interface* interface;
     unsigned long steps;
     PyArg_ParseTuple(arg, "LL", &interface,&steps);
-
-
     
-    //std::cout<<"call searcher\n";
     std::vector<Action_Type> result;
     interface->searcher->call(interface->init_key,steps,result);
-    //std::cout<<"called searcher\n";
 
     PyObject * list=PyList_New(result.size());
     
@@ -145,9 +141,6 @@ searcher_new(PyObject *self, PyObject *arg)
     General_Feature_Generator * feature_generator=new Python_Feature_Generator(py_feature_cb);
     Interface* interface=new Interface(*init_key,beam_width,state_generator,feature_generator);
     delete init_key;
-    //delete state_generator;
-    //delete feature_generator;
-    
     
     return PyLong_FromLong((long)interface);
 };

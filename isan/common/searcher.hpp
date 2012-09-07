@@ -23,88 +23,83 @@ public:
             ){return;};
 };
 
+
 template<class ACTION,class STATE,class SCORE>
-struct State_Info_t{
-    struct Alpha{
-        SCORE score;
-        SCORE inc;
-        ACTION action;
-        STATE state1;
-        Alpha(){
-            this->score=0;
-        };
-        Alpha(SCORE score,SCORE inc,ACTION la,STATE lk){
-            this->score=score;
-            this->inc=inc;
-            this->action=la;
-            this->state1=lk;
-        };
+struct Alpha_t{
+    SCORE score;
+    SCORE inc;
+    ACTION action;
+    STATE state1;
+    Alpha_t(){
+        this->score=0;
     };
-    std::vector<Alpha> alphas;
-    void max_top(){
-        if(alphas.size()==0){
-            return;
-        };
-        int max_ind=0;
-        for(int ind=1;ind<alphas.size();ind++){
-            if (alphas[max_ind].score < alphas[ind].score){
-                max_ind=ind;
-            }
-        }
-        if(max_ind){
-            std::swap(alphas[max_ind],alphas[0]);
-        }
+    Alpha_t(SCORE score,SCORE inc,ACTION la,STATE lk){
+        this->score=score;
+        this->inc=inc;
+        this->action=la;
+        this->state1=lk;
     };
 };
 
 template<class ACTION,class STATE,class SCORE>
-struct State_Info_s{
-    struct Alpha{
-        SCORE score;
-        SCORE sub_score;
-        SCORE inc;
-        bool is_shift;
-        ACTION action;
-        int ind1;
-        STATE state1;
-        int ind2;
-        STATE state2;
-        Alpha(SCORE score,SCORE inc,ACTION la,STATE lk){
-            this->score=score;
-            this->inc=inc;
-            this->action=la;
-            this->state1=lk;
-        };
-        Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat):
-            score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
-            is_shift(is_sh), ind1(last_ind)
-            {
-        };
-        Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
-                int last_ind, STATE last_stat,
-                int p_ind,STATE p_stat):
-            score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
-            is_shift(is_sh), ind1(last_ind), ind2(p_ind), state2(p_stat)
-            {
-        };
-        Alpha(){
-            score=0;
-            sub_score=0;
-            inc=0;
-        };
+struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
+    SCORE sub_score;
+    bool is_shift;
+    int ind1;
+    int ind2;
+    STATE state2;
+    Alpha_s(){
+        this->score=0;
     };
+    Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat)
+        {
+        this->score=(s);
+        this->sub_score=(sub_s);
+        this->inc=(i);
+        this->action=(act);
+        this->state1=(last_stat);
+        this->is_shift=(is_sh);
+        this->ind1=(last_ind);
+    };
+    Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
+            int last_ind, STATE last_stat,
+            int p_ind,STATE p_stat)
+        {
+        this->score=(s);
+        this->sub_score=(sub_s);
+        this->inc=(i);
+        this->action=(act);
+        this->state1=(last_stat);
+        this->is_shift=(is_sh);
+        this->ind1=(last_ind);
+        this->ind2=(p_ind);
+        this->state2=(p_stat);
+    };
+};
 
+template<class ACTION,class STATE,class SCORE, template <class a, class b,class c>class ALPHA>
+struct State_Info{
+    typedef ALPHA<ACTION,STATE,SCORE> Alpha;
     std::vector<Alpha> alphas;
-    __gnu_cxx::hash_map< STATE, std::pair<int, SCORE>, typename STATE::HASH> predictors;
-    /*  */
     void max_top(){
-        if(alphas.size()==0)return;
+        if(alphas.size()==0)
+            return;
         int max_ind=0;
         for(int ind=1;ind<alphas.size();ind++)
             if (alphas[max_ind].score < alphas[ind].score)
                 max_ind=ind;
-        if(max_ind)std::swap(alphas[max_ind],alphas[0]);
+        if(max_ind)
+            std::swap(alphas[max_ind],alphas[0]);
     };
+};
+
+template<class ACTION,class STATE,class SCORE>
+struct State_Info_t : public State_Info<ACTION,STATE,SCORE,Alpha_t> {
+};
+
+template<class ACTION,class STATE,class SCORE>
+struct State_Info_s : public State_Info<ACTION,STATE,SCORE,Alpha_s> {
+    __gnu_cxx::hash_map< STATE, std::pair<int, SCORE>, typename STATE::HASH> predictors;
 };
 
 

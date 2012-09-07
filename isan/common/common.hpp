@@ -109,7 +109,17 @@ public:
         this->raw=raw;
     };
     virtual void operator()(STATE& key, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
+};
 
+template <class RAW, class STATE, class ACTION>
+class Reduced_State_Generator{
+public:
+    RAW* raw;
+    STATE init_state;
+    void set_raw(RAW* raw){
+        this->raw=raw;
+    };
+    virtual void operator()(STATE& key,STATE& key2, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
 };
 
 typedef Smart_String<Chinese_Character> Chinese;
@@ -137,6 +147,7 @@ public:
 
 typedef Feature_Generator<Chinese,State_Type,Feature_Vector> General_Feature_Generator;
 typedef State_Generator<Chinese,State_Type,Action_Type> General_State_Generator;
+typedef Reduced_State_Generator<Chinese,State_Type,Action_Type> General_Reduced_State_Generator;
 class Python_Feature_Generator: public General_Feature_Generator{
 public:
     PyObject * callback;
@@ -206,6 +217,47 @@ public:
 };
 
 
+class Python_Reduced_State_Generator: public General_Reduced_State_Generator{
+public:
+    PyObject * callback;
+    Python_Reduced_State_Generator(PyObject * callback){
+        Py_INCREF(callback);
+        this->callback=callback;
+    };
+    ~Python_Reduced_State_Generator(){
+        Py_DECREF(callback);
+    };
+    void operator()(State_Type& key, State_Type& second_key,std::vector<Action_Type>&next_actions,std::vector<State_Type> & next_states){
+        PyObject * state=key.pack();
+        PyObject * second_state=second_key.pack();
+
+        PyObject * arglist=Py_BuildValue("(OO)",state,second_state);
+        PyObject * result= PyObject_CallObject(this->callback, arglist);
+        Py_CLEAR(state);
+        Py_CLEAR(second_state);
+        Py_CLEAR(arglist);
+        
+        long size=PySequence_Size(result);
+        PyObject * tri;
+        PyObject * tmp_item;
+        next_actions.resize(size);
+        next_states.clear();
+        for(int i=0;i<size;i++){
+            tri=PySequence_GetItem(result,i);
+            
+            tmp_item=PySequence_GetItem(tri,0);
+            next_actions[i]=(PyLong_AsLong(tmp_item));
+            Py_DECREF(tmp_item);
+
+            tmp_item=PySequence_GetItem(tri,1);
+            next_states.push_back(State_Type(tmp_item));
+            Py_DECREF(tmp_item);
+            
+            Py_DECREF(tri);
+        };
+        Py_DECREF(result);
+    };
+};
 
 
 };//end of isan

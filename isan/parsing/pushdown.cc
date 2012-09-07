@@ -16,6 +16,7 @@ public:
 
     General_Feature_Generator * feature_generator;
     General_State_Generator * shifted_state_generator;
+    General_Reduced_State_Generator * reduced_state_generator;
 
     std::map<Action_Type, Default_Weights* > actions;
 
