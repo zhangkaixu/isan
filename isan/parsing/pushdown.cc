@@ -4,12 +4,12 @@
 #include <map>
 #include "isan/common/common.hpp"
 #include "isan/common/weights.hpp"
-#include "isan/parsing/push_down.hpp"
+#include "isan/common/searcher.hpp"
 
 using namespace isan;
 
 
-typedef Push_Down<Action_Type,State_Type,Score_Type> Python_Push_Down;
+typedef Searcher<Action_Type,State_Type,Score_Type,State_Info_s> Python_Push_Down;
 class Python_Push_Down_Data : public Searcher_Data<Action_Type,State_Type,Score_Type>{
 public:
     PyObject* reduce_callback;

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
-#include "dfa_beam_searcher.hpp"
+#include "isan/common/searcher.hpp"
 #include "isan/common/weights.hpp"
 using namespace isan;
 
@@ -66,7 +66,7 @@ public:
     State_Type init_key;
     PyObject *callback;
     DFA_Searcher_Data* searcher_data;
-    DFA_Beam_Searcher<Action_Type,State_Type,Score_Type>* searcher;
+    Searcher<Action_Type,State_Type,Score_Type,State_Info_t>* searcher;
     Chinese* raw;
     General_Feature_Generator * feature_generator;
     General_State_Generator * state_generator;
@@ -81,7 +81,7 @@ public:
         searcher_data=new DFA_Searcher_Data(state_generator,feature_generator);
         
         this->init_key=init_key;
-        typedef DFA_Beam_Searcher<Action_Type,State_Type,Score_Type> Python_Searcher;
+        typedef Searcher<Action_Type,State_Type,Score_Type,State_Info_t> Python_Searcher;
         searcher=new Python_Searcher(
                 (Searcher_Data<Action_Type,State_Type,Score_Type>*) searcher_data,
                 beam_width
