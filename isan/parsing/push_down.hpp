@@ -9,80 +9,62 @@
 namespace isan{
 
 template<class ACTION,class STATE,class SCORE>
-struct Alpha_t{
-    SCORE score;
-    SCORE sub_score;
-    SCORE inc;
-    bool is_shift;
-    ACTION action;
-    int ind1;
-    STATE state1;
-    int ind2;
-    STATE state2;
-    Alpha_t(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat):
-        score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
-        is_shift(is_sh), ind1(last_ind)
-        {
+struct State_Info_t{
+    struct Alpha{
+        SCORE score;
+        SCORE sub_score;
+        SCORE inc;
+        bool is_shift;
+        ACTION action;
+        int ind1;
+        STATE state1;
+        int ind2;
+        STATE state2;
+        Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat):
+            score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
+            is_shift(is_sh), ind1(last_ind)
+            {
+        };
+        Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
+                int last_ind, STATE last_stat,
+                int p_ind,STATE p_stat):
+            score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
+            is_shift(is_sh), ind1(last_ind), ind2(p_ind), state2(p_stat)
+            {
+        };
+        Alpha(){
+            score=0;
+            sub_score=0;
+            inc=0;
+        };
     };
-    Alpha_t(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
-            int last_ind, STATE last_stat,
-            int p_ind,STATE p_stat):
-        score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
-        is_shift(is_sh), ind1(last_ind), ind2(p_ind), state2(p_stat)
-        {
-    };
-    Alpha_t(){
-        score=0;
-        sub_score=0;
-        inc=0;
+
+    std::vector<Alpha> alphas;
+    __gnu_cxx::hash_map< STATE, std::pair<int, SCORE>, typename STATE::HASH> predictors;
+    /*  */
+    void max_top(){
+        if(alphas.size()==0)return;
+        int max_ind=0;
+        for(int ind=1;ind<alphas.size();ind++)
+            if (alphas[max_ind].score < alphas[ind].score)
+                max_ind=ind;
+        if(max_ind)std::swap(alphas[max_ind],alphas[0]);
     };
 };
 
+
 template <class ACTION, class STATE, class SCORE>
-class Push_Down : public Searcher<ACTION,STATE,SCORE,Alpha_t> {
-    typedef Alpha_t<ACTION,STATE,SCORE> Alpha;
+class Push_Down : public Searcher<ACTION,STATE,SCORE,State_Info_t> {
+    typedef State_Info_t<ACTION,STATE,SCORE> State_Info;
+    typedef typename State_Info::Alpha Alpha;
 public:
-    struct State_Info{
-        std::vector<Alpha> alphas;
-        __gnu_cxx::hash_map< STATE, std::pair<int, SCORE>, typename STATE::HASH> predictors;
-        /*  */
-        void max_top(){
-            if(alphas.size()==0)return;
-            int max_ind=0;
-            for(int ind=1;ind<alphas.size();ind++)
-                if (alphas[max_ind].score < alphas[ind].score)
-                    max_ind=ind;
-            if(max_ind)std::swap(alphas[max_ind],alphas[0]);
-        };
-    };
     typedef __gnu_cxx::hash_map<STATE,State_Info,typename STATE::HASH> My_Map;
-    class CompareFoo{
-    public:
-        bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
-            if( first.second->score > second.second->score) return true;
-            if( first.second->score < second.second->score) return false;
-            if( first.second->inc > second.second->inc) return true;
-            if( first.second->inc < second.second->inc) return false;
-            return false;
-        }
-    } state_comp_greater;
-    
-    class CompareFoo2{
-    public:
-        bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
-            if( first.second->score < second.second->score) return true;
-            if( first.second->score > second.second->score) return false;
-            if( first.second->inc < second.second->inc) return true;
-            if( first.second->inc > second.second->inc) return false;
-            return false;
-        }
-    } state_comp_less;
-
+    typename Searcher<ACTION, STATE,SCORE,State_Info_t>::CompareFoo state_comp_greater;
+    typename Searcher<ACTION, STATE,SCORE,State_Info_t>::CompareFoo2 state_comp_less;
 
 
 
 public:
-    std::vector< My_Map* > sequence;
     
     Push_Down(Searcher_Data<ACTION,STATE,SCORE>* data,int beam_width){
         this->beam_width=beam_width;
@@ -90,36 +72,6 @@ public:
     };
     ~Push_Down(){
     };
-
-    /* 
-     * 找到
-     *
-     * */
-    inline void thrink(const int step,std::vector<std::pair<STATE,Alpha*> >& top_n){
-        //std::cout<<step<<"\n";
-        top_n.clear();
-        My_Map* map=(this->sequence[step]);
-        typename My_Map::iterator it;
-        for (it=map->begin() ; it != map->end(); ++it ){
-            it->second.max_top();
-            if (top_n.size()<this->beam_width){//if top_n is not full
-                top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
-                if(top_n.size()==this->beam_width){//full, make this a (min)heap
-                    make_heap(top_n.begin(),top_n.end(),state_comp_greater);
-                }
-            }else{
-                if(top_n.front().second->score<(*it).second.alphas[0].score){//greater than the top of the heap
-                    pop_heap(top_n.begin(),top_n.end(),state_comp_greater);
-                    top_n.pop_back();
-                    top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
-                    push_heap(top_n.begin(),top_n.end(),state_comp_greater);
-                }
-            }
-        };
-        sort(top_n.begin(),top_n.end(),state_comp_less);
-    };
-
-
 
     void operator()(const STATE& init_key,const int steps,std::vector<ACTION>& result){
         std::vector<std::pair<STATE,Alpha*> > beam;
@@ -131,9 +83,9 @@ public:
         std::vector<STATE> reduced_states;
         
         //clear the sequence, release memory
-        if(sequence.size()){
-            for(int i=0;i<sequence.size();i++)
-                delete sequence[i];
+        if(this->sequence.size()){
+            for(int i=0;i<this->sequence.size();i++)
+                delete this->sequence[i];
         }
         this->sequence.clear();
 
@@ -144,7 +96,7 @@ public:
         
         for(int step=0;step<steps;step++){
             //std::cout<<"step "<<step<<"\n";
-            thrink(step,beam);//thrink, get beam
+            this->thrink(step,beam);//thrink, get beam
             /*gen next step*/
             this->sequence.push_back(new My_Map());
             My_Map& this_map=(*this->sequence.back());
@@ -154,7 +106,7 @@ public:
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
                 SCORE& last_sub_score=beam[i].second->sub_score;
-                auto& predictors=(*sequence[step])[last_state].predictors;
+                auto& predictors=(*this->sequence[step])[last_state].predictors;
                 
                 this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
                 this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
@@ -182,7 +134,7 @@ public:
                     auto& p_state=p->first;
                     auto& p_step=p->second.first;
                     auto& p_inc=p->second.second;
-                    auto& p_state_info=(*sequence[p_step])[p_state];
+                    auto& p_state_info=(*this->sequence[p_step])[p_state];
                     auto& p_score=p_state_info.alphas[0].score;
                     auto& p_sub_score=p_state_info.alphas[0].sub_score;
                     
@@ -221,9 +173,9 @@ public:
         
         
         //make result
-        thrink(steps,beam);
+        this->thrink(steps,beam);
         sort(beam.begin(),beam.end(),state_comp_less);
-        Alpha& item=(*sequence[steps])[beam.back().first].alphas[0];
+        Alpha& item=(*this->sequence[steps])[beam.back().first].alphas[0];
 
         result.resize(steps);
         set_result(item,0,steps,result);
@@ -236,8 +188,8 @@ public:
         const STATE& last_state=alpha.state1;
         int p_ind=alpha.ind2;
         const STATE& p_state=alpha.state2;
-        set_result((*sequence[p_ind])[p_state].alphas[0],begin,p_ind,result);
-        set_result((*sequence[last_ind])[last_state].alphas[0],p_ind,end-1,result);
+        set_result((*this->sequence[p_ind])[p_state].alphas[0],begin,p_ind,result);
+        set_result((*this->sequence[last_ind])[last_state].alphas[0],p_ind,end-1,result);
     };
 };
 
