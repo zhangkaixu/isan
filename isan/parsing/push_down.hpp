@@ -8,39 +8,40 @@
 
 namespace isan{
 
-template <class ACTION, class STATE, class SCORE>
-class Push_Down : public Searcher<ACTION,STATE,SCORE> {
-public:
-    struct Alpha{
-        SCORE score;
-        SCORE sub_score;
-        SCORE inc;
-        bool is_shift;
-        ACTION action;
-        int ind1;
-        STATE state1;
-        int ind2;
-        STATE state2;
-        Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat):
-            score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
-            is_shift(is_sh), ind1(last_ind)
-            {
-            //std::cout<<"alpha(xxx)\n";
-        };
-        Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
-                int last_ind, STATE last_stat,
-                int p_ind,STATE p_stat):
-            score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
-            is_shift(is_sh), ind1(last_ind), ind2(p_ind), state2(p_stat)
-            {
-            //std::cout<<"alpha(xxx)\n";
-        };
-        Alpha(){
-            score=0;
-            sub_score=0;
-            inc=0;
-        };
+template<class ACTION,class STATE,class SCORE>
+struct Alpha_t{
+    SCORE score;
+    SCORE sub_score;
+    SCORE inc;
+    bool is_shift;
+    ACTION action;
+    int ind1;
+    STATE state1;
+    int ind2;
+    STATE state2;
+    Alpha_t(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat):
+        score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
+        is_shift(is_sh), ind1(last_ind)
+        {
     };
+    Alpha_t(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
+            int last_ind, STATE last_stat,
+            int p_ind,STATE p_stat):
+        score(s), sub_score(sub_s), inc(i), action(act), state1(last_stat),
+        is_shift(is_sh), ind1(last_ind), ind2(p_ind), state2(p_stat)
+        {
+    };
+    Alpha_t(){
+        score=0;
+        sub_score=0;
+        inc=0;
+    };
+};
+
+template <class ACTION, class STATE, class SCORE>
+class Push_Down : public Searcher<ACTION,STATE,SCORE,Alpha_t> {
+    typedef Alpha_t<ACTION,STATE,SCORE> Alpha;
+public:
     struct State_Info{
         std::vector<Alpha> alphas;
         __gnu_cxx::hash_map< STATE, std::pair<int, SCORE>, typename STATE::HASH> predictors;

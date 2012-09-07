@@ -6,35 +6,37 @@
 
 
 
+template<class ACTION,class STATE,class SCORE>
+struct Alpha_t{
+    SCORE score;
+    SCORE inc;
+    ACTION last_action;
+    STATE last_key;
+    Alpha_t(){
+    };
+    Alpha_t(SCORE score,SCORE inc,ACTION la,STATE lk){
+        this->score=score;
+        this->inc=inc;
+        this->last_action=la;
+        this->last_key=lk;
+    };
+};
 
 
 
 
 
 template<class ACTION,class STATE,class SCORE>
-class DFA_Beam_Searcher : public Searcher<ACTION, STATE,SCORE> {
+class DFA_Beam_Searcher : public Searcher<ACTION, STATE,SCORE,
+            Alpha_t> {
 public:
+    typedef Alpha_t<ACTION,STATE,SCORE> Alpha;
     DFA_Beam_Searcher(Searcher_Data<ACTION,STATE,SCORE>* data,int beam_width){
         this->beam_width=beam_width;
         this->data=data;
     };
     
     
-    struct Alpha{
-        SCORE score;
-        SCORE inc;
-        ACTION last_action;
-        STATE last_key;
-        Alpha(){
-        };
-        Alpha(SCORE score,SCORE inc,ACTION la,STATE lk){
-            this->score=score;
-            this->inc=inc;
-            this->last_action=la;
-            this->last_key=lk;
-        };
-        
-    };
     
     struct State_Info{
         std::vector<Alpha> alphas;

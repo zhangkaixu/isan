@@ -24,7 +24,10 @@ public:
 };
 
 
-template <class ACTION, class STATE, class SCORE>
+template <class ACTION, class STATE, class SCORE,
+         template<class _t_a,class _t_b,class _t_c>class ALPHA
+
+         >
 class Searcher{
 public:
     int beam_width;
