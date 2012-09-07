@@ -119,7 +119,7 @@ public:
     void set_raw(RAW* raw){
         this->raw=raw;
     };
-    virtual void operator()(STATE& key,STATE& key2, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
+    virtual void operator()(const STATE& key,const STATE& key2, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
 };
 
 typedef Smart_String<Chinese_Character> Chinese;
@@ -227,7 +227,7 @@ public:
     ~Python_Reduced_State_Generator(){
         Py_DECREF(callback);
     };
-    void operator()(State_Type& key, State_Type& second_key,std::vector<Action_Type>&next_actions,std::vector<State_Type> & next_states){
+    void operator()(const State_Type& key, const State_Type& second_key,std::vector<Action_Type>&next_actions,std::vector<State_Type> & next_states){
         PyObject * state=key.pack();
         PyObject * second_state=second_key.pack();
 
