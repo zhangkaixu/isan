@@ -3,35 +3,13 @@
 #include <map>
 #include <algorithm>
 #include <vector>
+#include "isan/common/searcher.hpp"
 
 
 namespace isan{
 
-
-/**
- * 等价于下推自动机的搜索算法
- * */
-
 template <class ACTION, class STATE, class SCORE>
-class Push_Down_Data{
-public:
-    virtual void shift(
-            STATE& state, 
-            std::vector<ACTION>& actions,
-            std::vector<STATE>& next_states,
-            std::vector<SCORE>& scores
-            )=0;
-    virtual void reduce(
-            const STATE& state, 
-            const STATE& predictor,
-            std::vector<ACTION>& actions,
-            std::vector<STATE>& next_states,
-            std::vector<SCORE>& scores
-            )=0;
-};
-
-template <class ACTION, class STATE, class SCORE>
-class Push_Down{
+class Push_Down : public Searcher<ACTION,STATE,SCORE> {
 public:
     struct Alpha{
         SCORE score;
@@ -103,11 +81,9 @@ public:
 
 
 public:
-    int beam_width;
-    Push_Down_Data<ACTION,STATE,SCORE>* data;
     std::vector< My_Map* > sequence;
     
-    Push_Down(Push_Down_Data<ACTION,STATE,SCORE>* data,int beam_width){
+    Push_Down(Searcher_Data<ACTION,STATE,SCORE>* data,int beam_width){
         this->beam_width=beam_width;
         this->data=data;
     };
@@ -179,8 +155,8 @@ public:
                 SCORE& last_sub_score=beam[i].second->sub_score;
                 auto& predictors=(*sequence[step])[last_state].predictors;
                 
-                data->shift(last_state,shift_actions,shifted_states,shift_scores);
-                data->shift(last_state,shift_actions,shifted_states,shift_scores);
+                this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
+                this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
                 for(int j=0;j<shift_actions.size();j++){
                     //std::cout<<"    j "<<j<<"\n";
                     auto& next_state=shifted_states[j];
@@ -209,7 +185,7 @@ public:
                     auto& p_score=p_state_info.alphas[0].score;
                     auto& p_sub_score=p_state_info.alphas[0].sub_score;
                     
-                    data->reduce(last_state,p_state,reduce_actions,reduced_states,reduce_scores);
+                    this->data->reduce(last_state,p_state,reduce_actions,reduced_states,reduce_scores);
                     for(int j=0;j<reduce_actions.size();j++){
                         auto& next_state=reduced_states[j];
                         auto& next_action=reduce_actions[j];

@@ -10,34 +10,36 @@ using namespace isan;
 
 
 typedef Push_Down<Action_Type,State_Type,Score_Type> Python_Push_Down;
-class Python_Push_Down_Data : public Push_Down_Data<Action_Type,State_Type,Score_Type>{
+class Python_Push_Down_Data : public Searcher_Data<Action_Type,State_Type,Score_Type>{
 public:
-    PyObject* shift_callback;
     PyObject* reduce_callback;
+
     General_Feature_Generator * feature_generator;
+    General_State_Generator * shifted_state_generator;
+
     std::map<Action_Type, Default_Weights* > actions;
 
+    //cache for FV
     State_Type cached_state;
     std::map<Action_Type, Score_Type> cached_scores;
     Feature_Vector fv;
 
     Python_Push_Down_Data(PyObject* shift_callback,PyObject* reduce_callback,
             General_Feature_Generator* feature_generator){
-        this->shift_callback=shift_callback;
+        shifted_state_generator = new Python_State_Generator(shift_callback);
         this->reduce_callback=reduce_callback;
         this->feature_generator=feature_generator;
-        Py_INCREF(shift_callback);
         Py_INCREF(reduce_callback);
         cached_state=State_Type();
     };
     ~Python_Push_Down_Data(){
-        Py_DECREF(shift_callback);
         Py_DECREF(reduce_callback);
         for(auto iter=actions.begin();
             iter!=actions.end();
             ++iter){
             delete iter->second;
         }
+        delete shifted_state_generator;
     };
 
     void shift(
@@ -46,44 +48,22 @@ public:
             std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores
             ){
-        PyObject * py_state=state.pack();
-        PyObject * arglist=PyTuple_Pack(1,py_state);
-        PyObject * result= PyObject_CallObject(this->shift_callback, arglist);
-        Py_CLEAR(py_state);Py_CLEAR(arglist);
 
         if(!(cached_state==state)){
             (*feature_generator)(state,fv);
             cached_state=state;
             cached_scores.clear();
         }
-
-
-        long size=PySequence_Size(result);
-        PyObject * tri;
-        PyObject * tmp_item;
-        next_actions.resize(size);
-        scores.resize(size);
-        next_states.clear();
-        for(int i=0;i<size;i++){
-            tri=PyList_GetItem(result,i);
-
-            tmp_item=PySequence_GetItem(tri,0);
-            next_actions[i]=(PyLong_AsUnsignedLong(tmp_item));
+        (*shifted_state_generator)(state,next_actions,next_states);
+        scores.resize(next_actions.size());
+        for(int i=0;i<next_actions.size();i++){
             auto action=next_actions[i];
-            Py_DECREF(tmp_item);
-
-            tmp_item=PySequence_GetItem(tri,1);
-            next_states.push_back(State_Type(tmp_item));
-            Py_DECREF(tmp_item);
-            
-            
             auto got=actions.find(action);
             if(got==actions.end()){
                 actions[action]=new Default_Weights();
             };
             scores[i]=(*actions[action])(fv);
         };
-        Py_DECREF(result);
     };
     void reduce(
             const State_Type& state, 

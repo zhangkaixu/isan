@@ -3,7 +3,6 @@
 #include <vector>
 #include <map>
 #include "dfa_beam_searcher.hpp"
-#include "cws.hpp"
 #include "isan/common/weights.hpp"
 using namespace isan;
 
@@ -16,22 +15,25 @@ using namespace isan;
  *     fv与 action 生成 score，并 返回
  * */
 
-class Searcher_Data : public DFA_Beam_Searcher_Data<State_Type,Action_Type,Score_Type> {
+class DFA_Searcher_Data : public Searcher_Data<Action_Type,State_Type,Score_Type> {
 public:
     General_Feature_Generator * feature_generator;
     General_State_Generator * state_generator;
     
     Chinese* raw;
     std::map<Action_Type, Default_Weights* > actions;
-    Searcher_Data(General_State_Generator *state_generator,General_Feature_Generator * feature_generator){
+    DFA_Searcher_Data(General_State_Generator *state_generator,General_Feature_Generator * feature_generator){
         this->feature_generator=feature_generator;
         this->state_generator=state_generator;
         raw=NULL;
     };
-    void gen_next(State_Type& key,std::vector<Action_Type>& next_actions,std::vector<State_Type>& next_states,
+    void shift(
+            State_Type& key,
+            std::vector<Action_Type>& next_actions,
+            std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores){
+
         Feature_Vector fv;
-        
         (*this->feature_generator)(key,fv);
         
         (*state_generator)(key,next_actions,next_states);
@@ -45,7 +47,7 @@ public:
         };
     };
     
-    ~Searcher_Data(){
+    ~DFA_Searcher_Data(){
         for(auto iter=actions.begin();
             iter!=actions.end();
             ++iter){
@@ -63,21 +65,27 @@ class Interface{
 public:
     State_Type init_key;
     PyObject *callback;
-    Searcher_Data* searcher_data;
-    DFA_Beam_Searcher<State_Type,Action_Type,Score_Type>* searcher;
+    DFA_Searcher_Data* searcher_data;
+    DFA_Beam_Searcher<Action_Type,State_Type,Score_Type>* searcher;
     Chinese* raw;
     General_Feature_Generator * feature_generator;
     General_State_Generator * state_generator;
     
     
-    Interface(State_Type init_key,int beam_width){
-        feature_generator=new Default_Feature_Generator();
-        state_generator=new Default_State_Generator();
+    Interface(State_Type init_key,int beam_width,
+            General_State_Generator* state_generator,
+            General_Feature_Generator* feature_generator){
+        this->feature_generator=feature_generator;
+        this->state_generator=state_generator;
         raw=NULL;
-        searcher_data=new Searcher_Data(state_generator,feature_generator);
+        searcher_data=new DFA_Searcher_Data(state_generator,feature_generator);
         
         this->init_key=init_key;
-        searcher=new DFA_Beam_Searcher<State_Type,Action_Type,Score_Type>(searcher_data,beam_width);
+        typedef DFA_Beam_Searcher<Action_Type,State_Type,Score_Type> Python_Searcher;
+        searcher=new Python_Searcher(
+                (Searcher_Data<Action_Type,State_Type,Score_Type>*) searcher_data,
+                beam_width
+                );
     };
     void set_raw(Chinese& raw){
         if(this->raw)delete this->raw;
@@ -132,28 +140,14 @@ searcher_new(PyObject *self, PyObject *arg)
     PyObject * py_feature_cb;
     PyArg_ParseTuple(arg, "iOOO", &beam_width,&py_init_stat,&py_state_cb,&py_feature_cb);
     State_Type* init_key = NULL;
-    if(py_init_stat!=Py_None){
-        init_key = new State_Type(py_init_stat);
-    }else{
-        init_key = new Default_State_Type();
-    };
-    
-    Interface* interface=new Interface(*init_key,beam_width);
+    init_key = new State_Type(py_init_stat);
+    General_State_Generator * state_generator=new Python_State_Generator(py_state_cb);
+    General_Feature_Generator * feature_generator=new Python_Feature_Generator(py_feature_cb);
+    Interface* interface=new Interface(*init_key,beam_width,state_generator,feature_generator);
     delete init_key;
+    //delete state_generator;
+    //delete feature_generator;
     
-    if(py_feature_cb!=Py_None){
-        delete interface->feature_generator;
-        interface->feature_generator=new Python_Feature_Generator(py_feature_cb);
-        interface->searcher_data->feature_generator=interface->feature_generator;
-    }else{
-    };
-    
-    if(py_state_cb!=Py_None){
-        delete interface->state_generator;
-        interface->state_generator=new Python_State_Generator(py_state_cb);
-        interface->searcher_data->state_generator=interface->state_generator;
-    }else{
-    };
     
     return PyLong_FromLong((long)interface);
 };

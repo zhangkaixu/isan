@@ -1,40 +1,33 @@
 #include <vector>
 #include <map>
-//#include <unordered_map>
 #include <ext/hash_map>
 #include <algorithm>
+#include "isan/common/searcher.hpp"
 
 
 
 
-template<class KEY,class ACTION,class SCORE>
-struct Triple{
-    KEY key;
-    ACTION action;
-    SCORE score;
-};
 
-template<class KEY,class ACTION,class SCORE>
-class DFA_Beam_Searcher_Data{
+
+
+
+template<class ACTION,class STATE,class SCORE>
+class DFA_Beam_Searcher : public Searcher<ACTION, STATE,SCORE> {
 public:
-    virtual void gen_next(KEY&,std::vector<ACTION>&, std::vector<KEY>&, std::vector<SCORE>&){std::cout<<"oh no\n";};
-};
-
-
-
-template<class KEY,class ACTION,class SCORE>
-class DFA_Beam_Searcher{
-public:
+    DFA_Beam_Searcher(Searcher_Data<ACTION,STATE,SCORE>* data,int beam_width){
+        this->beam_width=beam_width;
+        this->data=data;
+    };
     
     
     struct Alpha{
         SCORE score;
         SCORE inc;
         ACTION last_action;
-        KEY last_key;
+        STATE last_key;
         Alpha(){
         };
-        Alpha(SCORE score,SCORE inc,ACTION la,KEY lk){
+        Alpha(SCORE score,SCORE inc,ACTION la,STATE lk){
             this->score=score;
             this->inc=inc;
             this->last_action=la;
@@ -60,14 +53,14 @@ public:
             }
         };
     };
-    //typedef std::map<KEY,State_Info> My_Map;
-    typedef __gnu_cxx::hash_map<KEY,State_Info,typename KEY::HASH> My_Map;
-    //bool state_comp_less(const std::pair<KEY,State_Info>& first, const std::pair<KEY,State_Info>& second) const{
+    //typedef std::map<STATE,State_Info> My_Map;
+    typedef __gnu_cxx::hash_map<STATE,State_Info,typename STATE::HASH> My_Map;
+    //bool state_comp_less(const std::pair<STATE,State_Info>& first, const std::pair<STATE,State_Info>& second) const{
     //    return first.second.alphas[0].score < second.second.alphas[0].score;
     //};
     class CompareFoo{
     public:
-        bool operator()(const std::pair<KEY,Alpha*>& first, const std::pair<KEY,Alpha*>& second) const{
+        bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
             if( first.second->score > second.second->score) return true;
             if( first.second->score < second.second->score) return false;
             if( first.second->inc > second.second->inc) return true;
@@ -78,7 +71,7 @@ public:
     
     class CompareFoo2{
     public:
-        bool operator()(const std::pair<KEY,Alpha*>& first, const std::pair<KEY,Alpha*>& second) const{
+        bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
             if( first.second->score < second.second->score) return true;
             if( first.second->score > second.second->score) return false;
             if( first.second->inc < second.second->inc) return true;
@@ -87,18 +80,11 @@ public:
         }
     } state_comp_less;
     
-    int beam_width;
-    DFA_Beam_Searcher_Data<KEY,ACTION,SCORE>* data;
     std::vector< My_Map* > sequence;
     
-    DFA_Beam_Searcher(DFA_Beam_Searcher_Data<KEY,ACTION,SCORE>* data,int beam_width){
-        this->beam_width=beam_width;
-        this->data=data;
-    };
-    ~DFA_Beam_Searcher(){
-    };
     
-    void _print_beam(std::vector<std::pair<KEY,SCORE> >& beam){
+    
+    void _print_beam(std::vector<std::pair<STATE,SCORE> >& beam){
         for(int j=0;j<beam.size();j++){
             std::cout<<j<<":"<<(int)beam[j].second<<" ";
         }
@@ -107,7 +93,7 @@ public:
         std::cin>>x;
     };
     
-    inline void thrink(int step,std::vector<std::pair<KEY,Alpha*> >& top_n){
+    inline void thrink(int step,std::vector<std::pair<STATE,Alpha*> >& top_n){
         top_n.clear();
         
         My_Map* map=(this->sequence[step]);
@@ -116,7 +102,7 @@ public:
             it->second.max_top();
             //std::cout<<"in thrink "<<it->second.alphas.size()<<"\n";
             if (top_n.size()<this->beam_width){//if top_n is not full
-                top_n.push_back(std::pair<KEY,Alpha*>((*it).first,&(*it).second.alphas[0]));
+                top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
                 if(top_n.size()==this->beam_width){//full, make this a (min)heap
                     make_heap(top_n.begin(),top_n.end(),state_comp_greater);
                 }
@@ -124,17 +110,17 @@ public:
                 if(top_n.front().second->score<(*it).second.alphas[0].score){//greater than the top of the heap
                     pop_heap(top_n.begin(),top_n.end(),state_comp_greater);
                     top_n.pop_back();
-                    top_n.push_back(std::pair<KEY,Alpha*>((*it).first,&(*it).second.alphas[0]));
+                    top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
                     push_heap(top_n.begin(),top_n.end(),state_comp_greater);
                 }
             }
         };
         sort(top_n.begin(),top_n.end(),state_comp_less);
     };
-    void call(KEY& init_key,int steps,std::vector<ACTION>& result){
-        std::vector<std::pair<KEY,Alpha*> > beam;
+    void call(STATE& init_key,int steps,std::vector<ACTION>& result){
+        std::vector<std::pair<STATE,Alpha*> > beam;
         std::vector<ACTION> next_actions;
-        std::vector<KEY> next_keys;
+        std::vector<STATE> next_keys;
         std::vector<SCORE> scores;
         typename My_Map::iterator got;
         
@@ -158,17 +144,17 @@ public:
             //gen_next
             for(int i=0;i<beam.size();i++){
                 //std::cout<<"beam "<<i<<"\n";
-                KEY& last_key=beam[i].first;
+                STATE& last_key=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
 
                 //std::cout<<"key "<<(int)*(char*)&last_key<<"\n";
                 //std::cout<<"call gen_next "<<"\n";
-                this->data->gen_next(last_key,next_actions,next_keys,scores);
+                this->data->shift(last_key,next_actions,next_keys,scores);
                 //std::cout<<"gen_next ed "<<"\n";
                 
                 for(int j=0;j<next_actions.size();j++){
                     //std::cout<<"    next "<<j<<"\n";
-                    KEY& key=next_keys[j];
+                    STATE& key=next_keys[j];
                     got=this_map.find(key);
                     if(got==this_map.end()){
                         this_map[key]=State_Info();
