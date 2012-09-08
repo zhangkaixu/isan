@@ -150,6 +150,23 @@ public:
         this->push_down=new My_Searcher(this->data,beam_width);
 
     };
+    General_Interface(State_Type init_state,int beam_width,
+            General_State_Generator * shift_gen,
+            General_Feature_Generator* feature_gen
+            ){
+        shifted_state_generator=shift_gen;
+        reduced_state_generator=NULL;
+        feature_generator=feature_gen;
+        raw=NULL;
+        this->data=new General_Searcher_Data(
+                shifted_state_generator,
+                feature_generator);
+
+        this->init_state=init_state;
+        this->beam_width=beam_width;
+        this->push_down=new My_Searcher(this->data,beam_width);
+
+    };
     void set_raw(Chinese& raw){
         if(this->raw)delete this->raw;
         this->raw=new Chinese(raw);
