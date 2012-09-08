@@ -55,19 +55,49 @@ update_weights(PyObject *self, PyObject *arg)
     return Py_None;
 };
 static PyObject *
-export_weights(PyObject *self, PyObject *arg)
+average_weights(PyObject *self, PyObject *arg)
 {
     
     Interface* interface;
     int step;
     PyArg_ParseTuple(arg, "Li", &interface,&step);
     
+    for(auto iter=interface->data->actions.begin();
+            iter!=interface->data->actions.end();
+            ++iter){
+        iter->second->average(step);
+    };
+    Py_INCREF(Py_None);
+    return Py_None;
+};
+static PyObject *
+un_average_weights(PyObject *self, PyObject *arg)
+{
+    
+    Interface* interface;
+    PyArg_ParseTuple(arg, "L", &interface);
+    
+    for(auto iter=interface->data->actions.begin();
+            iter!=interface->data->actions.end();
+            ++iter){
+        iter->second->un_average();
+    };
+    Py_INCREF(Py_None);
+    return Py_None;
+};
+static PyObject *
+export_weights(PyObject *self, PyObject *arg)
+{
+    
+    Interface* interface;
+    PyArg_ParseTuple(arg, "L", &interface);
+    
     
     PyObject * list=PyList_New(0);
     for(auto iter=interface->data->actions.begin();
             iter!=interface->data->actions.end();
             ++iter){
-        iter->second->average(step);
+        //iter->second->average(step);
         PyObject * k=PyLong_FromLong(iter->first);
         PyObject * v=iter->second->to_py_dict();
         PyList_Append(

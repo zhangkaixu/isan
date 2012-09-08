@@ -13,6 +13,7 @@ def command_line(task_name,Model,Segmentation_Space,Searcher):
     parser.add_argument('--train',help='训练文件',action='append')
     parser.add_argument('-i','--iteration',help='模型迭代次数',dest='iteration',default='5')
     parser.add_argument('--test',help='测试用文件',dest='test_file')
+    parser.add_argument('--dev',help='开发用文件',dest='dev_file',default=None)
     parser.add_argument('--beam_width',help='搜索宽度',dest='beam_width',default='8')
     args=parser.parse_args()
     """如果指定了训练集，就训练模型"""
@@ -27,7 +28,7 @@ def command_line(task_name,Model,Segmentation_Space,Searcher):
                     Segmentation_Space(),
                     Searcher,beam_width=int(args.beam_width),
             )
-        model.train(args.train,int(args.iteration))
+        model.train(args.train,int(args.iteration),dev_file=args.dev_file)
         model.save()
 
     if args.train and not args.test_file:

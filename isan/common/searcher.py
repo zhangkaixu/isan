@@ -7,8 +7,12 @@ class Searcher:
 
     def set_action(self,action,d):
         self.searcher.set_action(self.handler,action,d)
-    def export_weights(self,step):
-        return self.searcher.export_weights(self.handler,step)
+    def export_weights(self):
+        return self.searcher.export_weights(self.handler)
+    def average_weights(self,step):
+        self.searcher.average_weights(self.handler,step)
+    def un_average_weights(self):
+        self.searcher.un_average_weights(self.handler)
 
     def update_action(self,stat,action,delta,step):
         self.searcher.update_action(self.handler,stat,action,delta,step)

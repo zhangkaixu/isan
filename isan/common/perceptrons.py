@@ -36,11 +36,25 @@ class Base_Model(object):
             hat_y=self(raw)
             eval(y,hat_y)
         eval.print_result()
+    def develop(self,dev_file):
+        self.searcher.average_weights(self.step)
+        eval=self.schema.Eval()
+        for line in open(dev_file):
+            arg=self.schema.codec.decode(line.strip())
+            raw=arg.get('raw')
+            y=arg.get('y',None)
+            hat_y=self(raw)
+            eval(y,hat_y)
+        eval.print_result()
+        self.searcher.un_average_weights()
+
+        pass
     def save(self):
         """
         保存模型
         """
-        for k,v in self.searcher.export_weights(self.step):
+        self.searcher.average_weights(self.step)
+        for k,v in self.searcher.export_weights():
             self.schema.weights.setdefault(k,{}).update(v)
         file=open(self.model_file,'wb')
         pickle.dump(self.schema,file)
@@ -90,7 +104,7 @@ class Base_Model(object):
             self.searcher.update_action(stat,action,-1,self.step)
 
         
-    def train(self,training_file,iteration=5):
+    def train(self,training_file,iteration=5,dev_file=None):
         """
         训练
         """
@@ -104,3 +118,5 @@ class Base_Model(object):
                     y,hat_y=self._learn_sentence(rtn)#根据（输入，输出）学习参数，顺便得到解码结果
                     eval(y,hat_y)#根据解码结果和标准输出，评价效果
             eval.print_result()#打印评测结果
+            if dev_file:
+                self.develop(dev_file)

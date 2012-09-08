@@ -14,14 +14,19 @@ public:
     //typedef std::map<KEY,VALUE> Map;
     Map* map;
     Map* acc_map;
+    Map* backup;
 
     Weights(){
         map=new Map();
         acc_map=new Map();
+        backup=NULL;
+
     };
     ~Weights(){
-        delete map;
-        delete acc_map;
+        delete map;map=NULL;
+        delete acc_map;acc_map=NULL;
+        delete backup;backup=NULL;
+
     };
     
     void update(const std::vector<KEY>& fv,
@@ -50,26 +55,29 @@ public:
             if(got!=map->end()){
                 value+=got->second;
             }else{
-                
             }
-            //if(map->count(fv[i]))value+=(*map)[fv[i]];
         };
         return value;
     };
     void average(int step){
+        if(backup)delete backup;
+        this->backup=this->map;
+        this->map=new Map();
         typename Map::iterator it;
-        //std::cout<<step<<"\n";
         for(it=acc_map->begin();it!=acc_map->end();++it){
             const KEY& key=(*it).first;
             VALUE value=(*it).second;
-            //std::cout<<(*map)[key]<<" "<<(*acc_map)[key]<<" ";
             (*map)[key]=(VALUE)
                     (
-                        ((double)((*map)[key]-value/step))*1000
+                        ((double)((*backup)[key]-value/step))*1000
                         +0.5
                     );
-            //std::cout<<(*map)[key]<<"\n";
         };
+    };
+    void un_average(){
+        delete map;
+        map=backup;
+        backup=NULL;
     };
 };
 class Default_Weights : public Weights<Feature_String ,Score_Type>{
