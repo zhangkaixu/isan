@@ -67,6 +67,7 @@ static PyMethodDef pushdownMethods[] = {
     {"delete",  interface_delete, METH_O,""},
     {"search",  search, METH_VARARGS,""},
     {"set_action",  set_weights, METH_VARARGS,""},
+    {"set_raw",  set_raw, METH_VARARGS,""},
     {"update_action",  update_weights, METH_VARARGS,""},
     {"export_weights",  export_weights, METH_VARARGS,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
