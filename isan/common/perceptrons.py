@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import sys
 import pickle
 
 class Base_Model(object):
@@ -109,6 +110,7 @@ class Base_Model(object):
         训练
         """
         for it in range(iteration):#迭代整个语料库
+            print("训练集第 \033[33;01m%i\033[1;m 次迭代"%(it+1),file=sys.stderr)
             eval=self.schema.Eval()#测试用的对象
             if type(training_file)==str:training_file=[training_file]
             for t_file in training_file:
@@ -119,4 +121,5 @@ class Base_Model(object):
                     eval(y,hat_y)#根据解码结果和标准输出，评价效果
             eval.print_result()#打印评测结果
             if dev_file:
+                print("使用开发集 %s 评价当前模型效果"%(dev_file),file=sys.stderr)
                 self.develop(dev_file)

@@ -40,7 +40,6 @@ def command_line(task_name,Model,Segmentation_Space,Searcher):
     model=Model(args.model_file,
                     Searcher=Searcher,beam_width=int(args.beam_width)
                     )
-    print('s')
     
     """如果指定了测试集，就测试模型"""
     if args.test_file:
