@@ -29,6 +29,7 @@ class Searcher:
         self.searcher.delete(self.handler)
 
 class DFA(Searcher):
+    name='状态转移'
     searcher=dfabeam
     raw_to_steps=lambda self,x:len(x)+1
     def __init__(self,schema,beam_width):
@@ -39,6 +40,7 @@ class DFA(Searcher):
                 schema.gen_features,
                 )
 class Push_Down(Searcher):
+    name='Shift-reduce'
     searcher=pushdown
     raw_to_steps=lambda self,x:2*len(x)-1
     def __init__(self,schema,beam_width):

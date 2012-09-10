@@ -9,6 +9,7 @@ You do the best, we do the rest!
 只需要编写最核心的代码，其它代码我都已经编好了
 """
 class Segger:
+    name='中文分词'
         
     class codec:
         @staticmethod
