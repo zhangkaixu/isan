@@ -1,8 +1,8 @@
 
 template<class ITEM>
 class Smart_String{
-    typedef size_t SIZE_T;
 public:
+    typedef size_t SIZE_T;
     ITEM* pt;
     SIZE_T length;
     SIZE_T* _ref_count;

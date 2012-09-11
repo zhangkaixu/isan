@@ -1,7 +1,7 @@
-cxx=g++ -O3
+cxx=g++ -O3 -I ~/isan/ -I /usr/include/python3.2mu -shared -fPIC
 
-all: dat_builder
+all: dat
 
 
-dat_builder: dat_builder.cc *.h
-	$(cxx) -g -o dat_builder dat_builder.cc
+dat: dat.cc *.hpp ../common/*.hpp
+	$(cxx) -g -o dat.so dat.cc
