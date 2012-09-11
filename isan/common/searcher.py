@@ -23,6 +23,7 @@ class Searcher:
     def __call__(self):
         return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
     def search(self):
+        #self.searcher.search(self.handler,self.raw_to_steps(self.raw))
         return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
 
     def __del__(self):

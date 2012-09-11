@@ -77,11 +77,11 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
     };
 };
 
-template<class ACTION,class STATE,class SCORE, template <class a, class b,class c>class ALPHA>
+template<class ACTION,class STATE,class SCORE, template <class,class,class>class ALPHA>
 struct State_Info{
     typedef ALPHA<ACTION,STATE,SCORE> Alpha;
     std::vector<Alpha> alphas;
-    void max_top(){
+    inline void max_top(){
         if(alphas.size()==0)
             return;
         int max_ind=0;
@@ -107,7 +107,7 @@ struct State_Info_s : public State_Info<ACTION,STATE,SCORE,Alpha_s> {
 
 
 template <class ACTION, class STATE, class SCORE,
-         template<class _t_a,class _t_b,class _t_c>class STATE_INFO
+         template<class,class,class>class STATE_INFO
          >
 class Searcher{
     typedef STATE_INFO< ACTION, STATE, SCORE> my_STATE_INFO;
@@ -128,7 +128,7 @@ public:
 
     class CompareFoo{
     public:
-        bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
+        inline bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
             if( first.second->score > second.second->score) return true;
             if( first.second->score < second.second->score) return false;
             if( first.second->inc > second.second->inc) return true;
@@ -139,7 +139,7 @@ public:
 
     class CompareFoo2{
     public:
-        bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
+        inline bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
             if( first.second->score < second.second->score) return true;
             if( first.second->score > second.second->score) return false;
             if( first.second->inc < second.second->inc) return true;
@@ -196,7 +196,7 @@ public:
         
         (*this->sequence.back())[init_key]=State_Info();
         (*this->sequence.back())[init_key].alphas.push_back(Alpha());
-        (*this->sequence.back())[init_key].alphas[0].score=0;
+        //(*this->sequence.back())[init_key].alphas[0].score=0;
         
         for(int step=0;step<steps;step++){
             this->thrink(step,beam);//thrink, get beam
@@ -219,16 +219,23 @@ public:
                     //std::cout<<"    next "<<j<<"\n";
                     STATE& key=next_keys[j];
                     got=this_map.find(key);
+
                     if(got==this_map.end()){
                         this_map[key]=State_Info();
-                    }
-                    //std::cout<<"here\n";
-                    this_map[key].alphas.push_back(Alpha(
-                                last_score+scores[j],
-                                scores[j],
-                                next_actions[j],
-                                last_key
-                                ));
+                        this_map[key].alphas.push_back(Alpha(
+                                    last_score+scores[j],
+                                    scores[j],
+                                    next_actions[j],
+                                    last_key
+                                    ));
+                    }else{
+                        got->second.alphas.push_back(Alpha(
+                                    last_score+scores[j],
+                                    scores[j],
+                                    next_actions[j],
+                                    last_key
+                                    ));
+                    };
                 };
             };
         };

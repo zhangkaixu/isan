@@ -86,6 +86,7 @@ class Segger:
                 b"b"+bi_chars[c_ind-1]+ws_current,
                 b"c"+bi_chars[c_ind+1]+ws_current,
                 b"d"+bi_chars[c_ind-2]+ws_current,
+                b"l"+chr(len(w_current)).encode(),
                 b"w"+w_current.encode(),
                 ]
         return fv

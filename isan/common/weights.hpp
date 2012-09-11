@@ -47,9 +47,8 @@ public:
         };
     };
     VALUE operator()(const std::vector<KEY>& fv){
-        VALUE value=0;
-        //int miss=0;
         typename Map::const_iterator got;
+        VALUE value=0;
         for(int i=0;i<fv.size();i++){
             got = map->find(fv[i]);
             if(got!=map->end()){
