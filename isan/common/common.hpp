@@ -7,24 +7,51 @@
 namespace isan{
 
 typedef unsigned char Action_Type;
-class State_Type: public Smart_String<char>{
+class Smart_Chars: public Smart_String<unsigned char>{
 public:
     PyObject* pack() const{
-        return PyBytes_FromStringAndSize(pt,length);
+        return PyBytes_FromStringAndSize((char*)pt,length);
     };
-    State_Type(){
+    Smart_Chars(){
     };
-    State_Type(PyObject* py_key){
+    Smart_Chars(PyObject* py_key){
         char* buffer;
         Py_ssize_t len;
         PyBytes_AsStringAndSize(py_key,&buffer,&len);
         length=(size_t)len;
-        pt=new char[length];
-        memcpy(pt,buffer,length*sizeof(char));        
+        pt=new unsigned char[length];
+        memcpy(pt,buffer,length*sizeof(unsigned char));        
+    };
+    Smart_Chars(unsigned long length){
+        _ref_count=new Smart_Chars::SIZE_T();
+        *_ref_count=1;
+        pt=new unsigned char[length];
+        this->length=length;
+    };
+    Smart_Chars(unsigned char* buffer, Smart_Chars::SIZE_T length){
+        _ref_count=new Smart_Chars::SIZE_T();
+        *_ref_count=1;
+        pt=new unsigned char[length];
+        this->length=length;
+        memcpy(pt,buffer,length*sizeof(unsigned char));
+        //for(int i=0;i<length;i++){
+        //    if(!pt[i])pt[i]=120;
+        //};
+    };
+    void make_positive(){
+        for(int i=0;i<length;i++){
+            if(pt[i]==0){
+                std::cout<<"zero\n";
+            };
+        };
+    };
+    inline unsigned char& operator[](const int i) const{
+        return pt[i];
     };
 };
 typedef int Score_Type;
-typedef Smart_String<char> Feature_String;
+typedef Smart_Chars State_Type;
+typedef Smart_Chars Feature_String;
 typedef std::vector<Feature_String> Feature_Vector;
 
 typedef unsigned short Chinese_Character;
@@ -90,7 +117,7 @@ public:
         long size=PySequence_Size(pfv);
         for(int i=0;i<size;i++){
             PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,i),&buffer,(Py_ssize_t*)&(length));
-            fv.push_back(Feature_String(buffer,length));
+            fv.push_back(Feature_String((unsigned char*)buffer,length));
         };
         Py_DECREF(pfv);
     };

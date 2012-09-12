@@ -1,4 +1,3 @@
-
 template<class ITEM>
 class Smart_String{
 public:
@@ -68,6 +67,10 @@ public:
         }
         return 0;
     };
+    inline const size_t& size() const{
+        return length;
+    };
+
     class HASH{
     public:
         inline SIZE_T operator()(const Smart_String& cx) const{
@@ -79,3 +82,5 @@ public:
         }
     };
 };
+
+

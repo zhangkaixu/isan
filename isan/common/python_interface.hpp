@@ -71,6 +71,21 @@ average_weights(PyObject *self, PyObject *arg)
     return Py_None;
 };
 static PyObject *
+make_dat(PyObject *self, PyObject *arg)
+{
+    
+    Interface* interface;
+    PyArg_ParseTuple(arg, "L", &interface);
+    
+    for(auto iter=interface->data->actions.begin();
+            iter!=interface->data->actions.end();
+            ++iter){
+        iter->second->make_dat();
+    };
+    Py_INCREF(Py_None);
+    return Py_None;
+};
+static PyObject *
 un_average_weights(PyObject *self, PyObject *arg)
 {
     

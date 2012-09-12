@@ -3,6 +3,7 @@
 #include <ext/hash_map>
 #include <map>
 #include "isan/common/common.hpp"
+#include "isan/utls/dat.hpp"
 
 
 namespace isan{
@@ -15,11 +16,13 @@ public:
     Map* map;
     Map* acc_map;
     Map* backup;
+    DATMaker* dat;
 
     Weights(){
         map=new Map();
         acc_map=new Map();
         backup=NULL;
+        dat=NULL;
 
     };
     ~Weights(){
@@ -27,6 +30,18 @@ public:
         delete acc_map;acc_map=NULL;
         delete backup;backup=NULL;
 
+    };
+    void make_dat(){
+        std::vector<std::pair<KEY, VALUE> > list;
+        long checksum=0;
+        for(auto iter=map->begin();iter!=map->end();++iter){
+            list.push_back(std::pair<KEY,VALUE>(iter->first,iter->second));
+            checksum+=iter->second;
+            list.back().first.make_positive();
+        }
+        this->dat=new DATMaker();
+        this->dat->make_dat(list);
+        this->dat->shrink();
     };
     
     void update(const std::vector<KEY>& fv,
@@ -46,15 +61,21 @@ public:
             };
         };
     };
-    VALUE operator()(const std::vector<KEY>& fv){
-        typename Map::const_iterator got;
+    inline VALUE operator()(const std::vector<KEY>& fv)const{
         VALUE value=0;
-        for(int i=0;i<fv.size();i++){
-            got = map->find(fv[i]);
-            if(got!=map->end()){
-                value+=got->second;
-            }else{
-            }
+        if(this->dat){
+            auto& tree=*this->dat;
+            for(auto f=fv.begin();f!=fv.end();++f){
+                value+=tree.get(*f);
+            };
+        }else{
+            typename Map::const_iterator got;
+            for(int i=0;i<fv.size();i++){
+                got = map->find(fv[i]);
+                if(got!=map->end()){
+                    value+=got->second;
+                }
+            };
         };
         return value;
     };
@@ -72,29 +93,32 @@ public:
                         +0.5
                     );
         };
+        make_dat();
     };
     void un_average(){
         delete map;
         map=backup;
         backup=NULL;
+        delete dat;
+        dat=NULL;
     };
 };
 class Default_Weights : public Weights<Feature_String ,Score_Type>{
 public:
     PyObject * to_py_dict(){
         PyObject * dict=PyDict_New();
-        //
         for(auto it=map->begin();it!=map->end();++it){
-            PyObject * key=PyBytes_FromStringAndSize(it->first.pt,it->first.length);
+            PyObject * key=PyBytes_FromStringAndSize((char*)it->first.pt,it->first.length);
             PyObject * value=PyLong_FromLong(it->second);
             PyDict_SetItem(dict,key,value);
             Py_DECREF(key);
             Py_DECREF(value);
         };
-        
         return dict;
     };
     Default_Weights(){
+        this->dat=NULL;
+        backup=NULL;
     }
     Default_Weights(PyObject * dict){
         PyObject *key, *value;
@@ -104,7 +128,7 @@ public:
         size_t length;
         while (PyDict_Next(dict, &pos, &key, &value)) {
             PyBytes_AsStringAndSize(key,&buffer,(Py_ssize_t*)&(length));
-            (*map)[Feature_String(buffer,length)]=PyLong_AsLong(value);
+            (*map)[Feature_String((unsigned char*)buffer,length)]=PyLong_AsLong(value);
         };
     };
 };

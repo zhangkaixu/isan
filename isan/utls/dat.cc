@@ -6,7 +6,7 @@
 #include "isan/common/common.hpp"
 #include "dat.hpp"
 
-
+using namespace isan;
 
 static PyObject *
 make_dat(PyObject *self, PyObject *arg){

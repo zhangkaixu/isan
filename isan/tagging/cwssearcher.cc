@@ -38,7 +38,7 @@ public:
     };
     Default_State_Type(){
         length=offset4;
-        pt=new char[length];
+        pt=new unsigned char[length];
         *ind2()=0;
         *last_action2()='0';
         *last_last_action2()='0';
@@ -46,7 +46,7 @@ public:
     };
     Default_State_Type(type1 v1,type2 v2,type3 v3,type4 v4){
         length=offset4;
-        pt=new char[length];
+        pt=new unsigned char[length];
         *ind2()=v1;
         *last_action2()=v2;
         *last_last_action2()=v3;
@@ -56,16 +56,21 @@ public:
 
 class CWS_Feature_Generator: public General_Feature_Generator{
 public:
-    struct Three{
-        char a;
-        Chinese_Character b;
+    struct F1{
+        unsigned char a;
+        Action_Type b;
         Action_Type c;
     };
+    struct Three{
+        unsigned char a;
+        Action_Type c;
+        Chinese_Character b;
+    };
     struct Four{
-        char a;
+        unsigned char a;
+        Action_Type d;
         Chinese_Character b;
         Chinese_Character c;
-        Action_Type d;
     };
     struct Two{
         char a;
@@ -87,35 +92,42 @@ public:
         const Chinese_Character& char_left2=ind-3>=0?raw->pt[ind-3]:-1;
         const Chinese_Character& char_right2=ind+1<raw->length?raw->pt[ind+1]:-1;
         
-        const Three f_trans={0,(left_action),(left_left_action)};
-        const Three f_mid={1,(char_mid),(left_action)};
-        const Three f_right={2,(char_right),(left_action)};
-        const Three f_left={3,(char_left),(left_action)};
+        const F1 f_trans={1,(left_action),(left_left_action)};
+        const Three f_mid={2,(left_action),(char_mid)};
+        const Three f_right={3,(left_action),(char_right)};
+        const Three f_left={4,(left_action),(char_left)};
         
-        const Four f_mid_right={4,(char_mid),(char_right),(left_action)};
-        const Four f_left_mid={5,(char_left),(char_mid),(left_action)};
-        const Four f_left2_left={6,(char_left2),(char_left),(left_action)};
-        const Four f_right_right2={7,(char_right),(char_right2),(left_action)};
+        const Four f_mid_right={5,(left_action),(char_mid),(char_right)};
+        const Four f_left_mid={6,(left_action),(char_left),(char_mid)};
+        const Four f_left2_left={7,(left_action),(char_left2),(char_left)};
+        const Four f_right_right2={8,(left_action),(char_right),(char_right2)};
         
-        const Two f_wl={8,sep_ind};
+        const Two f_wl={9,(unsigned short)(sep_ind+1)};
         
         fv.clear();
-        fv.push_back(Feature_String((char*)&f_trans,sizeof(f_trans)));
-        fv.push_back(Feature_String((char*)&f_mid,sizeof(f_mid)));
-        fv.push_back(Feature_String((char*)&f_right,sizeof(f_right)));
-        fv.push_back(Feature_String((char*)&f_left,sizeof(f_left)));
+        fv.push_back(Feature_String((unsigned char*)&f_trans,sizeof(f_trans)));
+        fv.push_back(Feature_String((unsigned char*)&f_mid,sizeof(f_mid)));
+        fv.push_back(Feature_String((unsigned char*)&f_right,sizeof(f_right)));
+        fv.push_back(Feature_String((unsigned char*)&f_left,sizeof(f_left)));
         
-        fv.push_back(Feature_String((char*)&f_mid_right,sizeof(f_mid_right)));
-        fv.push_back(Feature_String((char*)&f_left_mid,sizeof(f_left_mid)));
-        fv.push_back(Feature_String((char*)&f_left2_left,sizeof(f_left2_left)));
-        fv.push_back(Feature_String((char*)&f_right_right2,sizeof(f_right_right2)));
+        fv.push_back(Feature_String((unsigned char*)&f_mid_right,sizeof(f_mid_right)));
+        fv.push_back(Feature_String((unsigned char*)&f_left_mid,sizeof(f_left_mid)));
+        fv.push_back(Feature_String((unsigned char*)&f_left2_left,sizeof(f_left2_left)));
+        fv.push_back(Feature_String((unsigned char*)&f_right_right2,sizeof(f_right_right2)));
 
-        fv.push_back(Feature_String((char*)& f_wl,sizeof( f_wl)));
+        fv.push_back(Feature_String((unsigned char*)& f_wl,sizeof( f_wl)));
         
         fv.push_back(Feature_String(1+sizeof(Chinese_Character)*sep_ind));
-        fv.back().pt[0]=9;
+        fv.back().pt[0]=10;
         for(int i=0;i<sep_ind;i++)
             *(Chinese_Character *) (fv.back().pt+1+i*sizeof(Chinese_Character))= raw->pt[ind-sep_ind+i];
+
+        for(int i=0;i<fv.size();i++){
+            auto f=fv[i];
+            for(int j=0;j<f.size();j++){
+                if(f[j]==0)f[j]=120;
+            };
+        };
     };
 };
 
@@ -231,6 +243,7 @@ static PyMethodDef cwssearcherMethods[] = {
     {"update_action",  update_weights, METH_VARARGS,""},
     {"export_weights",  export_weights, METH_VARARGS,""},
     {"average_weights", average_weights , METH_VARARGS,""},
+    {"make_dat",  make_dat, METH_VARARGS,""},
     {"un_average_weights", un_average_weights , METH_VARARGS,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };

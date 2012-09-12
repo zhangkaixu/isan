@@ -17,6 +17,9 @@ class Searcher:
     def update_action(self,stat,action,delta,step):
         self.searcher.update_action(self.handler,stat,action,delta,step)
 
+    def make_dat(self):
+        self.searcher.make_dat(self.handler)
+
     def set_raw(self,raw):
         self.raw=raw
         self.searcher.set_raw(self.handler,raw)

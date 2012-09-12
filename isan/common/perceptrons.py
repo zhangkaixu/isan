@@ -30,6 +30,7 @@ class Base_Model(object):
         """
         测试
         """
+        self.searcher.make_dat()
         eval=self.schema.Eval()
         for line in open(test_file):
             arg=self.schema.codec.decode(line.strip())

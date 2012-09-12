@@ -86,8 +86,11 @@ class Segger:
                 b"b"+bi_chars[c_ind-1]+ws_current,
                 b"c"+bi_chars[c_ind+1]+ws_current,
                 b"d"+bi_chars[c_ind-2]+ws_current,
-                b"l"+chr(len(w_current)).encode(),
+                b"l"+chr(len(w_current)+1).encode(),
                 b"w"+w_current.encode(),
                 ]
+        #for i,f in enumerate(fv):
+        #    if any(x==0 for x in f):
+        #        print(i,f)
         return fv
     Eval=tagging_eval.TaggingEval
