@@ -16,8 +16,6 @@ public:
         //std::cout<<*_ref_count<<"\n";
     };
     Smart_Chars(PyObject* py_key){
-        _ref_count=new Smart_Chars::SIZE_T();
-        *_ref_count=1;
         char* buffer;
         Py_ssize_t len;
         PyBytes_AsStringAndSize(py_key,&buffer,&len);
@@ -26,14 +24,10 @@ public:
         memcpy(pt,buffer,length*sizeof(unsigned char));        
     };
     Smart_Chars(unsigned long length){
-        _ref_count=new Smart_Chars::SIZE_T();
-        *_ref_count=1;
         pt=new unsigned char[length];
         this->length=length;
     };
     Smart_Chars(unsigned char* buffer, Smart_Chars::SIZE_T length){
-        _ref_count=new Smart_Chars::SIZE_T();
-        *_ref_count=1;
         pt=new unsigned char[length];
         this->length=length;
         memcpy(pt,buffer,length*sizeof(unsigned char));
