@@ -261,7 +261,7 @@ public:
             }else{
                 dat[dat[off].base].base=lexicon[i].second;
             }
-            if(i&&(i%100000==0))printf("%f\n",(double)i/size);
+            //if(i&&(i%100000==0))printf("%f\n",(double)i/size);
             //int zkx;
             //std::cin>>zkx;
         }
