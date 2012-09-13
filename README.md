@@ -14,19 +14,43 @@
 
 # 使用
 
-## 安装
+## 准备开始
 
-[准备开始](isan/blob/master/getting_started.md)
+在此以Ubuntu操作系统为例，介绍如何安装和使用**isan**。
 
-运行本软件需要Linux操作系统和Python3、gcc。例如在Ubuntu操作系统中，依次运行以下命令以安装必要组件：
+首先，需要安装必要的软件包，包括gcc，make，Python3，Python3-dev和git，在命令行下安装：
 
     sudo apt-get install gcc
+    sudo apt-get install make
     sudo apt-get install python3
     sudo apt-get install python3-dev
+    sudo apt-get install git
 
-在[github](https://github.com/zhangkaixu/isan)上下载[压缩包](https://github.com/zhangkaixu/isan/zipball/master)解压得到源代码，或者安装git后使用`git clone https://github.com/zhangkaixu/isan.git`
+选好路径，使用git下载**isan**源代码，编译。
 
-然后在根目录下`make`即可。
+    git clone https://github.com/zhangkaixu/isan.git
+    cd isan
+    make
+
+下载一个可供实验用的SIGHAN05中文分词语料库。
+
+    wget http://www.sighan.org/bakeoff2005/data/icwb2-data.rar
+    sudo apt-get install unrar
+    mkdir sighan05
+    unrar e icwb2-data.rar sighan05
+    
+试着训练和测试，看看程序是否安装正确。
+    
+    ./cws.py test.bin --train sighan05/msr_test_gold.utf8
+    ./cws.py test.bin --test sighan05/msr_test_gold.utf8
+    
+如果以上一切顺利，将会看到测试结果能有0.99以上的F1值。接下来就可以试着真枪实弹地来一次，在MSR的训练集上迭代15次训练模型，每次迭代都将测试集作为开发集检查一下模型性能。
+    
+    ./cws.py test.bin --train sighan05/msr_training.utf8 --iteration=15 --dev sighan05/msr_test_gold.utf8
+    
+可以看到最后效果保持在0.966、0.967左右，一个还算可以的baseline吧。
+
+当然，如果要用**isan**来进行实验，需要对部分源代码进行进一步的修改。
 
 ## 基本命令行用法
 
@@ -58,10 +82,3 @@
 例如在分词`./cws.py`命令中，`training_file` 、 `dev_file`、 `test_file` 以及预测阶段的输出的格式均是使用的分词结果格式， 预测阶段的输入格式是原始句子格式。
 
 
-# 增量模型架构
-
-    Action # 解码过程中的原子动作
-    Stats -> Action # 依据动作，定义状态
-    Features -> Stats # 由状态产生特征供每个动作使用
-    Decoder -> Action Stats Features #解码
-    Model -> Decoder #模型的训练相关
