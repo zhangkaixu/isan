@@ -13,8 +13,11 @@ public:
         return PyBytes_FromStringAndSize((char*)pt,length);
     };
     Smart_Chars(){
+        //std::cout<<*_ref_count<<"\n";
     };
     Smart_Chars(PyObject* py_key){
+        _ref_count=new Smart_Chars::SIZE_T();
+        *_ref_count=1;
         char* buffer;
         Py_ssize_t len;
         PyBytes_AsStringAndSize(py_key,&buffer,&len);

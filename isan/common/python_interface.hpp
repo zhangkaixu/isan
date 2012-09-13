@@ -43,6 +43,8 @@ update_weights(PyObject *self, PyObject *arg)
     
     Feature_Vector fv;
     (*(interface->feature_generator))(state,fv);
+    //Feature_Vector fv2;
+    //(*(interface->feature_generator))(state,fv2);
 
     auto& actions=interface->data->actions;
     auto got=actions.find(action);
