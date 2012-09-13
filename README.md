@@ -83,4 +83,34 @@
 
 # 架构
 
-## 动作、状态、特征
+现以分词模型为例，介绍程序架构。
+
+## 程序架构
+
+首先看看`./cws.py`文件的`import`部分，其包含了模型的三个组成部分：
+
+    from isan.tagging.default_segger import Segger as Segger
+    from isan.common.searcher import DFA as Searcher
+    from isan.common.perceptrons import Base_Model as Model
+    
+首先是`Segger`，包含了分词相关的所有代码，仔细阅读[源代码](https://github.com/zhangkaixu/isan/blob/master/isan/tagging/default_segger.py)中的所有内容，修改其中的代码，就能DIY出自己的分词模型。
+
+其次是`Searcher`，是一个解码器，与具体的任务无关。分词使用的是基于状态转移的`DFA`解码器，也就是一个维特比解码器，相同解码器也可完成词性标注等任务。此外模型的特征权重也由Searcher管理。
+
+最后是`Model`，是控制模型学习、预测过程的，与具体的任务和解码器均无关。该例子中使用的是平均感知器算法进行模型的学习和预测。
+
+## 解码过程
+
+解码就是根据**输入**搜索得到**输出**的过程。
+
+### 动作
+
+**isan**是这样建模的。首先定义一个**动作**的集合，解码过程就是根据输入，得到一个动作序列，然后根据输入与动作序列，就能唯一确定输出。因此解码的过程就是根据输入得到动作序列的过程。
+
+在分词例子中，动作有两种，即*分*与*断*，一个有`n`个字的输入，对应的动作序列中有`n+1`个动作，分别表示各个字边界是分还是断。
+
+### 状态
+
+下面的问题是如何依次确定动作序列中每个位置具体的动作。这时引入**状态**这一概念
+
+### 特征
