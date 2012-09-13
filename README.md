@@ -16,7 +16,7 @@
 
 ## 安装
 
-[准备开始](isan/getting_started.md)
+[准备开始](isan/blob/master/getting_started.md)
 
 运行本软件需要Linux操作系统和Python3、gcc。例如在Ubuntu操作系统中，依次运行以下命令以安装必要组件：
 
