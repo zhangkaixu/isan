@@ -43,8 +43,6 @@ update_weights(PyObject *self, PyObject *arg)
     
     Feature_Vector fv;
     (*(interface->feature_generator))(state,fv);
-    //Feature_Vector fv2;
-    //(*(interface->feature_generator))(state,fv2);
 
     auto& actions=interface->data->actions;
     auto got=actions.find(action);
@@ -82,7 +80,7 @@ make_dat(PyObject *self, PyObject *arg)
     for(auto iter=interface->data->actions.begin();
             iter!=interface->data->actions.end();
             ++iter){
-        iter->second->make_dat();
+        //iter->second->make_dat();
     };
     Py_INCREF(Py_None);
     return Py_None;
