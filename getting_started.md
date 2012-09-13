@@ -1,6 +1,6 @@
 # 准备开始
 
-以**Ubuntu**为例，介绍如何配置和使用**isan**。
+以Ubuntu为例，介绍如何配置和使用**isan**。
 
 首先，需要安装必要的软件包，包括gcc编译器，Python3，Python3-dev和git，在命令行下安装：
 
@@ -15,3 +15,15 @@
     cd isan
     make
 
+下载可供实验用的SIGHAN05语料库。
+
+    wget http://www.sighan.org/bakeoff2005/data/icwb2-data.rar
+    sudo apt-get install unrar
+    mkdir sighan05
+    unrar e icwb2-data.rar sighan05
+    
+试着训练和测试。
+    
+    ./cws.py test.bin --train sighan05/msr_test_gold.utf8
+    ./cws.py test.bin --test sighan05/msr_test_gold.utf8
+    
