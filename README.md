@@ -1,12 +1,7 @@
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
 isan
 ====
 
 > “举一隅不以三隅反，则不复也” ——《论语·述而》
-
-$$x+1$$
 
 一个数据驱动的中文处理**实验环境**，可进行**中文分词**（以后会实现 *词性标注* 、 *句法分析* ）。作者[张开旭](http://weibo.com/zhangkaixu)。
 
