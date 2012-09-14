@@ -53,7 +53,7 @@ class Segger:
     stat_fmt=Struct('hcch')
 
     """分词搜索时的初始状态"""
-    init_stat=stat_fmt.pack(*(0,b'0',b'0',0))
+    init_stat=stat_fmt.pack(*(0,b's',b's',0))
 
     """维特比解码中，状态根据动作而转移，
     有了动作序列，就能确定一个状态序列"""
@@ -75,9 +75,24 @@ class Segger:
     """这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度"""
     def set_raw(self,raw):
         self.raw=raw
-        self.uni_chars=list(x.encode() for x in '###'+raw+'##')
-        self.bi_chars=[self.uni_chars[i]+self.uni_chars[i+1]
-                for i in range(len(self.uni_chars)-1)]
+        uni_chars=list(x.encode() for x in '###'+raw+'##')
+        bi_chars=[uni_chars[i]+uni_chars[i+1]
+                for i in range(len(uni_chars)-1)]
+        self.uni_fv=[]
+        for ind in range(len(raw)+1):
+            c_ind=ind+2
+            self.uni_fv.append([])
+            for ws_current in [b's',b'c']:
+                self.uni_fv[-1].append([
+                    b"1"+uni_chars[c_ind]+ws_current,
+                    b"2"+uni_chars[c_ind+1]+ws_current,
+                    b'3'+uni_chars[c_ind-1]+ws_current,
+                    b"a"+bi_chars[c_ind]+ws_current,
+                    b"b"+bi_chars[c_ind-1]+ws_current,
+                    b"c"+bi_chars[c_ind+1]+ws_current,
+                    b"d"+bi_chars[c_ind-2]+ws_current,
+                ])
+
 
     """暂时忽略它"""
     def set_Y(self,Y):
@@ -86,26 +101,18 @@ class Segger:
     """告诉isan，一个状态能生成哪些特征向量，每个特征也是一个bytes类型，且其中不能有0"""
     def gen_features(self,span):
         span=self.stat_fmt.unpack(span)
-        uni_chars=self.uni_chars
-        bi_chars=self.bi_chars
 
-        c_ind=span[0]+2
         ws_current=span[1]
         ws_left=span[2]
         w_current=self.raw[span[0]-span[3]:span[0]]
 
-        fv=[ 
+        fv=(self.uni_fv[span[0]][0 if ws_current==b's' else 1]+
+                [ 
                 b'0'+ws_current+ws_left,
-                b"1"+uni_chars[c_ind]+ws_current,
-                b"2"+uni_chars[c_ind+1]+ws_current,
-                b'3'+uni_chars[c_ind-1]+ws_current,
-                b"a"+bi_chars[c_ind]+ws_current,
-                b"b"+bi_chars[c_ind-1]+ws_current,
-                b"c"+bi_chars[c_ind+1]+ws_current,
-                b"d"+bi_chars[c_ind-2]+ws_current,
                 b"l"+chr(len(w_current)+1).encode(),
                 b"w"+w_current.encode(),
                 ]
+                )
         return fv
     """最后告诉isan，如何评价模型的输出和标准答案的输出的好坏。具体可以看这个class"""
     Eval=tagging_eval.TaggingEval
