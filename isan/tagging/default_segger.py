@@ -50,10 +50,10 @@ class Segger:
 
     """在isan中，状态是一个bytes对象，但Python中tuple好处理一些，
     在此规定一种从tuple到bytes对象的转换规则"""
-    stat_fmt=Struct('hcch')
+    stat_fmt=Struct('hcchh')
 
     """分词搜索时的初始状态"""
-    init_stat=stat_fmt.pack(*(0,b's',b's',0))
+    init_stat=stat_fmt.pack(*(0,b's',b's',0,0))
 
     """维特比解码中，状态根据动作而转移，
     有了动作序列，就能确定一个状态序列"""
@@ -68,9 +68,9 @@ class Segger:
 
     """根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了"""
     def gen_actions_and_stats(self,stat):
-        ind,last,_,wordl=self.stat_fmt.unpack(stat)
-        return [(self.sep,self.stat_fmt.pack(ind+1,b's',last,1)),
-                (self.com,self.stat_fmt.pack(ind+1,b'c',last,wordl+1))]
+        ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
+        return [(self.sep,self.stat_fmt.pack(ind+1,b's',last,1,wordl)),
+                (self.com,self.stat_fmt.pack(ind+1,b'c',last,wordl+1,lwordl))]
 
     """这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度"""
     def set_raw(self,raw):
@@ -92,6 +92,21 @@ class Segger:
                     b"c"+bi_chars[c_ind+1]+ws_current,
                     b"d"+bi_chars[c_ind-2]+ws_current,
                 ])
+        self.bi_fv=[]
+        for ind in range(len(raw)+1):
+            c_ind=ind+2
+            self.bi_fv.append([])
+            for ws_current,ws_last in [(b's',b's'),(b's',b'c'),(b'c',b's'),(b'c',b'c')]:
+                self.bi_fv[-1].append([
+                    b"0'"+ws_current+ws_last,
+                    b"1'"+uni_chars[c_ind]+ws_current+ws_last,
+                    b"2'"+uni_chars[c_ind+1]+ws_current+ws_last,
+                    b"3'"+uni_chars[c_ind-1]+ws_current+ws_last,
+                    b"a'"+bi_chars[c_ind]+ws_current+ws_last,
+                    b"b'"+bi_chars[c_ind-1]+ws_current+ws_last,
+                    b"c'"+bi_chars[c_ind+1]+ws_current+ws_last,
+                    b"d'"+bi_chars[c_ind-2]+ws_current+ws_last,
+                ])
 
 
     """暂时忽略它"""
@@ -105,10 +120,14 @@ class Segger:
         ws_current=span[1]
         ws_left=span[2]
         w_current=self.raw[span[0]-span[3]:span[0]]
+        w_last=self.raw[span[0]-span[3]-span[4]:span[0]-span[3]]
 
+        bind=0
+        if ws_current==b'c':bind+=2
+        if ws_left==b'c':bind+=1
         fv=(self.uni_fv[span[0]][0 if ws_current==b's' else 1]+
+                self.bi_fv[span[0]][bind]+
                 [ 
-                b'0'+ws_current+ws_left,
                 b"l"+chr(len(w_current)+1).encode(),
                 b"w"+w_current.encode(),
                 ]
