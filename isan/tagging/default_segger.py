@@ -53,7 +53,7 @@ class Segger:
     stat_fmt=Struct('hcchh')
 
     """分词搜索时的初始状态"""
-    init_stat=stat_fmt.pack(*(0,b's',b's',0,0))
+    init_stat=stat_fmt.pack(*(0,b'0',b'0',0,0))
 
     """维特比解码中，状态根据动作而转移，
     有了动作序列，就能确定一个状态序列"""
@@ -69,8 +69,8 @@ class Segger:
     """根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了"""
     def gen_actions_and_stats(self,stat):
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
-        return [(self.sep,self.stat_fmt.pack(ind+1,b's',last,1,wordl)),
-                (self.com,self.stat_fmt.pack(ind+1,b'c',last,wordl+1,lwordl))]
+        return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
+                (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
 
     """这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度"""
     def set_raw(self,raw):
@@ -78,11 +78,12 @@ class Segger:
         uni_chars=list(x.encode() for x in '###'+raw+'##')
         bi_chars=[uni_chars[i]+uni_chars[i+1]
                 for i in range(len(uni_chars)-1)]
+        self.uni_chars=uni_chars
         self.uni_fv=[]
         for ind in range(len(raw)+1):
             c_ind=ind+2
             self.uni_fv.append([])
-            for ws_current in [b's',b'c']:
+            for ws_current in [b'0',b'1',b'2']:
                 self.uni_fv[-1].append([
                     b"1"+uni_chars[c_ind]+ws_current,
                     b"2"+uni_chars[c_ind+1]+ws_current,
@@ -92,11 +93,12 @@ class Segger:
                     b"c"+bi_chars[c_ind+1]+ws_current,
                     b"d"+bi_chars[c_ind-2]+ws_current,
                 ])
+        return
         self.bi_fv=[]
         for ind in range(len(raw)+1):
             c_ind=ind+2
             self.bi_fv.append([])
-            for ws_current,ws_last in [(b's',b's'),(b's',b'c'),(b'c',b's'),(b'c',b'c')]:
+            for ws_current,ws_last in [(b'1',b'1'),(b'1',b'2'),(b'2',b'1'),(b'2',b'2')]:
                 self.bi_fv[-1].append([
                     b"0'"+ws_current+ws_last,
                     b"1'"+uni_chars[c_ind]+ws_current+ws_last,
@@ -116,20 +118,40 @@ class Segger:
     """告诉isan，一个状态能生成哪些特征向量，每个特征也是一个bytes类型，且其中不能有0"""
     def gen_features(self,span):
         span=self.stat_fmt.unpack(span)
+        ind,ws_current,ws_left,sep_ind,sep_ind2=span
 
-        ws_current=span[1]
-        ws_left=span[2]
-        w_current=self.raw[span[0]-span[3]:span[0]]
-        w_last=self.raw[span[0]-span[3]-span[4]:span[0]-span[3]]
+        w_current=self.raw[ind-sep_ind:ind]
+        w_last=self.raw[ind-sep_ind-sep_ind2:ind-sep_ind]
+        w_c_len=chr(len(w_current)+1).encode()
+        w_l=b' '
+        w_r=b' '
+        w2_l=b' '
+        w2_r=b' '
+        if(len(w_current)>0):
+            w_l=w_current[0].encode()
+            w_r=w_current[-1].encode()
+        if(len(w_last)>0):
+            w2_l=w_last[0].encode()
+            w2_r=w_last[-1].encode()
 
-        bind=0
-        if ws_current==b'c':bind+=2
-        if ws_left==b'c':bind+=1
-        fv=(self.uni_fv[span[0]][0 if ws_current==b's' else 1]+
-                self.bi_fv[span[0]][bind]+
+
+        #bind=0
+        #if ws_current==b'2':bind+=2
+        #if ws_left==b'2':bind+=1
+        fv=(self.uni_fv[ind][ws_current[0]-48]+
+                #self.bi_fv[span[0]][bind]+
                 [ 
-                b"l"+chr(len(w_current)+1).encode(),
+                b"0"+ws_current+ws_left,
                 b"w"+w_current.encode(),
+                b"l"+w_c_len,
+                b"lw0"+w_l+w_c_len,
+                b"lw-1"+w_r+w_c_len,
+                b"w2_0w_0"+w2_l+w_l,
+                b"w2_-1w_-1"+w2_r+w_r,
+                b"w2_-1w_0"+w2_r+w_l,
+                b"w_0c"+w_l+self.uni_chars[ind+2],
+                b"l'"+chr(len(w_last)+1).encode(),
+                #b"l'l"+chr(len(w_current)+1).encode()+chr(len(w_last)+1).encode(),
                 ]
                 )
         return fv
