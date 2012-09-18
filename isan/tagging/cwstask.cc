@@ -16,7 +16,7 @@ class Default_State_Type : public State_Type{
     static const size_t offset2=offset1+sizeof(type2);
     static const size_t offset3=offset2+sizeof(type3);
     static const size_t offset4=offset3+sizeof(type4);
-    static const size_t offset5=offset3+sizeof(type5);
+    static const size_t offset5=offset4+sizeof(type5);
 public:
     
     inline type1* ind(){
@@ -200,6 +200,7 @@ task_new(PyObject *self, PyObject *arg)
     shifted_state_generator=new CWS_State_Generator();
     feature_generator=new CWS_Feature_Generator();
     init_state = new Default_State_Type();
+    //std::cout<<init_state->length<<"\n";
     return PyTuple_Pack(3,
             init_state->pack(),
             PyLong_FromUnsignedLong((size_t)shifted_state_generator),

@@ -60,7 +60,6 @@ public:
     const RAW* raw;
     virtual void set_raw(const RAW* raw){
         this->raw=raw;
-        std::cout<<"v!\n";
     };
     virtual void operator()(const STATE& key, FEATURE_VECTOR& fv)=0;
 };

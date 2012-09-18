@@ -45,9 +45,9 @@ isan
     
 如果以上一切顺利，将会看到测试结果能有0.99以上的F1值。接下来就可以试着真枪实弹地来一次，在MSR的训练集上迭代20次训练模型，每次迭代都将测试集作为开发集检查一下模型性能。
     
-    ./cws.py test.bin --train sighan05/msr_training.utf8 --iteration=20 --dev sighan05/msr_test_gold.utf8
+    ./cws.py test.bin --train sighan05/msr_training.utf8 --iteration=20 --dev sighan05/msr_test_gold.utf8 --beam_width=16
     
-可以看到最后效果保持在0.968、0.969左右，一个还算可以的baseline吧。
+可以看到最后效果保持在0.971、0.972左右，一个还算可以的baseline吧。
 
 （当然，如果要用**isan**来进行实验，需要对部分源代码进行进一步的修改。）
 
