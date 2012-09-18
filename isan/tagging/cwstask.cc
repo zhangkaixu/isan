@@ -93,6 +93,9 @@ public:
             const Chinese_Character& char_left2=ind-3>=0?raw->pt[ind-3]:-1;
             const Chinese_Character& char_right2=ind+1<raw->length?raw->pt[ind+1]:-1;
             for(unsigned char left_action='0';left_action<='2';++left_action){
+                chr_based.back().push_back(Feature_Vector());
+                if(ind>0&&left_action=='0')continue;
+
                 Three f_mid={2,(left_action),(char_mid)};
                 Three f_right={3,(left_action),(char_right)};
                 Three f_left={4,(left_action),(char_left)};
@@ -101,7 +104,6 @@ public:
                 Four f_left2_left={7,(left_action),(char_left2),(char_left)};
                 Four f_right_right2={8,(left_action),(char_right),(char_right2)};
 
-                chr_based.back().push_back(Feature_Vector());
                 Feature_Vector& fv=chr_based.back().back();
                 fv.push_back(Feature_String((unsigned char*)&f_mid,sizeof(f_mid)));
                 fv.push_back(Feature_String((unsigned char*)&f_right,sizeof(f_right)));
