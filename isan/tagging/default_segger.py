@@ -78,8 +78,13 @@ class Segger:
         uni_chars=list(x.encode() for x in '###'+raw+'##')
         bi_chars=[uni_chars[i]+uni_chars[i+1]
                 for i in range(len(uni_chars)-1)]
+        #self.identical=[b'1' if uni_chars[i]!=b'#' and uni_chars[i]==uni_chars[i+1] else b'0' 
+        #        for i in range(len(uni_chars)-1)
+        #        ]
         self.uni_chars=uni_chars
         self.uni_fv=[]
+        #print(raw)
+        #print(self.identical)
         for ind in range(len(raw)+1):
             c_ind=ind+2
             self.uni_fv.append([])
@@ -88,6 +93,7 @@ class Segger:
                     b"1"+uni_chars[c_ind]+ws_current,
                     b"2"+uni_chars[c_ind+1]+ws_current,
                     b'3'+uni_chars[c_ind-1]+ws_current,
+                    #b'z'+uni_chars[c_ind+1]+uni_chars[c_ind-1]+ws_current,
                     b"a"+bi_chars[c_ind]+ws_current,
                     b"b"+bi_chars[c_ind-1]+ws_current,
                     b"c"+bi_chars[c_ind+1]+ws_current,
@@ -98,17 +104,18 @@ class Segger:
         for ind in range(len(raw)+1):
             c_ind=ind+2
             self.bi_fv.append([])
-            for ws_current,ws_last in [(b'1',b'1'),(b'1',b'2'),(b'2',b'1'),(b'2',b'2')]:
-                self.bi_fv[-1].append([
-                    b"0'"+ws_current+ws_last,
-                    b"1'"+uni_chars[c_ind]+ws_current+ws_last,
-                    b"2'"+uni_chars[c_ind+1]+ws_current+ws_last,
-                    b"3'"+uni_chars[c_ind-1]+ws_current+ws_last,
-                    b"a'"+bi_chars[c_ind]+ws_current+ws_last,
-                    b"b'"+bi_chars[c_ind-1]+ws_current+ws_last,
-                    b"c'"+bi_chars[c_ind+1]+ws_current+ws_last,
-                    b"d'"+bi_chars[c_ind-2]+ws_current+ws_last,
-                ])
+            al=[
+                        b"'1"+uni_chars[c_ind],
+                        #b"'2"+uni_chars[c_ind+1],
+                        b"'3"+uni_chars[c_ind-1],
+                        #b"'a"+bi_chars[c_ind],
+                        b"'b"+bi_chars[c_ind-1],
+                        #b"'c"+bi_chars[c_ind+1],
+                        #b"'d"+bi_chars[c_ind-2],
+                    ]
+            for ws_current in [b'0',b'1',b'2']:
+                for ws_last in [b'0',b'1',b'2']:
+                    self.bi_fv[-1].append([x+ws_current+ws_last for x in al])
 
 
     """暂时忽略它"""
@@ -139,9 +146,13 @@ class Segger:
         #bind=0
         #if ws_current==b'2':bind+=2
         #if ws_left==b'2':bind+=1
+        #print(self.uni_fv[ind][ws_current[0]-48])
+        #print(self.bi_fv[span[0]][(ws_current[0]-48)*3+ws_left[0]-48])
+        #print("")
         fv=(self.uni_fv[ind][ws_current[0]-48]+
-                #self.bi_fv[span[0]][bind]+
+                #self.bi_fv[span[0]][(ws_current[0]-48)*3+ws_left[0]-48]+
                 [ 
+                #b"i"+self.identical[ind+2],
                 b"0"+ws_current+ws_left,
                 b"w"+w_current.encode(),
                 b"l"+w_c_len,
@@ -150,13 +161,17 @@ class Segger:
                 b"w2_0w_0"+w2_l+w_l,
                 b"w2_-1w_-1"+w2_r+w_r,
                 b"w2_-1w_0"+w2_r+w_l,
-                b"w_0c"+w_l+self.uni_chars[ind+2],
-                b"l'"+chr(len(w_last)+1).encode(),
+                b"w_0w_-1"+w_l+w_r,
+                b"w2_0w2_-1"+w2_l+w2_r,
+                b"w_0c"+w_l+self.uni_chars[ind+3],
+                b"w_-1c"+w_r+self.uni_chars[ind+3],
+                b"l'"+w_l_len,
                 b"wl2"+w_current.encode()+w_l_len,
                 b"w2l"+w_last.encode()+w_c_len,
                 #b"l'l"+chr(len(w_current)+1).encode()+chr(len(w_last)+1).encode(),
                 ]
                 )
+        #print(w_r,self.uni_chars[ind+2])
         return fv
     """最后告诉isan，如何评价模型的输出和标准答案的输出的好坏。具体可以看这个class"""
     Eval=tagging_eval.TaggingEval
