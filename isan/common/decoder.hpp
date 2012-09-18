@@ -180,6 +180,8 @@ public:
     void set_raw(Chinese& raw){
         if(this->raw)delete this->raw;
         this->raw=new Chinese(raw);
+        //std::cout<<"set raw\n";
+        this->feature_generator->set_raw(this->raw);
     }
     ~General_Interface(){
         delete this->data;

@@ -54,7 +54,7 @@ class Segger:
     stat_fmt=Struct('hcch')
 
     """分词搜索时的初始状态"""
-    init_stat, gen_actions_and_stats,gen_features=cwstask.new()
+    init_stat,gen_actions_and_stats,gen_features=cwstask.new()
 
     """维特比解码中，状态根据动作而转移，
     有了动作序列，就能确定一个状态序列"""
