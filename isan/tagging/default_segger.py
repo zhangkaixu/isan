@@ -123,6 +123,7 @@ class Segger:
         w_current=self.raw[ind-sep_ind:ind]
         w_last=self.raw[ind-sep_ind-sep_ind2:ind-sep_ind]
         w_c_len=chr(len(w_current)+1).encode()
+        w_l_len=chr(len(w_last)+1).encode()
         w_l=b' '
         w_r=b' '
         w2_l=b' '
@@ -151,6 +152,8 @@ class Segger:
                 b"w2_-1w_0"+w2_r+w_l,
                 b"w_0c"+w_l+self.uni_chars[ind+2],
                 b"l'"+chr(len(w_last)+1).encode(),
+                b"wl2"+w_current.encode()+w_l_len,
+                b"w2l"+w_last.encode()+w_c_len,
                 #b"l'l"+chr(len(w_current)+1).encode()+chr(len(w_last)+1).encode(),
                 ]
                 )
