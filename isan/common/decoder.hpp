@@ -137,9 +137,19 @@ public:
             PyObject * py_shift_callback,
             PyObject * py_feature_cb
             ){
-        shifted_state_generator=new Python_State_Generator(py_shift_callback);
+        if(PyLong_Check(py_shift_callback)){
+            shifted_state_generator=(General_State_Generator *) PyLong_AsUnsignedLong(py_shift_callback);
+        }else{
+            shifted_state_generator=new Python_State_Generator(py_shift_callback);
+        };
+        //shifted_state_generator=new Python_State_Generator(py_shift_callback);
+        if(PyLong_Check( py_feature_cb)){
+            feature_generator=(General_Feature_Generator*) PyLong_AsUnsignedLong( py_feature_cb);
+        }else{
+            feature_generator=new Python_Feature_Generator( py_feature_cb);
+        };
+        //feature_generator=new Python_Feature_Generator(py_feature_cb);
         reduced_state_generator=NULL;
-        feature_generator=new Python_Feature_Generator(py_feature_cb);
         raw=NULL;
         this->data=new General_Searcher_Data(
                 shifted_state_generator,

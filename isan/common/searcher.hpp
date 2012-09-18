@@ -180,6 +180,9 @@ public:
     };
 
 
+    /*
+     * 线性搜索
+     * */
     void call(STATE& init_key,int steps,std::vector<ACTION>& result){
         std::vector<std::pair<STATE,Alpha*> > beam;
         std::vector<ACTION> next_actions;

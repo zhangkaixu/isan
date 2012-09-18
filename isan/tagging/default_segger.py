@@ -1,5 +1,6 @@
 from struct import Struct
 import isan.tagging.eval as tagging_eval
+import isan.tagging.cwstask as cwstask
 
 
 """
@@ -9,6 +10,7 @@ You do the best, we do the rest!
 只需要编写最核心的代码，其它代码我都已经编好了
 """
 class Segger:
+    xa,xb=3,3
     """告诉isan，这是个什么task"""
     name='中文分词'
     

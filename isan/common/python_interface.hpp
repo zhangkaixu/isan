@@ -142,6 +142,7 @@ set_raw(PyObject *self, PyObject *arg)
         Py_DECREF(tmp);
     }
     interface->set_raw(raw);
+    interface->feature_generator->raw=interface->raw;
     Py_INCREF(Py_None);
     
     return Py_None;
