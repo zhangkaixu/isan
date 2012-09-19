@@ -56,6 +56,7 @@ class Segger:
 
     """分词搜索时的初始状态"""
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0,0))
+    #init_stat,_,_=cwstask.new()
 
     """维特比解码中，状态根据动作而转移，
     有了动作序列，就能确定一个状态序列"""

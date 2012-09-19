@@ -19,6 +19,8 @@ class Base_Model(object):
             self.model_file=model_file
             self.schema=schema
             self.schema.weights={}
+        if hasattr(self.schema,'init'):
+            self.schema.init()
         self.searcher=Searcher(self.schema,beam_width)
         for k,v in self.schema.weights.items():
             self.searcher.set_action(k,v)

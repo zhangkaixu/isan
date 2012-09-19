@@ -146,7 +146,7 @@ public:
             *(Chinese_Character *) (fv.back().pt+1+i*sizeof(Chinese_Character))= raw->pt[ind-sep_ind+i];
 
         for(int i=0;i<fv.size();i++){
-            auto f=fv[i];
+            register auto f=fv[i];
             for(int j=0;j<f.size();j++){
                 if(f[j]==0)f[j]=120;
             };
@@ -179,7 +179,7 @@ public:
         //c
         super_states.push_back(Default_State_Type(
                     ind,
-                    '0',
+                    '2',
                     *key.last_action(),
                     sepind+1,
                     *key.sep_ind_2()

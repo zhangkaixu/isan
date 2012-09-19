@@ -10,6 +10,7 @@ You do the best, we do the rest!
 只需要编写最核心的代码，其它代码我都已经编好了
 """
 class Segger:
+    xa,xb=3,3
     """告诉isan，这是个什么task"""
     name='中文分词'
     
@@ -52,9 +53,23 @@ class Segger:
     """在isan中，状态是一个bytes对象，但Python中tuple好处理一些，
     在此规定一种从tuple到bytes对象的转换规则"""
     stat_fmt=Struct('hcchh')
+    """分词搜索时的初始状态"""
+    init_stat=stat_fmt.pack(*(0,b'0',b'0',0,0))
+
+    """根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了"""
+    def gen_actions_and_stats(self,stat):
+        ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
+        return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
+                (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
 
     """分词搜索时的初始状态"""
-    init_stat,gen_actions_and_stats,_=cwstask.new()
+    def init(self):
+        #self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
+        #self.set_raw=
+        #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
+        pass
+ 
+
 
     """维特比解码中，状态根据动作而转移，
     有了动作序列，就能确定一个状态序列"""
@@ -72,7 +87,6 @@ class Segger:
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
         return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
-
     """这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度"""
     def set_raw(self,raw):
         self.raw=raw
@@ -125,9 +139,7 @@ class Segger:
 
     """告诉isan，一个状态能生成哪些特征向量，每个特征也是一个bytes类型，且其中不能有0"""
     def gen_features(self,span):
-        #print(span)
         span=self.stat_fmt.unpack(span)
-        #print(span)
         ind,ws_current,ws_left,sep_ind,sep_ind2=span
 
         w_current=self.raw[ind-sep_ind:ind]
@@ -145,13 +157,9 @@ class Segger:
             w2_l=w_last[0].encode()
             w2_r=w_last[-1].encode()
 
-
         #bind=0
         #if ws_current==b'2':bind+=2
         #if ws_left==b'2':bind+=1
-        #print(self.uni_fv[ind][ws_current[0]-48])
-        #print(self.bi_fv[span[0]][(ws_current[0]-48)*3+ws_left[0]-48])
-        #print("")
         fv=(self.uni_fv[ind][ws_current[0]-48]+
                 #self.bi_fv[span[0]][(ws_current[0]-48)*3+ws_left[0]-48]+
                 [ 
@@ -159,15 +167,18 @@ class Segger:
                 b"0"+ws_current+ws_left,
                 b"w"+w_current.encode(),
                 b"l"+w_c_len,
+
                 b"lw0"+w_l+w_c_len,
                 b"lw-1"+w_r+w_c_len,
+
+                b"w_0w_-1"+w_l+w_r,
+                b"w2_0w2_-1"+w2_l+w2_r,
                 b"w2_0w_0"+w2_l+w_l,
                 b"w2_-1w_-1"+w2_r+w_r,
                 b"w2_-1w_0"+w2_r+w_l,
-                b"w_0w_-1"+w_l+w_r,
-                b"w2_0w2_-1"+w2_l+w2_r,
                 b"w_0c"+w_l+self.uni_chars[ind+3],
                 b"w_-1c"+w_r+self.uni_chars[ind+3],
+
                 b"l'"+w_l_len,
                 b"wl2"+w_current.encode()+w_l_len,
                 b"w2l"+w_last.encode()+w_c_len,
