@@ -66,7 +66,7 @@ class Segger:
     def init(self):
         #self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
         #self.set_raw=
-        #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
+        self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
         pass
  
 
@@ -88,7 +88,7 @@ class Segger:
         return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
     """这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度"""
-    def set_raw(self,raw):
+    def set_raw(self,raw,_):
         self.raw=raw
         uni_chars=list(x.encode() for x in '###'+raw+'##')
         bi_chars=[uni_chars[i]+uni_chars[i+1]
@@ -164,7 +164,7 @@ class Segger:
                 #self.bi_fv[span[0]][(ws_current[0]-48)*3+ws_left[0]-48]+
                 [ 
                 #b"i"+self.identical[ind+2],
-                b"0"+ws_current+ws_left,
+                #b"0"+ws_current+ws_left,
                 b"w"+w_current.encode(),
                 b"l"+w_c_len,
 

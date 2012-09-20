@@ -37,10 +37,12 @@ class Base_Model(object):
         for line in open(test_file):
             arg=self.schema.codec.decode(line.strip())
             raw=arg.get('raw')
+            Y=arg.get('Y_a',None)
             y=arg.get('y',None)
-            hat_y=self(raw)
+            hat_y=self(raw,Y)
             eval(y,hat_y)
         eval.print_result()
+        return eval
     def develop(self,dev_file):
         self.searcher.average_weights(self.step)
         eval=self.schema.Eval()
@@ -64,16 +66,16 @@ class Base_Model(object):
         file=open(self.model_file,'wb')
         pickle.dump(self.schema,file)
         file.close()
-    def search(self,raw):
-        self.schema.set_raw(raw)
+    def search(self,raw,Y=None):
+        self.schema.set_raw(raw,Y)
         self.searcher.set_raw(raw)
         return self.searcher.search()
 
-    def __call__(self,raw):
+    def __call__(self,raw,Y=None):
         """
         解码，读入生句子，返回词的数组
         """
-        rst_actions=self.search(raw)
+        rst_actions=self.search(raw,Y)
         hat_y=self.schema.actions_to_result(rst_actions,raw)
         return hat_y
     def _learn_sentence(self,arg):
@@ -95,7 +97,7 @@ class Base_Model(object):
             std_actions=self.search(raw)
 
         #get result actions
-        rst_actions=self.search(raw)#得到解码后动作
+        rst_actions=self.search(raw,Y_a)#得到解码后动作
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
 
         #update
