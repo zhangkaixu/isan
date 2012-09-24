@@ -164,7 +164,7 @@ class Segger:
                 #self.bi_fv[span[0]][(ws_current[0]-48)*3+ws_left[0]-48]+
                 [ 
                 #b"i"+self.identical[ind+2],
-                #b"0"+ws_current+ws_left,
+                b"0"+ws_current+ws_left,
                 b"w"+w_current.encode(),
                 b"l"+w_c_len,
 
@@ -173,15 +173,26 @@ class Segger:
 
                 b"w_0w_-1"+w_l+w_r,
                 b"w2_0w2_-1"+w2_l+w2_r,
-                b"w2_0w_0"+w2_l+w_l,
+                #b"w2_0w_0"+w2_l+w_l,
                 b"w2_-1w_-1"+w2_r+w_r,
-                b"w2_-1w_0"+w2_r+w_l,
+                #b"w2_-1w_0"+w2_r+w_l,
                 b"w_0c"+w_l+self.uni_chars[ind+3],
                 b"w_-1c"+w_r+self.uni_chars[ind+3],
 
                 b"l'"+w_l_len,
                 b"wl2"+w_current.encode()+w_l_len,
                 b"w2l"+w_last.encode()+w_c_len,
+                #b"w2w"+w_last.encode()+b" "+w_current.encode(),
+                #b'w2_-1cl'+w2_r+w_l_len+self.uni_chars[ind+3],
+
+
+                #b"w_0cl"+w_l+self.uni_chars[ind+3]+w_c_len,
+                #b"w_-1cl"+w_r+self.uni_chars[ind+3]+w_c_len,
+                #b"w_0l2"+w_l+w_l_len,
+                #b"w2_0l"+w2_l+w_c_len,
+                #b"w_-1l2"+w_r+w_l_len,
+                #b"w2_-1l"+w2_r+w_c_len,
+                #b"cl"+self.uni_chars[ind+3]+w_c_len,
                 #b"l'l"+chr(len(w_current)+1).encode()+chr(len(w_last)+1).encode(),
                 ]
                 )
