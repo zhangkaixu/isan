@@ -146,4 +146,10 @@ set_raw(PyObject *self, PyObject *arg)
     
     return Py_None;
 };
+static PyObject *
+do_nothing(PyObject *self, PyObject *arg)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+};
 };//end of isan

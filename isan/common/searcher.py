@@ -50,10 +50,8 @@ class Push_Down(Searcher):
     def __init__(self,schema,beam_width):
         self.handler=self.searcher.new(
                 beam_width,
-                schema.init,
+                schema.init_stat,
                 schema.shift,
                 schema.reduce,
                 schema.gen_features,
                 )
-    def set_raw(self,raw):
-        self.raw=raw

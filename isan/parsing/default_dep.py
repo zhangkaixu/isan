@@ -7,7 +7,9 @@ class Dep:
     left_reduce=ord('l')
     right_reduce=ord('r')
     #init=(0,(0,0),(None,None,None))
-    init=pickle.dumps((0,(0,0),(None,None,None)))
+    def init(self):
+        pass
+    init_stat=pickle.dumps((0,(0,0),(None,None,None)))
     Eval=eval.Eval
     codec=codec
     def shift(self,stat):
@@ -44,7 +46,7 @@ class Dep:
              
              ]
         return rtn
-    def set_raw(self,raw):
+    def set_raw(self,raw,_):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
         """

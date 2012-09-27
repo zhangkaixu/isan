@@ -1,6 +1,7 @@
 test
 data
 test.*
+test*
 test_ctb.zsh
 *.swp
 *.swo

@@ -100,6 +100,7 @@ class Base_Model(object):
         rst_actions=self.search(raw,Y_a)#得到解码后动作
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
 
+
         #update
         if y!=hat_y:#如果动作不一致，则更新
             self.update(std_actions,rst_actions)
