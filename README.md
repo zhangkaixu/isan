@@ -90,16 +90,16 @@ isan
 首先看看`./cws.sh`文件，其包含了模型的三个组成部分：
 
     ./isan.py \
-        --model isan.common.perceptrons.Base_Model \
-        --decoder isan.common.searcher.DFA \
-        --task isan.tagging.default_segger_c.Segger \
+        --model isan.common.perceptrons.Model \
+        --decoder isan.common.decoder.DFA \
+        --task isan.tagging.cws.Task \
         $*
     
-首先是`Segger`，包含了分词相关的所有代码，仔细阅读[源代码](https://github.com/zhangkaixu/isan/blob/master/isan/tagging/default_segger_c.py)中的所有内容，修改其中的代码，就能DIY出自己的分词模型。
+首先是`--task`，包含了分词相关的所有代码，仔细阅读[源代码](https://github.com/zhangkaixu/isan/blob/master/isan/tagging/default_segger_c.py)中的所有内容，修改其中的代码，就能DIY出自己的分词模型。
 
-其次是`Searcher`，是一个解码器，与具体的任务无关。分词使用的是基于状态转移的`DFA`解码器，也就是一个维特比解码器，相同解码器也可完成词性标注等任务。此外模型的特征权重也由Searcher管理。
+其次是`--decoder`，是一个解码器，与具体的任务无关。分词使用的是基于状态转移的`DFA`解码器，也就是一个维特比解码器，相同解码器也可完成词性标注等任务。此外模型的特征权重也由Searcher管理。
 
-最后是`Model`，是控制模型学习、预测过程的，与具体的任务和解码器均无关。该例子中使用的是平均感知器算法进行模型的学习和预测。
+最后是`--model`，是控制模型学习、预测过程的，与具体的任务和解码器均无关。该例子中使用的是平均感知器算法进行模型的学习和预测。
 
 ## Decoding
 
