@@ -146,17 +146,17 @@ unrar e icwb2-data.rar sighan05
 <p>首先看看<code>./cws.sh</code>文件，其包含了模型的三个组成部分：</p>
 
 <pre><code>./isan.py \
-    --model isan.common.perceptrons.Base_Model \
-    --decoder isan.common.searcher.DFA \
-    --task isan.tagging.default_segger_c.Segger \
+    --model isan.common.perceptrons.Model \
+    --decoder isan.common.decoder.DFA \
+    --task isan.tagging.cws.Task \
     $*
 </code></pre>
 
-<p>首先是<code>Segger</code>，包含了分词相关的所有代码，仔细阅读<a href="https://github.com/zhangkaixu/isan/blob/master/isan/tagging/default_segger_c.py">源代码</a>中的所有内容，修改其中的代码，就能DIY出自己的分词模型。</p>
+<p>首先是<code>--task</code>，包含了分词相关的所有代码，仔细阅读<a href="https://github.com/zhangkaixu/isan/blob/master/isan/tagging/default_segger_c.py">源代码</a>中的所有内容，修改其中的代码，就能DIY出自己的分词模型。</p>
 
-<p>其次是<code>Searcher</code>，是一个解码器，与具体的任务无关。分词使用的是基于状态转移的<code>DFA</code>解码器，也就是一个维特比解码器，相同解码器也可完成词性标注等任务。此外模型的特征权重也由Searcher管理。</p>
+<p>其次是<code>--decoder</code>，是一个解码器，与具体的任务无关。分词使用的是基于状态转移的<code>DFA</code>解码器，也就是一个维特比解码器，相同解码器也可完成词性标注等任务。此外模型的特征权重也由Searcher管理。</p>
 
-<p>最后是<code>Model</code>，是控制模型学习、预测过程的，与具体的任务和解码器均无关。该例子中使用的是平均感知器算法进行模型的学习和预测。</p>
+<p>最后是<code>--model</code>，是控制模型学习、预测过程的，与具体的任务和解码器均无关。该例子中使用的是平均感知器算法进行模型的学习和预测。</p>
 
 <h2>Decoding</h2>
 
