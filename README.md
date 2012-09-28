@@ -40,12 +40,12 @@ isan
     
 试着训练和测试，看看程序是否安装正确。
     
-    ./cws.py test.bin --train sighan05/msr_test_gold.utf8
-    ./cws.py test.bin --test sighan05/msr_test_gold.utf8
+    ./cws.sh test.bin --train sighan05/msr_test_gold.utf8
+    ./cws.sh test.bin --test sighan05/msr_test_gold.utf8
     
 如果以上一切顺利，将会看到测试结果能有0.99以上的F1值。接下来就可以试着真枪实弹地来一次，在MSR的训练集上迭代20次训练模型，每次迭代都将测试集作为开发集检查一下模型性能。
     
-    ./cws.py test.bin --train sighan05/msr_training.utf8 --iteration=20 --dev sighan05/msr_test_gold.utf8 --beam_width=16
+    ./cws.sh test.bin --train sighan05/msr_training.utf8 --iteration=20 --dev sighan05/msr_test_gold.utf8 --beam_width=16
     
 可以看到最后效果保持在0.973左右，一个还算可以的baseline吧？
 
@@ -55,7 +55,7 @@ isan
 
 以中文分词为例，命令行用法如下：
 
-    ./cws.py model_file [--train training_file] [--test test_file] [--dev dev_file]
+    ./cws.sh model_file [--train training_file] [--test test_file] [--dev dev_file]
         [--iteration iter] [--beam_width w]
 
 其中：
@@ -68,7 +68,7 @@ isan
 * `iter` 用来指定训练时的迭代次数
 * `w` 用来指定柱搜索解码中的搜索宽度（柱宽度）
 
-词性标注的基本命令行用法相同，只需要将`cws.py`替换为`tag.py`（当然部分功能尚未实现）。
+词性标注的基本命令行用法相同，只需要将`cws.sh`替换为`tag.py`（当然部分功能尚未实现）。
 
 ## Input & output
 
@@ -78,7 +78,7 @@ isan
 * 分词结果 `材料 利用率 高 。`
 * 词性标注结果 `材料_NN 利用率_NN 高_VA 。_PU`
 
-例如在分词`./cws.py`命令中，`training_file` 、 `dev_file`、 `test_file` 以及预测阶段的输出的格式均是使用的分词结果格式， 预测阶段的输入格式是原始句子格式。
+例如在分词`./cws.sh`命令中，`training_file` 、 `dev_file`、 `test_file` 以及预测阶段的输出的格式均是使用的分词结果格式， 预测阶段的输入格式是原始句子格式。
 
 
 # Architecture
@@ -87,13 +87,15 @@ isan
 
 ## The program
 
-首先看看`./cws.py`文件的`import`部分，其包含了模型的三个组成部分：
+首先看看`./cws.sh`文件，其包含了模型的三个组成部分：
 
-    from isan.tagging.default_segger import Segger as Segger
-    from isan.common.searcher import DFA as Searcher
-    from isan.common.perceptrons import Base_Model as Model
+    ./isan.py \
+        --model isan.common.perceptrons.Base_Model \
+        --decoder isan.common.searcher.DFA \
+        --task isan.tagging.default_segger_c.Segger \
+        $*
     
-首先是`Segger`，包含了分词相关的所有代码，仔细阅读[源代码](https://github.com/zhangkaixu/isan/blob/master/isan/tagging/default_segger.py)中的所有内容，修改其中的代码，就能DIY出自己的分词模型。
+首先是`Segger`，包含了分词相关的所有代码，仔细阅读[源代码](https://github.com/zhangkaixu/isan/blob/master/isan/tagging/default_segger_c.py)中的所有内容，修改其中的代码，就能DIY出自己的分词模型。
 
 其次是`Searcher`，是一个解码器，与具体的任务无关。分词使用的是基于状态转移的`DFA`解码器，也就是一个维特比解码器，相同解码器也可完成词性标注等任务。此外模型的特征权重也由Searcher管理。
 
