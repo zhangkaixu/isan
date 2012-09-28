@@ -2,6 +2,7 @@ from struct import Struct
 import isan.tagging.eval as tagging_eval
 import isan.tagging.cwstask as cwstask
 import json
+import random
 
 
 """
@@ -21,9 +22,15 @@ class Segger:
         @staticmethod
         def decode(line):
             """从一行文本中，得到输入（raw）和输出（y）"""
+            line=line.strip()
             if not line: return []
+            if line[0]=='{':
+                return json.loads(line)
             seq=[word for word in line.split()]
             raw=''.join(seq)
+            
+            #Y_b=sum((['c']*(len(w)-1)+['s'] for w in seq),['s'])
+
             return {'raw':raw,
                     'y':seq,
                     'Y_a' : None,
@@ -60,14 +67,25 @@ class Segger:
     """根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了"""
     def gen_actions_and_stats(self,stat):
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
+        if self.actions and self.actions[ind]:
+            if self.actions[ind]=='s':
+                return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl))]
+            else :
+                return [(self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+        if self.intervals :
+            rtn=[]
+            ll,lr=self.intervals[ind-wordl]
+            rl,rr=self.intervals[ind]
+            if lr!=-1 and lr<=ind :
+                return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl))]
+            if rl!=-1 and ind-wordl<rl :
+                return [(self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
         return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
 
     """分词搜索时的初始状态"""
     def init(self):
-        #self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
-        #self.set_raw=
-        #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
+        #_,_,self.gen_features=cwstask.new()
         pass
  
 
@@ -89,18 +107,17 @@ class Segger:
         return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
     """这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度"""
-    def set_raw(self,raw,_):
+    def set_raw(self,raw,Y=None):
+        if Y:
+            self.actions,self.intervals=Y
+        else:
+            self.actions,self.intervals=None,None
         self.raw=raw
         uni_chars=list(x.encode() for x in '###'+raw+'##')
         bi_chars=[uni_chars[i]+uni_chars[i+1]
                 for i in range(len(uni_chars)-1)]
-        #self.identical=[b'1' if uni_chars[i]!=b'#' and uni_chars[i]==uni_chars[i+1] else b'0' 
-        #        for i in range(len(uni_chars)-1)
-        #        ]
         self.uni_chars=uni_chars
         self.uni_fv=[]
-        #print(raw)
-        #print(self.identical)
         for ind in range(len(raw)+1):
             c_ind=ind+2
             self.uni_fv.append([])
@@ -109,29 +126,12 @@ class Segger:
                     b"1"+uni_chars[c_ind]+ws_current,
                     b"2"+uni_chars[c_ind+1]+ws_current,
                     b'3'+uni_chars[c_ind-1]+ws_current,
-                    #b'z'+uni_chars[c_ind+1]+uni_chars[c_ind-1]+ws_current,
                     b"a"+bi_chars[c_ind]+ws_current,
                     b"b"+bi_chars[c_ind-1]+ws_current,
                     b"c"+bi_chars[c_ind+1]+ws_current,
                     b"d"+bi_chars[c_ind-2]+ws_current,
                 ])
         return
-        self.bi_fv=[]
-        for ind in range(len(raw)+1):
-            c_ind=ind+2
-            self.bi_fv.append([])
-            al=[
-                        b"'1"+uni_chars[c_ind],
-                        #b"'2"+uni_chars[c_ind+1],
-                        b"'3"+uni_chars[c_ind-1],
-                        #b"'a"+bi_chars[c_ind],
-                        b"'b"+bi_chars[c_ind-1],
-                        #b"'c"+bi_chars[c_ind+1],
-                        #b"'d"+bi_chars[c_ind-2],
-                    ]
-            for ws_current in [b'0',b'1',b'2']:
-                for ws_last in [b'0',b'1',b'2']:
-                    self.bi_fv[-1].append([x+ws_current+ws_last for x in al])
 
 
     """暂时忽略它"""

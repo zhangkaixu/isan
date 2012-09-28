@@ -94,7 +94,13 @@ class Base_Model(object):
         if y and not Y_b:
             std_actions=self.schema.result_to_actions(y)#得到标准动作
         else:
-            std_actions=self.search(raw)
+            std_actions=self.search(raw,Y_b)
+            #yy=self.schema.actions_to_result(std_actions,raw)
+            #if Y_b[1]:
+            #    print(y)
+            #    print(Y_b[1])
+            #    print(yy)
+            #    input()
 
         #get result actions
         rst_actions=self.search(raw,Y_a)#得到解码后动作
