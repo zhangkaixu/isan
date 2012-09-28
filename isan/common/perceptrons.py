@@ -2,7 +2,7 @@
 import sys
 import pickle
 
-class Base_Model(object):
+class Model(object):
     name="平均感知器"
     def __init__(self,model_file,schema=None,Searcher=None,beam_width=8,**conf):
         """

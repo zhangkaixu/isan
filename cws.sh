@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ./isan.py \
-    --model isan.common.perceptrons.Base_Model \
-    --decoder isan.common.searcher.DFA \
-    --task isan.tagging.default_segger_c.Segger \
+    --model isan.common.perceptrons.Model \
+    --decoder isan.common.decoder.DFA \
+    --task isan.tagging.cws.Task \
     $*
