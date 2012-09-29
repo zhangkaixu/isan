@@ -59,9 +59,9 @@ class Dep:
                     pickle.dumps(
                 (ind+1,
                 (ind,ind+1),
-                ((raw[ind][0],raw[ind][1],None,None),
+                (raw[ind][0],
                         stack_top[0],
-                        stack_top[1][1] if stack_top[1] else None)
+                        stack_top[1])
                 )))
                 ]
         return rtn
@@ -77,17 +77,48 @@ class Dep:
         if self.intervals:
             if self.intervals[l][1]!=-1 and self.intervals[l][1]<r: return []
             if self.intervals[r][0]!=-1 and self.intervals[r][1]>l: return []
-
+        s01=s1+s0
         rtn= [
             (self.left_reduce,pickle.dumps((ind,
                 (p_span[0],span[1]),
-                ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2])))),
+                (s01 if len(s01)<=2 else s1,predictor[2][1],predictor[2][2])))),
              (self.right_reduce,pickle.dumps((ind,
                 (p_span[0],span[1]),
-                ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])))),
-             
+                (s01 if len(s01)<=2 else s0,predictor[2][1],predictor[2][2])))),
              ]
         return rtn
+    def actions_to_stats(self,actions):
+        sn=sum(1 if a==self.shift_action else 0 for a in actions)
+        assert(sn*2-1==len(actions))
+        stat=None
+        stack=[]
+        ind=0
+        for action in actions:
+            stat=(ind,(0,0)if not stack else (stack[-1][4],stack[-1][5]),
+                    (
+                        stack[-1][0] if len(stack)>0 else None,
+                        stack[-2][0] if len(stack)>1 else None,
+                        stack[-3][0] if len(stack)>2 else None,
+                    ))
+            yield pickle.dumps(stat)
+            if action==self.shift_action:
+                stack.append([self.raw[ind],self.raw[ind],None,None,ind,ind+1])
+                ind+=1
+            else:
+                s01=stack[-1][0]+stack[-2][0]
+                if action==self.left_reduce:
+                    if len(s01)<=2 :
+                        stack[-2][0]=s01
+                    stack[-2][3]=stack[-1][1]
+                    stack[-2][5]=stack[-1][5]
+                    stack.pop()
+                if action==self.right_reduce:
+                    stack[-1][2]=stack[-2][1]
+                    stack[-1][4]=stack[-2][4]
+                    stack[-2]=stack[-1]
+                    if len(s01)<=2 :
+                        stack[-2][0]=s01
+                    stack.pop()
     def set_raw(self,raw,Y):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
@@ -96,66 +127,32 @@ class Dep:
             self.intervals=Y[1]
         else:
             self.intervals=None
-        self.raw=[[w,'x'] for w in raw]
-        self.f_raw=[[w.encode()if w else b'',t.encode()if t else b''] for w,t in self.raw]
+        self.raw=raw
+        self.f_raw=[w.encode() for w in self.raw]
     def gen_features(self,stat):
         stat=pickle.loads(stat)
         ind,_,stack_top=stat
-        s0,s1,s2_t=stack_top
+        s0,s1,s2=stack_top
 
-        s2_t=b'' if s2_t is None else s2_t.encode()
+        q0=self.f_raw[ind] if ind<len(self.f_raw) else b''
+        q1=self.f_raw[ind+1] if ind+1<len(self.f_raw) else b''
+        c0=self.f_raw[ind-1] if ind-1>=0 else b''
 
-        if s0:
-            s0_w,s0_t,s0l_t,s0r_t=s0
-            s0l_t=b'' if s0l_t is None else s0l_t.encode()
-            s0r_t=b'' if s0r_t is None else s0r_t.encode()
-            s0_w=s0_w.encode()
-            s0_t=s0_t.encode()
-        else:
-            s0_w,s0_t,s0l_t,s0r_t=b'',b'',b'',b''
+        s0=(s0.encode() if s0 else b'')
+        s1=(s1.encode() if s1 else b'')
+        s2=(s2.encode() if s2 else b'')
 
-        if s1:
-            s1_w,s1_t,s1l_t,s1r_t=s1
-            s1l_t=b'' if s1l_t is None else s1l_t.encode()
-            s1r_t=b'' if s1r_t is None else s1r_t.encode()
-            s1_w=s1_w.encode()
-            s1_t=s1_t.encode()
-        else:
-            s1_w,s1_t,s1l_t,s1r_t=b'',b'',b'',b''
-
-        q0_w,q0_t=self.f_raw[ind] if ind<len(self.f_raw) else (b'',b'')
-        q1_w,q1_t=self.f_raw[ind+1] if ind+1<len(self.f_raw) else (b'',b'')
         
         
         fv=[
-                b'0'+s0_w,
-                b'1'+s0_t,
-                b'2'+s0_w+s0_t,
-                b'3'+s1_w,
-                b'4'+s1_t,
-                b'5'+s1_w+s1_t,
-                b'6'+q0_w,
-                b'7'+q0_t,
-                b'8'+q0_w+q0_t,
-                b'9'+s0_w+s1_w,
-                b'0'+s0_t+s1_t,
-                b'a'+s0_t+q0_t,
-                b'b'+s0_w+s0_t+s1_t,
-                b'c'+s0_t+s1_w+s1_t,
-                b'd'+s0_w+s0_t+s1_w,
-                b'e'+s0_w+s1_w+s1_t,
-                b'f'+s0_w+s0_t+s1_w+s1_t,
-                b'g'+s0_t+q0_t+q1_t,
-                b'h'+s0_t+s1_t+q0_t,
-                b'i'+s0_w+q0_t+q1_t,
-                b'j'+s0_w+s1_t+q0_t,
-                b'k'+s0_t+s1_t+s0l_t,
-                b'l'+s0_t+s1_t+s0r_t,
-                b'm'+s0_t+s1_t+s1l_t,
-                b'n'+s0_t+s1_t+s1r_t,
-                b'o'+s0_t+s0_w+s0l_t,
-                b'p'+s0_t+s0_w+s0r_t,
-                b'q'+s0_t+s1_t+s2_t,
+                b'0'+s0,
+                b'1'+s1,
+                b'2'+s2,
+                b'3'+s1+b' '+s2,
+                b'4'+s0+b' '+q0,
+                b'5'+q0+b' '+q1,
+                b'6'+q0,
+                b'6'+c0,
                 ]
         return fv
     def actions_to_result(self,actions,raw):
@@ -217,28 +214,3 @@ class Dep:
                     break
         assert(len(actions)==2*len(result)-1)
         return actions
-    def actions_to_stats(self,actions):
-        sn=sum(1 if a==self.shift_action else 0 for a in actions)
-        assert(sn*2-1==len(actions))
-        stat=None
-        stack=[]
-        ind=0
-        for action in actions:
-            stat=(ind,(0,0)if not stack else (stack[-1][4],stack[-1][5]),(tuple(stack[-1][:4]) if len(stack)>0 else None,
-                tuple(stack[-2][:4]) if len(stack)>1 else None,
-                        stack[-3][1] if len(stack)>2 else None,
-                        ))
-            yield pickle.dumps(stat)
-            if action==self.shift_action:
-                stack.append([self.raw[ind][0],self.raw[ind][1],None,None,ind,ind+1])
-                ind+=1
-            else:
-                if action==self.left_reduce:
-                    stack[-2][3]=stack[-1][1]
-                    stack[-2][5]=stack[-1][5]
-                    stack.pop()
-                if action==self.right_reduce:
-                    stack[-1][2]=stack[-2][1]
-                    stack[-1][4]=stack[-2][4]
-                    stack[-2]=stack[-1]
-                    stack.pop()
