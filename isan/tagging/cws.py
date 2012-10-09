@@ -64,7 +64,7 @@ class Task:
 
     """分词搜索时的初始状态"""
     def init(self):
-        #self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
+        self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
         #self.set_raw=
         #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
         pass
@@ -108,7 +108,6 @@ class Task:
                     b"1"+uni_chars[c_ind]+ws_current,
                     b"2"+uni_chars[c_ind+1]+ws_current,
                     b'3'+uni_chars[c_ind-1]+ws_current,
-                    #b'z'+uni_chars[c_ind+1]+uni_chars[c_ind-1]+ws_current,
                     b"a"+bi_chars[c_ind]+ws_current,
                     b"b"+bi_chars[c_ind-1]+ws_current,
                     b"c"+bi_chars[c_ind+1]+ws_current,
@@ -161,9 +160,7 @@ class Task:
         #if ws_current==b'2':bind+=2
         #if ws_left==b'2':bind+=1
         fv=(self.uni_fv[ind][ws_current[0]-48]+
-                #self.bi_fv[span[0]][(ws_current[0]-48)*3+ws_left[0]-48]+
                 [ 
-                #b"i"+self.identical[ind+2],
                 b"0"+ws_current+ws_left,
                 b"w"+w_current.encode(),
                 b"l"+w_c_len,
@@ -178,19 +175,8 @@ class Task:
 
                 b"wl2"+w_current.encode()+w_l_len,
                 b"w2l"+w_last.encode()+w_c_len,
-                #b"w2w"+w_last.encode()+b" "+w_current.encode(),
-                #b'w2_-1cl'+w2_r+w_l_len+self.uni_chars[ind+3],
-
-
-                #b"w_0cl"+w_l+self.uni_chars[ind+3]+w_c_len,
-                #b"w_-1cl"+w_r+self.uni_chars[ind+3]+w_c_len,
-                #b"w2_0l"+w2_l+w_c_len,
-                #b"w2_-1l"+w2_r+w_c_len,
-                #b"cl"+self.uni_chars[ind+3]+w_c_len,
-                #b"l'l"+chr(len(w_current)+1).encode()+chr(len(w_last)+1).encode(),
                 ]
                 )
-        #print(w_r,self.uni_chars[ind+2])
         return fv
     """最后告诉isan，如何评价模型的输出和标准答案的输出的好坏。具体可以看这个class"""
     Eval=tagging_eval.TaggingEval

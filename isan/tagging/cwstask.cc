@@ -118,12 +118,16 @@ public:
     };
     ~CWS_Feature_Generator(){
     };
+
+
+    
     void operator()(const State_Type& super_state, Feature_Vector& fv){
         Default_State_Type& state=(Default_State_Type&)super_state;
         int ind=*(unsigned short*)state.pt;
         const Action_Type& left_action=*state.last_action();
         const Action_Type& left_left_action=*state.last_last_action();
         unsigned short sep_ind=*state.sep_ind();
+        unsigned short sep_ind_2=*state.sep_ind_2();
         
         const Chinese_Character& char_mid=ind-1>=0?raw->pt[ind-1]:-1;
         const Chinese_Character& char_right=ind<raw->length?raw->pt[ind]:-1;
@@ -140,11 +144,65 @@ public:
         
         fv.push_back(Feature_String((unsigned char*)&f_trans,sizeof(f_trans)));
         fv.push_back(Feature_String((unsigned char*)& f_wl,sizeof( f_wl)));
+        //word
         fv.push_back(Feature_String(1+sizeof(Chinese_Character)*sep_ind));
         fv.back().pt[0]=10;
         for(int i=0;i<sep_ind;i++)
             *(Chinese_Character *) (fv.back().pt+1+i*sizeof(Chinese_Character))= raw->pt[ind-sep_ind+i];
 
+
+        const Chinese_Character& w_l=sep_ind?raw->pt[ind-sep_ind]:3;
+        const Chinese_Character& w_r=sep_ind?raw->pt[ind-1]:3;
+
+        const Chinese_Character& w2_l=sep_ind_2?raw->pt[ind-sep_ind-sep_ind_2]:3;
+        const Chinese_Character& w2_r=sep_ind_2?raw->pt[ind-sep_ind-1]:3;
+        //
+        fv.push_back(Feature_String(1+sizeof(Chinese_Character)+sizeof(unsigned short)));
+        fv.back().pt[0]=11;
+        (*(unsigned short*)(fv.back().pt+1))=(sep_ind+1);
+        (*(Chinese_Character*)(fv.back().pt+1+sizeof(unsigned short)))=w_l;
+        //
+        fv.push_back(Feature_String(1+sizeof(Chinese_Character)+sizeof(unsigned short)));
+        fv.back().pt[0]=12;
+        (*(unsigned short*)(fv.back().pt+1))=(sep_ind+1);
+        (*(Chinese_Character*)(fv.back().pt+1+sizeof(unsigned short)))=w_r;
+        //
+        fv.push_back(Feature_String(1+2*sizeof(Chinese_Character)));
+        fv.back().pt[0]=13;
+        (*(Chinese_Character*)(fv.back().pt+1))=w_r;
+        (*(Chinese_Character*)(fv.back().pt+1+sizeof(Chinese_Character)))=w_l;
+        //
+        fv.push_back(Feature_String(1+2*sizeof(Chinese_Character)));
+        fv.back().pt[0]=14;
+        (*(Chinese_Character*)(fv.back().pt+1))=w_r;
+        (*(Chinese_Character*)(fv.back().pt+1+sizeof(Chinese_Character)))=w2_r;
+
+        //
+        fv.push_back(Feature_String(1+2*sizeof(Chinese_Character)));
+        fv.back().pt[0]=15;
+        (*(Chinese_Character*)(fv.back().pt+1))=w_r;
+        (*(Chinese_Character*)(fv.back().pt+1+sizeof(Chinese_Character)))=char_right;
+        //
+        fv.push_back(Feature_String(1+2*sizeof(Chinese_Character)));
+        fv.back().pt[0]=16;
+        (*(Chinese_Character*)(fv.back().pt+1))=w_l;
+        (*(Chinese_Character*)(fv.back().pt+1+sizeof(Chinese_Character)))=char_right;
+
+
+        //word
+        fv.push_back(Feature_String(1+sizeof(unsigned short)+sizeof(Chinese_Character)*sep_ind));
+        fv.back().pt[0]=17;
+        (*(unsigned short*)(fv.back().pt+1))=(sep_ind_2+1);
+        for(int i=0;i<sep_ind;i++)
+            *(Chinese_Character *) (fv.back().pt+1+sizeof(unsigned short)+i*sizeof(Chinese_Character))= raw->pt[ind-sep_ind+i];
+        //word
+        fv.push_back(Feature_String(1+sizeof(unsigned short)+sizeof(Chinese_Character)*sep_ind_2));
+        fv.back().pt[0]=18;
+        (*(unsigned short*)(fv.back().pt+1))=(sep_ind+1);
+        for(int i=0;i<sep_ind_2;i++)
+            *(Chinese_Character *) (fv.back().pt+1+sizeof(unsigned short)+i*sizeof(Chinese_Character))= raw->pt[ind-sep_ind-sep_ind_2+i];
+
+        //make sure there is no ZERO in the feature strings!
         for(int i=0;i<fv.size();i++){
             register auto f=fv[i];
             for(int j=0;j<f.size();j++){
