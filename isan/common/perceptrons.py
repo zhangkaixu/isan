@@ -89,26 +89,32 @@ class Model(object):
         
         #学习步数加一
         self.step+=1
+        if self.step%100==0:
+            #print('*',end='')
+            #sys.stdout.flush()
+            pass
 
-        #get standard actions
-        if y and not Y_b:
-            std_actions=self.schema.result_to_actions(y)#得到标准动作
-        else:
-            std_actions=self.search(raw,Y_b)
-            #yy=self.schema.actions_to_result(std_actions,raw)
-            #if Y_b[1]:
-            #    print(y)
-            #    print(Y_b[1])
-            #    print(yy)
-            #    input()
 
         #get result actions
         rst_actions=self.search(raw,Y_a)#得到解码后动作
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
 
+        #get standard actions
+        #if y and not Y_b:
+        #    std_actions=self.schema.result_to_actions(y)#得到标准动作
+        #else:
+        #    std_actions=self.search(raw,Y_b)
+
 
         #update
-        if y!=hat_y:#如果动作不一致，则更新
+        #if y!=hat_y:#如果动作不一致，则更新
+        #if std_actions!=rst_actions:#如果动作不一致，则更新
+        if not self.schema.is_belong(hat_y,Y_b): #y!=hat_y:#如果动作不一致，则更新
+            if y and not Y_b:
+                std_actions=self.schema.result_to_actions(y)#得到标准动作
+            else:
+                std_actions=self.search(raw,Y_b)
+
             self.update(std_actions,rst_actions)
         return y,hat_y
     def update(self,std_actions,rst_actions):

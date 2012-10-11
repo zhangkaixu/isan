@@ -64,6 +64,33 @@ class Segger:
     """分词搜索时的初始状态"""
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0,0))
 
+
+    def is_belong(self,y,Y):
+        seq,intervals=Y
+
+        if intervals :
+            offset=0
+            for w in y:
+                r=intervals[offset][1]
+                if r!=-1 and offset+len(w)>r : 
+                    #print(y)
+                    return False
+                l=intervals[offset+len(w)][0]
+                if l!=-1 and l>offset : return False
+                offset+=len(w)
+            return True
+        if seq:
+            
+            actions=self.result_to_actions(y)
+            #print(actions)
+            #print(seq)
+            for a,s in zip(actions,seq):
+                if s and ((s=='s' and a!=self.sep) or (s=='c' and a!=self.com)) : 
+                    #print("f")
+                    return False
+            #print("t")
+            return True
+
     """根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了"""
     def gen_actions_and_stats(self,stat):
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
