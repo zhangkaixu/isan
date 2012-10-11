@@ -85,7 +85,8 @@ class Segger:
 
     """分词搜索时的初始状态"""
     def init(self):
-        #_,_,self.gen_features=cwstask.new()
+        #self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
+        _,_,self.gen_features=cwstask.new()
         pass
  
 
