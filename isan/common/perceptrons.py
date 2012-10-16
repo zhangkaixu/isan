@@ -88,11 +88,6 @@ class Model(object):
         
         #学习步数加一
         self.step+=1
-        if self.step%100==0:
-            #print('*',end='')
-            #sys.stdout.flush()
-            pass
-
 
         #get result actions
         rst_actions=self.search(raw,Y_a)#得到解码后动作
