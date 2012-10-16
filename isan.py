@@ -18,6 +18,7 @@ def command_line(Model,Task,Decoder):
     parser.add_argument('--test',help='测试用文件',dest='test_file')
     parser.add_argument('--dev',help='开发用文件',dest='dev_file',default=None)
     parser.add_argument('--beam_width',help='搜索宽度',dest='beam_width',default='8')
+    parser.add_argument('--threshold',help='阈值',dest='threshold',type=int,default=0)
     args=parser.parse_args()
     """如果指定了训练集，就训练模型"""
     info_color='34'
@@ -74,10 +75,16 @@ def command_line(Model,Task,Decoder):
         model.test(args.test_file)
         exit()
     if not args.test_file and not args.train:
-        print("以%s作为输入，以%s作为输出"%(make_color('标准输入流'),make_color('标准输出流')),file=sys.stderr)
+        threshold=args.threshold
+        print("以 %s 作为输入，以 %s 作为输出"%(make_color('标准输入流'),make_color('标准输出流')),file=sys.stderr)
+        if threshold :
+            print("输出分数差距在 %s 之内的候选词"%(make_color(threshold*1000)))
         for line in sys.stdin:
             line=line.strip()
-            print(*model(line))
+            if threshold :
+                print(model.schema.codec.candidates_encode(model(line,threshold=threshold)))
+            else :
+                print(model.schema.codec.encode(model(line)))
     return args
 if __name__ == '__main__':
     command_line(None,None,None)

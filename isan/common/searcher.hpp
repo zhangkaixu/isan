@@ -24,12 +24,15 @@ public:
 };
 
 
+/*
+ * 线性搜索的alpha
+ * */
 template<class ACTION,class STATE,class SCORE>
 struct Alpha_t{
-    SCORE score;
-    SCORE inc;
-    ACTION action;
-    STATE state1;
+    SCORE score;// score now
+    SCORE inc;// score of last action
+    ACTION action;//last action
+    STATE state1;//last state
     Alpha_t(){
         this->score=0;
     };
@@ -81,6 +84,7 @@ template<class ACTION,class STATE,class SCORE, template <class,class,class>class
 struct State_Info{
     typedef ALPHA<ACTION,STATE,SCORE> Alpha;
     std::vector<Alpha> alphas;
+    std::vector<Alpha> betas;
     inline void max_top(){
         if(alphas.size()==0)
             return;
@@ -90,6 +94,16 @@ struct State_Info{
                 max_ind=ind;
         if(max_ind)
             std::swap(alphas[max_ind],alphas[0]);
+    };
+    inline void max_top_beta(){
+        if(betas.size()==0)
+            return;
+        int max_ind=0;
+        for(int ind=1;ind<betas.size();ind++)
+            if (betas[max_ind].score < betas[ind].score)
+                max_ind=ind;
+        if(max_ind)
+            std::swap(betas[max_ind],betas[0]);
     };
 };
 
@@ -179,6 +193,51 @@ public:
         std::cin>>x;
     };
 
+    /*
+     * beta
+     * */
+    void cal_betas(){
+        int ind=this->sequence.size()-1;
+        My_Map* map=(this->sequence[ind]);
+        for(auto iter=map->begin();iter!=map->end();++iter){
+            iter->second.betas.push_back(Alpha());
+        };
+        while(ind){
+            map=(this->sequence[ind]);
+            for(auto iter=map->begin();iter!=map->end();++iter){
+                if(!iter->second.betas.size())continue;
+                auto alphas=iter->second.alphas;
+                auto beta=iter->second.betas[0];
+                for(auto alpha=alphas.begin();alpha!=alphas.end();++alpha){
+                    (*this->sequence[ind-1])[alpha->state1].betas.push_back(Alpha(
+                                beta.score+alpha->inc,
+                                alpha->inc,
+                                alpha->action,
+                                iter->first
+                                ));
+                };
+            };
+            ind--;
+            map=(this->sequence[ind]);
+            for(auto iter=map->begin();iter!=map->end();++iter){
+                iter->second.max_top_beta();
+            };
+        };
+    };
+    void get_states(std::vector<STATE>& states,std::vector<SCORE>& scores){
+        states.clear();
+        scores.clear();
+        //std::cout<<this->sequence.size()<<"\n";
+        for(int ind = 0; ind < this->sequence.size(); ind++){
+            My_Map* map=(this->sequence[ind]);
+            for(auto iter=map->begin();iter!=map->end();++iter){
+                if(iter->second.alphas.size() && iter->second.betas.size()){
+                    states.push_back(iter->first);
+                    scores.push_back(iter->second.alphas[0].score+iter->second.betas[0].score);
+                };
+            };
+        };
+    };
 
     /*
      * 线性搜索
@@ -190,36 +249,29 @@ public:
         std::vector<SCORE> scores;
         typename My_Map::iterator got;
         
+        //初始化sequence
         if(this->sequence.size()){
             for(int i=0;i<this->sequence.size();i++)
                 delete this->sequence[i];
         }
         this->sequence.clear();
         this->sequence.push_back(new My_Map());
-        
         (*this->sequence.back())[init_key]=State_Info();
         (*this->sequence.back())[init_key].alphas.push_back(Alpha());
-        //(*this->sequence.back())[init_key].alphas[0].score=0;
         
+        //
         for(int step=0;step<steps;step++){
             this->thrink(step,beam);//thrink, get beam
-            //print_beam(beam);
-            //std::cout<<step<<" "<<beam.size()<<" here\n";
             this->sequence.push_back(new My_Map());
             My_Map& this_map=(*this->sequence.back());
             //gen_next
             for(int i=0;i<beam.size();i++){
-                //std::cout<<"beam "<<i<<"\n";
                 STATE& last_key=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
 
-                //std::cout<<"key "<<(int)*(char*)&last_key<<"\n";
-                //std::cout<<"call gen_next "<<"\n";
                 this->data->shift(last_key,next_actions,next_keys,scores);
-                //std::cout<<"gen_next ed "<<"\n";
                 
                 for(int j=0;j<next_actions.size();j++){
-                    //std::cout<<"    next "<<j<<"\n";
                     STATE& key=next_keys[j];
                     got=this_map.find(key);
 
@@ -245,14 +297,14 @@ public:
         //make result
         this->thrink(steps,beam);
         sort(beam.begin(),beam.end(),state_comp_less);
-        Alpha& item=(*this->sequence[steps])[beam.back().first].alphas[0];
+        Alpha* item=&((*this->sequence[steps])[beam.back().first].alphas[0]);
+
 
         result.resize(steps);
         int ind=steps-1;
         while(ind>=0){
-            //std::cout<<ind<<" "<<item.last_action<<"\n";
-            result[ind]=item.action;
-            item=(*this->sequence[ind])[item.state1].alphas[0];
+            result[ind]=item->action;
+            item=&((*this->sequence[ind])[item->state1].alphas[0]);
             ind--;
         };
     };

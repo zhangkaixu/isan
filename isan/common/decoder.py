@@ -19,6 +19,9 @@ class Searcher:
 
     def make_dat(self):
         self.searcher.make_dat(self.handler)
+        
+    def get_states(self):
+        return self.searcher.get_states(self.handler)
 
     def set_raw(self,raw):
         self.raw=raw

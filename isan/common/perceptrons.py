@@ -43,6 +43,7 @@ class Model(object):
             eval(y,hat_y)
         eval.print_result()
         return eval
+    
     def develop(self,dev_file):
         self.searcher.average_weights(self.step)
         eval=self.schema.Eval()
@@ -51,6 +52,8 @@ class Model(object):
             raw=arg.get('raw')
             y=arg.get('y',None)
             hat_y=self(raw)
+            
+
             eval(y,hat_y)
         eval.print_result()
         self.searcher.un_average_weights()
@@ -71,13 +74,18 @@ class Model(object):
         self.searcher.set_raw(raw)
         return self.searcher.search()
 
-    def __call__(self,raw,Y=None):
+    def __call__(self,raw,Y=None,threshold=0):
         """
         解码，读入生句子，返回词的数组
         """
         rst_actions=self.search(raw,Y)
         hat_y=self.schema.actions_to_result(rst_actions,raw)
-        return hat_y
+        if threshold==0 : 
+            return hat_y
+        else:
+            states=self.searcher.get_states()
+            return self.schema.gen_candidate(states,threshold)
+
     def _learn_sentence(self,arg):
         """
         学习，根据生句子和标准分词结果

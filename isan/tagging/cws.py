@@ -28,8 +28,12 @@ class Task:
                     'Y_a' : None,
                     'Y_b' : None,
                     }
-        def encode():
-            pass
+        @staticmethod
+        def encode(y):
+            return ' '.join(y)
+        @staticmethod
+        def candidates_encode(y):
+            return ' '.join(str(i[0])+'_'+i[1]+('_'+str(s)) for i,s in y)
 
     """下面不妨给动作（一个unsigned char类型）定义一下名字
     分词中有两个动作：断与连"""
@@ -132,9 +136,6 @@ class Task:
                     self.bi_fv[-1].append([x+ws_current+ws_last for x in al])
 
 
-    """暂时忽略它"""
-    def set_Y(self,Y):
-        pass
 
     """告诉isan，一个状态能生成哪些特征向量，每个特征也是一个bytes类型，且其中不能有0"""
     def gen_features(self,span):
@@ -180,3 +181,21 @@ class Task:
         return fv
     """最后告诉isan，如何评价模型的输出和标准答案的输出的好坏。具体可以看这个class"""
     Eval=tagging_eval.TaggingEval
+
+    def gen_candidate(self,states,threshold=10):
+        threshold=threshold*1000
+        raw=self.raw
+        cands={}
+        for state,score in states :
+            ind,last,_,sep_ind,sep_ind2=self.stat_fmt.unpack(state)
+            w_current=self.raw[ind-sep_ind:ind]
+            w_last=self.raw[ind-sep_ind-sep_ind2:ind-sep_ind]
+            if not w_last : continue
+            key=(ind-sep_ind-sep_ind2,w_last)
+            if key not in cands or cands[key]<score :
+                cands[key]=score
+        
+        s=max(cands.values())
+        cands=list((k,v-s)for k,v in cands.items() if v+threshold>s)
+        cands.sort()
+        return cands

@@ -14,7 +14,6 @@ using namespace isan;
 static PyObject *
 search(PyObject *self, PyObject *arg)
 {
-
     Interface* interface;
     unsigned long steps;
     PyArg_ParseTuple(arg, "LL", &interface,&steps);
@@ -31,6 +30,28 @@ search(PyObject *self, PyObject *arg)
     return list;
 };
 
+static PyObject *
+get_states(PyObject *self, PyObject *arg)
+{
+    Interface* interface;
+    PyArg_ParseTuple(arg, "L", &interface);
+    interface->push_down->cal_betas();
+
+    std::vector<State_Type > states;
+    std::vector<Score> scores;
+
+    interface->push_down->get_states(states,scores);
+
+    //std::cout<<states.size()<<"\n";
+    PyObject * list=PyList_New(states.size());
+    for(int i=0;i<states.size();i++){
+        PyList_SetItem(list,i,
+                    PyTuple_Pack(2,states[i].pack(),PyLong_FromLong(scores[i]))
+                );
+    };
+    return list;
+
+};
 
 static PyObject *
 searcher_new(PyObject *self, PyObject *arg)
@@ -48,12 +69,6 @@ searcher_new(PyObject *self, PyObject *arg)
     return PyLong_FromLong((long)interface);
 };
 
-
-
-
-
-
-
 /** stuffs about the module def */
 static PyMethodDef dfabeamMethods[] = {
     {"new",  searcher_new, METH_VARARGS,""},
@@ -66,6 +81,7 @@ static PyMethodDef dfabeamMethods[] = {
     {"make_dat",  make_dat, METH_VARARGS,""},
     {"average_weights", average_weights , METH_VARARGS,""},
     {"un_average_weights", un_average_weights , METH_VARARGS,""},
+    {"get_states",  get_states, METH_VARARGS,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 static struct PyModuleDef dfabeammodule = {
