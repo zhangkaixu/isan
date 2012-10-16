@@ -85,7 +85,6 @@ class Model(object):
         raw=arg.get('raw')
         y=arg.get('y',None)
         Y_a=arg.get('Y_a',None)
-        Y_b=arg.get('Y_b',None)
         
         #学习步数加一
         self.step+=1
@@ -100,21 +99,11 @@ class Model(object):
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
 
         #get standard actions
-        #if y and not Y_b:
-        #    std_actions=self.schema.result_to_actions(y)#得到标准动作
-        #else:
-        #    std_actions=self.search(raw,Y_b)
-
+        std_actions=self.schema.result_to_actions(y)#得到标准动作
 
         #update
         #if y!=hat_y:#如果动作不一致，则更新
-        #if std_actions!=rst_actions:#如果动作不一致，则更新
-        if not self.schema.is_belong(hat_y,Y_b): #y!=hat_y:#如果动作不一致，则更新
-            if y and not Y_b:
-                std_actions=self.schema.result_to_actions(y)#得到标准动作
-            else:
-                std_actions=self.search(raw,Y_b)
-
+        if std_actions!=rst_actions:#如果动作不一致，则更新
             self.update(std_actions,rst_actions)
         return y,hat_y
     def update(self,std_actions,rst_actions):
@@ -142,3 +131,32 @@ class Model(object):
             if dev_file:
                 print("使用开发集 %s 评价当前模型效果"%(dev_file),file=sys.stderr)
                 self.develop(dev_file)
+            #input('end of one iteration')
+
+class Model_PA(Model) :
+    name="局部标注平均感知器"
+    def _learn_sentence(self,arg):
+        """
+        学习，根据生句子和标准分词结果
+        """
+        raw=arg.get('raw')
+        y=arg.get('y',None)
+        Y_a=arg.get('Y_a',None)
+        Y_b=arg.get('Y_b',None)
+        
+        #学习步数加一
+        self.step+=1
+        if self.step%100==0:
+            pass
+
+        #get result actions
+        rst_actions=self.search(raw,Y_a)#得到解码后动作
+        hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
+
+        if not self.schema.is_belong(hat_y,Y_b): #y!=hat_y:#如果动作不一致，则更新
+            if y and not Y_b:
+                std_actions=self.schema.result_to_actions(y)#得到标准动作
+            else:
+                std_actions=self.search(raw,Y_b)
+            self.update(std_actions,rst_actions)
+        return y,hat_y

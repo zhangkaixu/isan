@@ -34,7 +34,7 @@ def to_full(text,ignore=set()):
         否则不变
     """
     
-    return ''.join(chr(12288) if x==32 else chr(x+65248) if x<128 and x>32 and x not in ignore else chr(x)
+    return ''.join(chr(12288) if x==32 else chr(x+65248) if (x<128 and x>32 and (x not in ignore)) else chr(x)
             for x in map(ord,text))
 
 def seg_sentence(text):

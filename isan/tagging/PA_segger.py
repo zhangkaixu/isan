@@ -25,6 +25,8 @@ class Segger:
             line=line.strip()
             if not line: return []
             if line[0]=='{':
+                #data=json.loads(line)
+                #if data['Y_b'][1]!=None : return None
                 return json.loads(line)
             seq=[word for word in line.split()]
             raw=''.join(seq)
