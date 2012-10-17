@@ -84,7 +84,7 @@ class Model(object):
             return hat_y
         else:
             states=self.searcher.get_states()
-            return self.schema.gen_candidate(states,threshold)
+            return self.schema.gen_candidates(states,threshold)
 
     def _learn_sentence(self,arg):
         """
