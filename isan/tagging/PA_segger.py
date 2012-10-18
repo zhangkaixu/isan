@@ -40,12 +40,12 @@ class Segger(cws.Task):
                     'Y_b' : None,
                     }
 
-    def is_belong(self,actions,Y):
+    def is_belong(self,raw,actions,Y):
         seq,intervals=Y
         
         if intervals :
             offset=0
-            y=self.actions_to_result(actions)
+            y=self.actions_to_result(actions,raw)
             for w in y:
                 r=intervals[offset][1]
                 if r!=-1 and offset+len(w)>r : 
