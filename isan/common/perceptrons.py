@@ -156,7 +156,7 @@ class Model_PA(Model) :
         rst_actions=self.search(raw,Y_a)#得到解码后动作
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
 
-        if not self.schema.is_belong(hat_y,Y_b): #y!=hat_y:#如果动作不一致，则更新
+        if not self.schema.is_belong(rst_actions,Y_b): #y!=hat_y:#如果动作不一致，则更新
             if y and not Y_b:
                 std_actions=self.schema.result_to_actions(y)#得到标准动作
             else:
