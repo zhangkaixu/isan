@@ -81,10 +81,15 @@ def command_line(Model,Task,Decoder):
             print("输出分数差距在 %s 之内的候选词"%(make_color(threshold*1000)))
         for line in sys.stdin:
             line=line.strip()
+            line=model.schema.codec.decode(line)
+            raw=line.get('raw','')
+            Y=line.get('Y_a',None)
+            #print(line)
+            #input('x')
             if threshold :
-                print(model.schema.codec.candidates_encode(model(line,threshold=threshold)))
+                print(model.schema.codec.candidates_encode(model(raw,Y,threshold=threshold)))
             else :
-                print(model.schema.codec.encode(model(line)))
+                print(model.schema.codec.encode(model(raw,Y)))
     return args
 if __name__ == '__main__':
     command_line(None,None,None)

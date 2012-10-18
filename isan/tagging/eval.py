@@ -4,6 +4,7 @@
 """
 
 import time
+import sys
 
 
 
@@ -117,7 +118,7 @@ class TaggingEval:
         time_used=time.time()-self.otime
         speed=self.characters/time_used
         print("标准: %d 输出: %d 正确: %d f1: \033[32;01m%.4f\033[1;m 时间: %.4f (%.0f字/秒)"
-                    %(self.std,self.rst,self.cor,f,time_used,speed))
+                    %(self.std,self.rst,self.cor,f,time_used,speed),file=sys.stdout)
         
     def _set_based(self,std,rst):
         self.std+=len(std)
