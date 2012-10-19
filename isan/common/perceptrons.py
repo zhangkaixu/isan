@@ -49,6 +49,7 @@ class Model(object):
         eval=self.schema.Eval()
         for line in open(dev_file):
             arg=self.schema.codec.decode(line.strip())
+            if not arg:continue
             raw=arg.get('raw')
             y=arg.get('y',None)
             hat_y=self(raw)
