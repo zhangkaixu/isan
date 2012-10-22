@@ -65,5 +65,4 @@ def seg_sentence(text):
 def seg_by_punctuations(text):
     pass
 if __name__=="__main__":
-    
     print(seg_sentence(to_full('。“hello world？！wo23。”')))
