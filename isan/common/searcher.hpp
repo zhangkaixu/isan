@@ -309,6 +309,9 @@ public:
         };
     };
 
+    /*
+     * 二叉树搜索
+     * */
     void operator()(const STATE& init_key,const int steps,std::vector<ACTION>& result){
         std::vector<std::pair<STATE,Alpha*> > beam;
         std::vector<ACTION> shift_actions;
@@ -318,37 +321,31 @@ public:
         std::vector<SCORE> reduce_scores;
         std::vector<STATE> reduced_states;
         
-        //clear the sequence, release memory
+        //clear and init the sequence, release memory
         if(this->sequence.size()){
             for(int i=0;i<this->sequence.size();i++)
                 delete this->sequence[i];
         }
         this->sequence.clear();
-
-        //init the sequence with init_state
         this->sequence.push_back(new My_Map());
         (*this->sequence.back())[init_key]=State_Info();
         (*this->sequence.back())[init_key].alphas.push_back(Alpha());
         
         for(int step=0;step<steps;step++){
-            //std::cout<<"step "<<step<<"\n";
             this->thrink(step,beam);//thrink, get beam
             /*gen next step*/
             this->sequence.push_back(new My_Map());
             My_Map& this_map=(*this->sequence.back());
 
             for(int i=0;i<beam.size();i++){
-                //std::cout<<"  i "<<i<<"\n";
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
                 SCORE& last_sub_score=beam[i].second->sub_score;
                 auto& predictors=(*this->sequence[step])[last_state].predictors;
                 
                 this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
-                this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
                 for(int j=0;j<shift_actions.size();j++){
-                    //std::cout<<"    j "<<j<<"\n";
-                    auto& next_state=shifted_states[j];
+                    const auto& next_state=shifted_states[j];
                     auto got=this_map.find(next_state);
                     if(got==this_map.end()){
                         this_map[next_state]=State_Info();
@@ -356,15 +353,14 @@ public:
                     auto& next_state_info=this_map[next_state];
                     next_state_info.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
                     next_state_info.alphas.push_back(Alpha(
-                                last_score+shift_scores[j],
-                                0,
-                                shift_scores[j],
-                                true,
-                                shift_actions[j],
+                                last_score+shift_scores[j],//prefix score
+                                0,//inner score
+                                shift_scores[j],//delta score
+                                true,//is_shift
+                                shift_actions[j],//shift action
                                 step,
                                 last_state
                                 ));
-
                 };
                 for(auto p=predictors.begin();p!=predictors.end();++p){
                     auto& p_state=p->first;
@@ -400,18 +396,16 @@ public:
                                     p_step,
                                     p_state
                                     ));
-                        
                     };
                 };
-
             };
         };
-        
         
         //make result
         this->thrink(steps,beam);
         sort(beam.begin(),beam.end(),state_comp_less);
-        Alpha& item=(*this->sequence[steps])[beam.back().first].alphas[0];
+        const Alpha& item=(*this->sequence[steps])[beam.back().first].alphas[0];
+        
 
         result.resize(steps);
         set_result(item,0,steps,result);

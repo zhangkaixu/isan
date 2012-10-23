@@ -108,6 +108,9 @@ class Model(object):
         #update
         #if y!=hat_y:#如果动作不一致，则更新
         if std_actions!=rst_actions:#如果动作不一致，则更新
+            if ([x[2] for x in y]==hat_y): 
+                #print(y)
+                return y,hat_y
             self.update(std_actions,rst_actions)
         return y,hat_y
     def update(self,std_actions,rst_actions):
