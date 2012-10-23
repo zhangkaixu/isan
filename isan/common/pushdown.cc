@@ -70,6 +70,7 @@ static PyMethodDef pushdownMethods[] = {
     {"set_raw",  do_nothing, METH_VARARGS,""},
     {"update_action",  update_weights, METH_VARARGS,""},
     {"average_weights", average_weights , METH_VARARGS,""},
+    {"sum_weights", sum_weights , METH_VARARGS,""},
     {"un_average_weights", un_average_weights , METH_VARARGS,""},
     {"export_weights",  export_weights, METH_VARARGS,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */

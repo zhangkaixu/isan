@@ -30,6 +30,30 @@ set_weights(PyObject *self, PyObject *arg)
     Py_INCREF(Py_None);
     return Py_None;
 };
+
+
+
+
+static PyObject *
+sum_weights(PyObject *self, PyObject *arg)
+{
+    Interface* interface;
+    PyObject * py_state;
+    Action_Type action;
+    PyArg_ParseTuple(arg, "LOB", &interface,&py_state,&action);
+    State_Type state(py_state);
+    
+    Feature_Vector fv;
+    (*(interface->feature_generator))(state,fv);
+
+    auto& actions=interface->data->actions;
+    auto got=actions.find(action);
+    long value=0;
+    if(got!=actions.end()){
+        value=(*(interface->data->actions[action]))(fv);
+    };
+    return PyLong_FromLong(value);
+};
 static PyObject *
 update_weights(PyObject *self, PyObject *arg)
 {
@@ -49,6 +73,8 @@ update_weights(PyObject *self, PyObject *arg)
     if(got==actions.end()){
         actions[action]=new Default_Weights();
     };
+    //long value=(*(interface->data->actions[action]))(fv);
+    //std::cout<<"  "<<value<<"\n";
     (*(interface->data->actions[action])).update(fv,delta,step);
     
     Py_INCREF(Py_None);

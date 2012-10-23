@@ -3,6 +3,9 @@ import pickle
 import isan.parsing.dep_codec as codec
 import isan.parsing.eval as eval
 class Dep:
+    def __init__(self):
+        self.Y=None
+    
     shift_action=ord('s')
     left_reduce=ord('l')
     right_reduce=ord('r')
@@ -15,7 +18,7 @@ class Dep:
     def shift(self,stat):
         stat=pickle.loads(stat)
         raw=self.raw
-        ind,_,stack_top=stat
+        ind,span,stack_top=stat
         if ind>=len(raw): return []
         rtn= [
                 (self.shift_action,
@@ -27,6 +30,14 @@ class Dep:
                         stack_top[1][1] if stack_top[1] else None)
                 )))
                 ]
+        if not self.shift_rules :
+            return rtn
+        if self.reduce_rules :
+            if span in self.reduce_rules and self.reduce_rules[span]<span[0] :
+                return []
+        if span[1] in self.shift_rules and span[0]> self.shift_rules[span[1]] :
+            return []
+
         return rtn
 
     def reduce(self,stat,predictor):
@@ -37,20 +48,67 @@ class Dep:
         s0,s1,s2=stack_top
         assert(predictor[2][0]==s1)
         if s0==None or s1==None:return []
-        rtn= [
-             (self.left_reduce,pickle.dumps((ind,
-                (p_span[0],span[1]),
-                ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2])))),
-             (self.right_reduce,pickle.dumps((ind,
-                (p_span[0],span[1]),
-                ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])))),
-             ]
+        if not self.reduce_rules :
+            rtn= [
+                 (self.left_reduce,pickle.dumps((ind,
+                    (p_span[0],span[1]),
+                    ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2])))),
+                 (self.right_reduce,pickle.dumps((ind,
+                    (p_span[0],span[1]),
+                    ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])))),
+                 ]
+            return rtn
+        rtn=[]
+        h=self.reduce_rules.get(span,-1)
+        if h>=p_span[0] and h<p_span[1]:
+            rtn.append(
+                 (self.left_reduce,pickle.dumps((ind,
+                    (p_span[0],span[1]),
+                    ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2])))),
+                    )
+        h=self.reduce_rules.get(p_span,-1)
+        if h>=span[0] and h<span[1]:
+            rtn.append(
+                 (self.right_reduce,pickle.dumps((ind,
+                    (p_span[0],span[1]),
+                    ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])))),
+                    )
         return rtn
-    def set_raw(self,raw,_):
+    def set_raw(self,raw,Y):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
         """
         self.raw=raw
+        if Y :
+            data=[]
+            for ind,it in enumerate(Y) :
+                data.append([ind,it[2],0,[ind,ind+1],[]])
+            for it in data:
+                if it[1]!=-1 :
+                    data[it[1]][2]+=1
+            un=set(x[0] for x in data)
+            while un :
+                for ind in un :
+                    if data[ind][2] == 0 :
+                        for l,r in data[ind][4] :
+                            if l < data[ind][3][0] : data[ind][3][0]=l
+                            if r > data[ind][3][1] : data[ind][3][1]=r
+                        head_ind=data[ind][1]
+                        if head_ind != -1 :
+                            data[head_ind][4].append(data[ind][3])
+                            data[head_ind][2]-=1
+                        un.remove(ind)
+                        break
+            self.reduce_rules={}
+            self.shift_rules={}
+            for h,_,_,span,chs in data:
+                if span[1] not in self.shift_rules or self.shift_rules[span[1]]>span[0] :
+                   self.shift_rules[span[1]]=span[0]
+                for ch in chs:
+                   self.reduce_rules[tuple(ch)]=h
+        else :
+            self.reduce_rules=None
+            self.shift_rules=None
         self.f_raw=[[w.encode()if w else b'',t.encode()if t else b''] for w,t in raw]
     def gen_features(self,stat):
         stat=pickle.loads(stat)
@@ -206,3 +264,8 @@ class Dep:
                     stack[-1][4]=stack[-2][4]
                     stack[-2]=stack[-1]
                     stack.pop()
+    def is_belong(self,raw,actions,Y_set) :
+        rst=self.actions_to_result(actions,raw)
+
+        std=[x[2] for x in Y_set]
+        return rst==std

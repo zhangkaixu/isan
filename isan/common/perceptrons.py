@@ -108,12 +108,24 @@ class Model(object):
         #update
         #if y!=hat_y:#如果动作不一致，则更新
         if std_actions!=rst_actions:#如果动作不一致，则更新
-            if ([x[2] for x in y]==hat_y): 
-                #print(y)
-                return y,hat_y
+            #if ([x[2] for x in y]==hat_y): 
+            #    #print(y)
+            #    return y,hat_y
             self.update(std_actions,rst_actions)
         return y,hat_y
     def update(self,std_actions,rst_actions):
+        #w=[]
+        #for stat,action in zip(self.schema.actions_to_stats(std_actions),rst_actions):
+        #    v=self.searcher.sum_weights(stat,action)
+        #    w.append(v)
+        #print(sum(w),len(w),w)
+        #w=[]
+        #for stat,action in zip(self.schema.actions_to_stats(rst_actions),rst_actions):
+        #    v=self.searcher.sum_weights(stat,action)
+        #    w.append(v)
+        #print(sum(w),len(w),w)
+        #print('')
+
         for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
             self.searcher.update_action(stat,action,1,self.step)
         for stat,action in zip(self.schema.actions_to_stats(rst_actions),rst_actions):

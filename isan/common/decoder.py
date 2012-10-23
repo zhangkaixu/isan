@@ -11,6 +11,8 @@ class Searcher:
         return self.searcher.export_weights(self.handler)
     def average_weights(self,step):
         self.searcher.average_weights(self.handler,step)
+    def sum_weights(self,stat,action):
+        return self.searcher.sum_weights(self.handler,stat,action)
     def un_average_weights(self):
         self.searcher.un_average_weights(self.handler)
 

@@ -405,10 +405,13 @@ public:
         this->thrink(steps,beam);
         sort(beam.begin(),beam.end(),state_comp_less);
         const Alpha& item=(*this->sequence[steps])[beam.back().first].alphas[0];
+        //std::cout<<item.score<<"\n";
         
 
         result.resize(steps);
         set_result(item,0,steps,result);
+        //std::cout<<item.score<<"\n";
+        
     };
     void set_result(const Alpha& alpha,int begin,int end, std::vector<ACTION>& result){
         result[end-1]=alpha.action;
