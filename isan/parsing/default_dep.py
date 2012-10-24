@@ -3,6 +3,8 @@ import pickle
 import isan.parsing.dep_codec as codec
 import isan.parsing.eval as eval
 class Dep:
+    name="依存句法分析"
+
     def __init__(self):
         self.Y=None
     
