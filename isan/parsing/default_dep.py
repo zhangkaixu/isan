@@ -150,12 +150,12 @@ class Dep:
                 b'7'+q0_t,
                 b'8'+q0_w+q0_t,
                 #(2)
-                b'9'+s0_w+s1_w,
+                b'9'+s0_w+b":"+s1_w,
                 b'0'+s0_t+s1_t,
                 b'a'+s0_t+q0_t,
                 b'b'+s0_w+s0_t+s1_t,
                 b'c'+s0_t+s1_w+s1_t,
-                b'd'+s0_w+s1_w+s1_t,
+                b'd'+s0_w+s1_t+s1_w,
                 b'e'+s0_w+s0_t+s1_w,
                 b'f'+s0_w+s0_t+s1_w+s1_t,
                 #(3)
@@ -173,6 +173,8 @@ class Dep:
                 #(5)
                 b'q'+s0_t+s1_t+s2_t,
                 ]
+        #print(*[x.decode() for x in fv])
+        #input()
         return fv
     def actions_to_result(self,actions,raw):
         ind=0

@@ -177,5 +177,7 @@ class Model_PA(Model) :
                 std_actions=self.schema.result_to_actions(y)#得到标准动作
             else:
                 std_actions=self.search(raw,Y_b)
+                yy=self.schema.actions_to_result(std_actions,raw)
+                #assert(yy==[x[2] for x in y])
             self.update(std_actions,rst_actions)
         return y,hat_y
