@@ -54,6 +54,12 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
     Alpha_s(){
         this->score=0;
     };
+    Alpha_s(SCORE score,SCORE inc,ACTION la,STATE lk){
+        this->score=score;
+        this->inc=inc;
+        this->action=la;
+        this->state1=lk;
+    };
     Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat)
         {
         this->score=(s);
@@ -412,6 +418,37 @@ public:
         set_result(item,0,steps,result);
         //std::cout<<item.score<<"\n";
         
+    };
+    /*
+     * beta
+     * */
+    void pushdown_cal_betas(){
+        int ind=this->sequence.size()-1;
+        My_Map* map=(this->sequence[ind]);
+        for(auto iter=map->begin();iter!=map->end();++iter){
+            iter->second.betas.push_back(Alpha());
+        };
+        while(ind){
+            map=(this->sequence[ind]);
+            for(auto iter=map->begin();iter!=map->end();++iter){
+                if(!iter->second.betas.size())continue;
+                auto alphas=iter->second.alphas;
+                auto beta=iter->second.betas[0];
+                for(auto alpha=alphas.begin();alpha!=alphas.end();++alpha){
+                    (*this->sequence[ind-1])[alpha->state1].betas.push_back(Alpha(
+                                beta.score+alpha->inc,
+                                alpha->inc,
+                                alpha->action,
+                                iter->first
+                                ));
+                };
+            };
+            ind--;
+            map=(this->sequence[ind]);
+            for(auto iter=map->begin();iter!=map->end();++iter){
+                iter->second.max_top_beta();
+            };
+        };
     };
     void set_result(const Alpha& alpha,int begin,int end, std::vector<ACTION>& result){
         result[end-1]=alpha.action;

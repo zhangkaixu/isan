@@ -136,10 +136,31 @@ class Model(object):
             #print(sum(ww),*ww)
             self.stg+=1
 
+        max_score=sum(ww)
+        states=self.searcher.get_states()
+        #for state,value in states :
+        #    state=pickle.loads(state)
+        #    print(state,value-max_score)
+        #print(sum(w))
+        #print(sum(ww))
+        #input()
+
+        states_set=set(s[0] for s in states)
+        ind=0
         for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
+            ind+=1
+            if stat not in states_set : break
+        max_ind=ind
+        ind=0
+        for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
+            ind+=1
             self.searcher.update_action(stat,action,1,self.step)
+            if ind==max_ind : break
+        ind=0
         for stat,action in zip(self.schema.actions_to_stats(rst_actions),rst_actions):
+            ind+=1
             self.searcher.update_action(stat,action,-1,self.step)
+            if ind==max_ind : break
 
         
     def train(self,training_file,iteration=5,dev_file=None):

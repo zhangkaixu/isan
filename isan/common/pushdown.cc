@@ -16,6 +16,27 @@ using namespace isan;
 
 
 
+static PyObject *
+get_states(PyObject *self, PyObject *arg)
+{
+    Interface* interface;
+    PyArg_ParseTuple(arg, "L", &interface);
+    interface->push_down->cal_betas();
+
+    std::vector<State_Type > states;
+    std::vector<Score> scores;
+
+    interface->push_down->get_states(states,scores);
+
+    PyObject * list=PyList_New(states.size());
+    for(int i=0;i<states.size();i++){
+        PyList_SetItem(list,i,
+                    PyTuple_Pack(2,states[i].pack(),PyLong_FromLong(scores[i]))
+                );
+    };
+    return list;
+
+};
 
 
 
@@ -73,6 +94,7 @@ static PyMethodDef pushdownMethods[] = {
     {"sum_weights", sum_weights , METH_VARARGS,""},
     {"un_average_weights", un_average_weights , METH_VARARGS,""},
     {"export_weights",  export_weights, METH_VARARGS,""},
+    {"get_states",  get_states, METH_VARARGS,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 static struct PyModuleDef pushdownmodule = {

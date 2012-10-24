@@ -42,7 +42,6 @@ get_states(PyObject *self, PyObject *arg)
 
     interface->push_down->get_states(states,scores);
 
-    //std::cout<<states.size()<<"\n";
     PyObject * list=PyList_New(states.size());
     for(int i=0;i<states.size();i++){
         PyList_SetItem(list,i,
