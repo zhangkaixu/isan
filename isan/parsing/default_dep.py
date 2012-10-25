@@ -44,6 +44,16 @@ class Dep:
 
     def reduce(self,stat,predictor):
         stat=pickle.loads(stat)
+        if self.dbg :
+            print(stat,self.std_stats.get(stat,'false'))
+            if stat in self.std_stats :
+                step=self.std_stats[stat]
+                if step == self.std_step :
+                    print('step',self.std_step)
+                    self.std_step+=1
+                else :
+                    print('over')
+
         ind,span,stack_top=stat
         predictor=pickle.loads(predictor)
         _,p_span,_=predictor
@@ -81,6 +91,7 @@ class Dep:
         对需要处理的句子做必要的预处理（如缓存特征）
         """
         self.raw=raw
+        self.dbg= (raw[0][0]=='当然')
         if Y :
             data=[]
             for ind,it in enumerate(Y) :

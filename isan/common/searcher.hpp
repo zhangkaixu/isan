@@ -42,6 +42,32 @@ struct Alpha_t{
         this->action=la;
         this->state1=lk;
     };
+    virtual inline bool operator > (const Alpha_t& right){
+        if( this->score > right.score) return true;
+        if( this->score < right.score) return false;
+        return false;
+    };
+    static class CompareFoo{
+    public:
+        inline bool operator()(const std::pair<STATE,Alpha_t*>& first, const std::pair<STATE,Alpha_t*>& second) const{
+            if( first.second->score > second.second->score) return true;
+            if( first.second->score < second.second->score) return false;
+            //if( first.second->inc > second.second->inc) return true;
+            //if( first.second->inc < second.second->inc) return false;
+            return false;
+        }
+    } state_comp_greater;
+
+    static class CompareFoo2{
+    public:
+        inline bool operator()(const std::pair<STATE,Alpha_t*>& first, const std::pair<STATE,Alpha_t*>& second) const{
+            if( first.second->score < second.second->score) return true;
+            if( first.second->score > second.second->score) return false;
+            //if( first.second->inc < second.second->inc) return true;
+            //if( first.second->inc > second.second->inc) return false;
+            return false;
+        }
+    } state_comp_less;
 };
 
 template<class ACTION,class STATE,class SCORE>
@@ -84,6 +110,26 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
         this->ind2=(p_ind);
         this->state2=(p_stat);
     };
+    inline bool operator > (const Alpha_s& right){
+        if( this->score > right.score) return true;
+        if( this->score < right.score) return false;
+        if( this->sub_score > right.sub_score) return true;
+        if( this->sub_score < right.sub_score) return false;
+        return false;
+    };
+    static class CompareFoo{
+    public:
+        inline bool operator()(const std::pair<STATE,Alpha_s*>& first, const std::pair<STATE,Alpha_s*>& second) const{
+            return (*first.second) > *(second.second);
+        }
+    } state_comp_greater;
+
+    static class CompareFoo2{
+    public:
+        inline bool operator()(const std::pair<STATE,Alpha_s*>& first, const std::pair<STATE,Alpha_s*>& second) const{
+            return (*second.second) > *(first.second);
+        }
+    } state_comp_less;
 };
 
 template<class ACTION,class STATE,class SCORE, template <class,class,class>class ALPHA>
@@ -96,7 +142,7 @@ struct State_Info{
             return;
         int max_ind=0;
         for(int ind=1;ind<alphas.size();ind++)
-            if (alphas[max_ind].score < alphas[ind].score)
+            if (alphas[ind]>alphas[max_ind])
                 max_ind=ind;
         if(max_ind)
             std::swap(alphas[max_ind],alphas[0]);
@@ -146,27 +192,6 @@ public:
 
     std::vector< My_Map* > sequence;
 
-    class CompareFoo{
-    public:
-        inline bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
-            if( first.second->score > second.second->score) return true;
-            if( first.second->score < second.second->score) return false;
-            if( first.second->inc > second.second->inc) return true;
-            if( first.second->inc < second.second->inc) return false;
-            return false;
-        }
-    } state_comp_greater;
-
-    class CompareFoo2{
-    public:
-        inline bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
-            if( first.second->score < second.second->score) return true;
-            if( first.second->score > second.second->score) return false;
-            if( first.second->inc < second.second->inc) return true;
-            if( first.second->inc > second.second->inc) return false;
-            return false;
-        }
-    } state_comp_less;
     inline void thrink(int step,std::vector<std::pair<STATE,Alpha*> >& top_n){
         top_n.clear();
         
@@ -177,18 +202,18 @@ public:
             if (top_n.size()<this->beam_width){//if top_n is not full
                 top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
                 if(top_n.size()==this->beam_width){//full, make this a (min)heap
-                    make_heap(top_n.begin(),top_n.end(),state_comp_greater);
+                    make_heap(top_n.begin(),top_n.end(),Alpha::state_comp_greater);
                 }
             }else{
                 if(top_n.front().second->score<(*it).second.alphas[0].score){//greater than the top of the heap
-                    pop_heap(top_n.begin(),top_n.end(),state_comp_greater);
+                    pop_heap(top_n.begin(),top_n.end(),Alpha::state_comp_greater);
                     top_n.pop_back();
                     top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
-                    push_heap(top_n.begin(),top_n.end(),state_comp_greater);
+                    push_heap(top_n.begin(),top_n.end(),Alpha::state_comp_greater);
                 }
             }
         };
-        sort(top_n.begin(),top_n.end(),state_comp_less);
+        sort(top_n.begin(),top_n.end(),Alpha::state_comp_less);
     };
     void _print_beam(std::vector<std::pair<STATE,SCORE> >& beam){
         for(int j=0;j<beam.size();j++){
@@ -302,7 +327,7 @@ public:
         };
         //make result
         this->thrink(steps,beam);
-        sort(beam.begin(),beam.end(),state_comp_less);
+        sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         Alpha* item=&((*this->sequence[steps])[beam.back().first].alphas[0]);
 
 
@@ -338,6 +363,9 @@ public:
         (*this->sequence.back())[init_key].alphas.push_back(Alpha());
         
         for(int step=0;step<steps;step++){
+            //if(steps==21){
+            //    std::cout<<"search: STEP "<<step<<"\n";
+            //};
             this->thrink(step,beam);//thrink, get beam
             /*gen next step*/
             this->sequence.push_back(new My_Map());
@@ -347,6 +375,9 @@ public:
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
                 SCORE& last_sub_score=beam[i].second->sub_score;
+                //if(steps==21){
+                //    std::cout<<"score "<<last_score<<" subscore"<<last_sub_score<<"\n";
+                //};
                 auto& predictors=(*this->sequence[step])[last_state].predictors;
                 
                 this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
@@ -389,6 +420,11 @@ public:
                         for(auto it=p_state_info.predictors.begin();
                                 it!=p_state_info.predictors.end();
                                 ++it){
+                            //auto ggt=next_state_info.predictors.find(it->first);
+                            //if(ggt != next_state_info.predictors.end()){
+                            //    assert(next_state_info.predictors[it->first].second == it->second.second);
+                            //    std::cout<<next_state_info.predictors[it->first].second<< " "<<it->second.second<<"\n";
+                            //};
                             next_state_info.predictors[it->first]=it->second;
                         };
                         next_state_info.alphas.push_back(Alpha(
@@ -409,7 +445,7 @@ public:
         
         //make result
         this->thrink(steps,beam);
-        sort(beam.begin(),beam.end(),state_comp_less);
+        sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         const Alpha& item=(*this->sequence[steps])[beam.back().first].alphas[0];
         //std::cout<<item.score<<"\n";
         
