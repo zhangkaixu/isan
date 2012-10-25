@@ -13,6 +13,7 @@ public:
     General_Feature_Generator * feature_generator;
     General_State_Generator * shifted_state_generator;
     General_Reduced_State_Generator * reduced_state_generator;
+    General_Early_Stop_Checker * early_stop_checker;
 
     std::map<Action_Type, Default_Weights* > actions;
 
@@ -30,9 +31,11 @@ public:
         cached_state=State_Type();
     };
     General_Searcher_Data(
+            General_Early_Stop_Checker * early_stop_checker,
             General_State_Generator *shifted_state_generator,
             General_Reduced_State_Generator *reduced_state_generator,
             General_Feature_Generator* feature_generator){
+        this->early_stop_checker=early_stop_checker;
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=reduced_state_generator;
         this->feature_generator=feature_generator;
@@ -44,7 +47,14 @@ public:
             ++iter){
             delete iter->second;
         }
-        
+    };
+
+    virtual bool early_stop(
+            const std::vector<State_Type>& last_states,
+            const std::vector<Action_Type>& actions,
+            const std::vector<State_Type>& states
+            ){
+        return (*early_stop_checker)(last_states,actions,states);
     };
 
     void shift(
@@ -112,10 +122,12 @@ public:
     General_State_Generator * shifted_state_generator;
     General_Reduced_State_Generator * reduced_state_generator;
     General_Feature_Generator * feature_generator;
+    General_Early_Stop_Checker * early_stop_checker;
     
     Chinese* raw;
     
     General_Interface(State_Type init_state,int beam_width,
+            PyObject * py_early_stop_callback,
             PyObject * py_shift_callback,
             PyObject * py_reduce_callback,
             PyObject * py_feature_cb
@@ -123,10 +135,12 @@ public:
         shifted_state_generator=new Python_State_Generator(py_shift_callback);
         reduced_state_generator=new Python_Reduced_State_Generator(py_reduce_callback);
         feature_generator=new Python_Feature_Generator(py_feature_cb);
+        early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
 
         this->init_state=init_state;
         this->beam_width=beam_width;
         this->data=new General_Searcher_Data(
+                early_stop_checker,
                 shifted_state_generator,
                 reduced_state_generator,
                 feature_generator);
@@ -142,13 +156,11 @@ public:
         }else{
             shifted_state_generator=new Python_State_Generator(py_shift_callback);
         };
-        //shifted_state_generator=new Python_State_Generator(py_shift_callback);
         if(PyLong_Check( py_feature_cb)){
             feature_generator=(General_Feature_Generator*) PyLong_AsUnsignedLong( py_feature_cb);
         }else{
             feature_generator=new Python_Feature_Generator( py_feature_cb);
         };
-        //feature_generator=new Python_Feature_Generator(py_feature_cb);
         reduced_state_generator=NULL;
         raw=NULL;
         this->data=new General_Searcher_Data(
@@ -188,6 +200,7 @@ public:
         delete this->push_down;
         delete feature_generator;
         delete shifted_state_generator;
+        delete early_stop_checker;
         if(reduced_state_generator)
             delete reduced_state_generator;
     };

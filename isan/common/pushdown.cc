@@ -46,15 +46,19 @@ pushdown_new(PyObject *self, PyObject *arg)
     PyObject * py_init_stat;
     PyObject * py_shift_callback;
     PyObject * py_reduce_callback;
+    PyObject * py_early_stop_callback;
     PyObject * py_feature_cb;
     int beam_width;
-    PyArg_ParseTuple(arg, "iOOOO", &beam_width,&py_init_stat,
-            &py_shift_callback,&py_reduce_callback,
+    PyArg_ParseTuple(arg, "iOOOOO", &beam_width,&py_init_stat,
+            &py_early_stop_callback,
+            &py_shift_callback,
+            &py_reduce_callback,
             &py_feature_cb);
     State_Type* init_key = NULL;
     init_key = new State_Type(py_init_stat);
 
     Interface* interface=new Interface(*init_key,beam_width,
+            py_early_stop_callback,
             py_shift_callback,py_reduce_callback,
         py_feature_cb);
     delete init_key;

@@ -8,12 +8,23 @@ namespace isan{
 template <class ACTION, class STATE, class SCORE>
 class Searcher_Data{
 public:
+    /* 搜索是否需要提前终止
+     * */
+    virtual bool early_stop(
+            const std::vector<STATE>& last_states,
+            const std::vector<ACTION>& actions,
+            const std::vector<STATE>& states
+            ){
+        return false;
+    };
+    
     virtual void shift(
             STATE& state, 
             std::vector<ACTION>& actions,
             std::vector<STATE>& next_states,
             std::vector<SCORE>& scores
             )=0;
+
     virtual void reduce(
             const STATE& state, 
             const STATE& predictor,
@@ -340,6 +351,21 @@ public:
         };
     };
 
+
+    inline bool early_stop(int step,std::vector<std::pair<STATE,Alpha*> >& top_n){
+        //return false;
+        std::vector<STATE> last_states;
+        std::vector<ACTION> actions;
+        std::vector<STATE> next_states;
+
+        for(auto iter=top_n.begin();iter!=top_n.end();++iter){
+            next_states.push_back(iter->first);
+            actions.push_back((*(iter->second)).action);
+            last_states.push_back((*(iter->second)).state1);
+        };
+        return this->data->early_stop(last_states,actions,next_states);
+    };
+
     /*
      * 二叉树搜索
      * */
@@ -351,6 +377,8 @@ public:
         std::vector<ACTION> reduce_actions;
         std::vector<SCORE> reduce_scores;
         std::vector<STATE> reduced_states;
+
+
         
         //clear and init the sequence, release memory
         if(this->sequence.size()){
@@ -362,11 +390,14 @@ public:
         (*this->sequence.back())[init_key]=State_Info();
         (*this->sequence.back())[init_key].alphas.push_back(Alpha());
         
-        for(int step=0;step<steps;step++){
+        int step=0;
+        while(true){
             //if(steps==21){
             //    std::cout<<"search: STEP "<<step<<"\n";
             //};
             this->thrink(step,beam);//thrink, get beam
+            if(step==steps||early_stop(step,beam)) break;
+
             /*gen next step*/
             this->sequence.push_back(new My_Map());
             My_Map& this_map=(*this->sequence.back());
@@ -398,6 +429,7 @@ public:
                                 step,
                                 last_state
                                 ));
+
                 };
                 for(auto p=predictors.begin();p!=predictors.end();++p){
                     auto& p_state=p->first;
@@ -441,10 +473,10 @@ public:
                     };
                 };
             };
+            step++;
         };
         
         //make result
-        this->thrink(steps,beam);
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         const Alpha& item=(*this->sequence[steps])[beam.back().first].alphas[0];
         //std::cout<<item.score<<"\n";

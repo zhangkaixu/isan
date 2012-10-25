@@ -100,14 +100,14 @@ class Model(object):
 
 
         std_stats={}
-        if raw[0][0]=='当然' :
-            self.schema.set_raw(raw,None)
+        #if raw[0][0]=='当然' :
+        #    self.schema.set_raw(raw,None)
 
-            std_actions=self.schema.result_to_actions(y)#得到标准动作
-            for i,stat in enumerate(self.schema.actions_to_stats(std_actions)) :
-                stat=pickle.loads(stat)
-                std_stats[stat]=i
-            self.schema.std_step=1
+        #    std_actions=self.schema.result_to_actions(y)#得到标准动作
+        #    for i,stat in enumerate(self.schema.actions_to_stats(std_actions)) :
+        #        stat=pickle.loads(stat)
+        #        std_stats[stat]=i
+        #    self.schema.std_step=1
         self.schema.std_stats=std_stats
 
         
@@ -148,43 +148,32 @@ class Model(object):
 
         states=self.searcher.get_states()
         states_set=set(s[0] for s in states)
-        ind=0
         for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
-            ind+=1
-            if stat not in states_set : break
-        max_ind=ind
-        ind=0
-        for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
-            ind+=1
             self.searcher.update_action(stat,action,1,self.step)
-            if ind==max_ind : break
-        ind=0
         for stat,action in zip(self.schema.actions_to_stats(rst_actions),rst_actions):
-            ind+=1
             self.searcher.update_action(stat,action,-1,self.step)
-            if ind==max_ind : break
         if sum(w)> sum(ww) :
             #c=collections.Counter([chr(x) for x in std_actions])
             #cc=collections.Counter([chr(x) for x in rst_actions])
             #print(sum(w),*w)
             #print(sum(ww),*ww)
             self.stg+=1
-            if self.raw[:2]!='当然' : return
-            print(len(std_actions),max_ind)
-            print(self.raw)
-            print(sum(w),w)
-            print(sum(ww),ww)
-            max_score=sum(ww)
-            std_stats=set(pickle.loads(stat) for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions))
-            for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
-                print(pickle.loads(stat),chr(action))
-                print(self.searcher.sum_weights(stat,action),
-                        )
-            for state,value in states :
-                state=pickle.loads(state)
-                
+        #    if self.raw[:2]!='当然' : return
+        #    print(len(std_actions),max_ind)
+        #    print(self.raw)
+        #    print(sum(w),w)
+        #    print(sum(ww),ww)
+        #    max_score=sum(ww)
+        #    std_stats=set(pickle.loads(stat) for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions))
+        #    for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
+        #        print(pickle.loads(stat),chr(action))
+        #        print(self.searcher.sum_weights(stat,action),
+        #                )
+        #    for state,value in states :
+        #        state=pickle.loads(state)
+        #        
 
-                print(state,state in std_stats,value-max_score)
+        #        print(state,state in std_stats,value-max_score)
 
         
     def train(self,training_file,iteration=5,dev_file=None):

@@ -56,6 +56,7 @@ class Push_Down(Searcher):
         self.handler=self.searcher.new(
                 beam_width,
                 schema.init_stat,
+                schema.early_stop,
                 schema.shift,
                 schema.reduce,
                 schema.gen_features,

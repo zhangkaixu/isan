@@ -86,11 +86,79 @@ public:
     virtual void operator()(const STATE& key,const STATE& key2, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
 };
 
+template <class STATE, class ACTION>
+class Early_Stop_Checker{
+public:
+    virtual bool operator()(
+        const std::vector<STATE>& last_states,
+        const std::vector<ACTION>& actions,
+        const std::vector<STATE>& states
+            ){
+        return false;
+    };
+};
 
 
 typedef Feature_Generator<Chinese,State_Type,Feature_Vector> General_Feature_Generator;
 typedef State_Generator<Chinese,State_Type,Action_Type> General_State_Generator;
 typedef Reduced_State_Generator<Chinese,State_Type,Action_Type> General_Reduced_State_Generator;
+typedef Early_Stop_Checker<State_Type,Action_Type> General_Early_Stop_Checker;
+
+class Python_Early_Stop_Checker : public General_Early_Stop_Checker{
+public:
+    PyObject * callback;
+    Python_Early_Stop_Checker(PyObject * callback){
+        Py_INCREF(callback);
+        this->callback=callback;
+    };
+    ~Python_Early_Stop_Checker(){
+        Py_DECREF(callback);
+    };
+    virtual bool operator()(
+        const std::vector<State_Type>& last_states,
+        const std::vector<Action_Type>& actions,
+        const std::vector<State_Type>& next_states
+            ){
+        PyObject * last_state_list=PyList_New(last_states.size());
+        for(int i=0;i<last_states.size();i++){
+            PyList_SetItem(last_state_list,i,
+                last_states[i].pack()
+            );
+        };
+        PyObject * action_list=PyList_New(next_states.size());
+        for(int i=0;i<next_states.size();i++){
+            PyList_SetItem(action_list,i,
+                PyLong_FromLong(actions[i])
+            );
+        };
+        PyObject * next_state_list=PyList_New(next_states.size());
+        for(int i=0;i<next_states.size();i++){
+            PyList_SetItem(next_state_list,i,
+                next_states[i].pack()
+            );
+        };
+
+        PyObject * arglist=PyTuple_Pack(3,last_state_list,action_list,next_state_list);
+        PyObject * pfv= PyObject_CallObject(this->callback, arglist);
+
+        //for(int i=0;i<next_states.size();i++){
+        //    Py_DECREF(PyList_GET_ITEM(last_state_list,i));
+            //PyList_GET_ITEM(last_state_list,i);
+        //};
+        //std::cout<<"haha\n";
+        Py_DECREF(last_state_list);
+        Py_DECREF(action_list);
+        Py_DECREF(next_state_list);
+        Py_DECREF(arglist);
+
+        bool rtn = (pfv==Py_True);
+        Py_DECREF(pfv);
+        return rtn;
+
+    };
+
+};
+
 class Python_Feature_Generator: public General_Feature_Generator{
 public:
     PyObject * callback;
