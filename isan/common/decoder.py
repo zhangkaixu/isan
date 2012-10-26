@@ -45,6 +45,7 @@ class DFA(Searcher):
         self.handler=self.searcher.new(
                 beam_width,
                 schema.init_stat,
+                schema.early_stop,
                 schema.gen_actions_and_stats,
                 schema.gen_features,
                 )

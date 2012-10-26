@@ -56,13 +56,23 @@ static PyObject *
 searcher_new(PyObject *self, PyObject *arg)
 {
     PyObject * py_init_stat;
+    PyObject * py_early_stop_callback;
     PyObject * py_state_cb;
     PyObject * py_feature_cb;
     int beam_width;
-    PyArg_ParseTuple(arg, "iOOO", &beam_width,&py_init_stat,&py_state_cb,&py_feature_cb);
+    PyArg_ParseTuple(arg, "iOOOO", 
+            &beam_width,
+            &py_init_stat,
+            &py_early_stop_callback,
+            &py_state_cb,
+            &py_feature_cb);
     State_Type* init_state = NULL;
     init_state = new State_Type(py_init_stat);
-    Interface* interface=new Interface(*init_state,beam_width,py_state_cb,py_feature_cb);
+    Interface* interface=new Interface(*init_state,
+            beam_width,
+            py_early_stop_callback,
+            py_state_cb,
+            py_feature_cb);
     delete init_state;
     
     return PyLong_FromLong((long)interface);

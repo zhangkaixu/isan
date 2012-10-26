@@ -44,9 +44,9 @@ static PyObject *
 pushdown_new(PyObject *self, PyObject *arg)
 {
     PyObject * py_init_stat;
+    PyObject * py_early_stop_callback;
     PyObject * py_shift_callback;
     PyObject * py_reduce_callback;
-    PyObject * py_early_stop_callback;
     PyObject * py_feature_cb;
     int beam_width;
     PyArg_ParseTuple(arg, "iOOOOO", &beam_width,&py_init_stat,

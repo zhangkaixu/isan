@@ -88,15 +88,14 @@ class Dep:
         return rtn
     def early_stop(self,step,last_states,actions,next_states):
         if (not hasattr(self,"std_states")) or (not self.std_states) : return False
-        flag=False
         for last_state,action,next_state in zip(last_states,actions,next_states):
             if last_state==b'': return False
-            last_state=pickle.loads(last_state)
-            action=chr(action)
             next_state=pickle.loads(next_state)
-            if next_state == self.std_states[step] : flag = True
-        return not flag
-        return False
+            if next_state == pickle.loads(self.std_states[step]) : 
+                last_state=pickle.loads(last_state)
+                if step==0 or last_state==pickle.loads(self.std_states[step-1]) :
+                    return False
+        return True
     def set_raw(self,raw,Y):
         """
         对需要处理的句子做必要的预处理（如缓存特征）

@@ -23,8 +23,10 @@ public:
     Feature_Vector fv;
 
     General_Searcher_Data(
+            General_Early_Stop_Checker * early_stop_checker,
             General_State_Generator *shifted_state_generator,
             General_Feature_Generator * feature_generator){
+        this->early_stop_checker=early_stop_checker;
         this->feature_generator=feature_generator;
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=NULL;
@@ -149,6 +151,7 @@ public:
 
     };
     General_Interface(State_Type init_state,int beam_width,
+            PyObject * py_early_stop_callback,
             PyObject * py_shift_callback,
             PyObject * py_feature_cb
             ){
@@ -162,9 +165,13 @@ public:
         }else{
             feature_generator=new Python_Feature_Generator( py_feature_cb);
         };
+        
+        early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
+
         reduced_state_generator=NULL;
         raw=NULL;
         this->data=new General_Searcher_Data(
+                early_stop_checker,
                 shifted_state_generator,
                 feature_generator);
 
@@ -173,23 +180,23 @@ public:
         this->push_down=new My_Searcher(this->data,beam_width);
 
     };
-    General_Interface(State_Type init_state,int beam_width,
-            General_State_Generator * shift_gen,
-            General_Feature_Generator* feature_gen
-            ){
-        shifted_state_generator=shift_gen;
-        reduced_state_generator=NULL;
-        feature_generator=feature_gen;
-        raw=NULL;
-        this->data=new General_Searcher_Data(
-                shifted_state_generator,
-                feature_generator);
+    //General_Interface(State_Type init_state,int beam_width,
+    //        General_State_Generator * shift_gen,
+    //        General_Feature_Generator* feature_gen
+    //        ){
+    //    shifted_state_generator=shift_gen;
+    //    reduced_state_generator=NULL;
+    //    feature_generator=feature_gen;
+    //    raw=NULL;
+    //    this->data=new General_Searcher_Data(
+    //            shifted_state_generator,
+    //            feature_generator);
 
-        this->init_state=init_state;
-        this->beam_width=beam_width;
-        this->push_down=new My_Searcher(this->data,beam_width);
+    //    this->init_state=init_state;
+    //    this->beam_width=beam_width;
+    //    this->push_down=new My_Searcher(this->data,beam_width);
 
-    };
+    //};
     void set_raw(Chinese& raw){
         if(this->raw)delete this->raw;
         this->raw=new Chinese(raw);

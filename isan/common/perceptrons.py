@@ -106,7 +106,6 @@ class Model(object):
 
         std_stats=[]
         for i,stat in enumerate(self.schema.actions_to_stats(raw,std_actions)) :
-            stat=pickle.loads(stat)
             std_stats.append(stat)
         self.schema.std_states=std_stats
 

@@ -89,7 +89,7 @@ class Task:
         #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
         pass
 
-    def actions_to_stats(self,actions):
+    def actions_to_stats(self,raw,actions):
         """
         维特比解码中，状态根据动作而转移，
         有了动作序列，就能确定一个状态序列
@@ -101,6 +101,16 @@ class Task:
                 if action==a:
                     stat=s
         yield stat
+    def early_stop(self,step,last_states,actions,next_states):
+        #return False
+        if (not hasattr(self,"std_states")) or (not self.std_states) : return False
+        for last_state,action,next_state in zip(last_states,actions,next_states):
+            if last_state==b'': return False
+            action=chr(action)
+            if next_state == self.std_states[step] : 
+                if step==0 or last_state==self.std_states[step-1] :
+                    return False
+        return True
 
     def _gen_actions_and_stats(self,stat):
         """

@@ -303,8 +303,11 @@ public:
         (*this->sequence.back())[init_key].alphas.push_back(Alpha());
         
         //
-        for(int step=0;step<steps;step++){
+        int step=0;
+        while(true){
             this->thrink(step,beam);//thrink, get beam
+            if(step==steps||early_stop(step,beam)) break;
+
             this->sequence.push_back(new My_Map());
             My_Map& this_map=(*this->sequence.back());
             //gen_next
@@ -336,15 +339,15 @@ public:
                     };
                 };
             };
+            step++;
         };
         //make result
-        this->thrink(steps,beam);
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
-        Alpha* item=&((*this->sequence[steps])[beam.back().first].alphas[0]);
+        Alpha* item=&((*this->sequence[step])[beam.back().first].alphas[0]);
 
 
-        result.resize(steps);
-        int ind=steps-1;
+        result.resize(step);
+        int ind=step-1;
         while(ind>=0){
             result[ind]=item->action;
             item=&((*this->sequence[ind])[item->state1].alphas[0]);
