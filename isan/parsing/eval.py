@@ -23,13 +23,6 @@ class Eval:
             if s[2]!=-1 :
                 self.non_root_std+=1
                 if s[2]==r : self.non_root_cor+=1
-                else :
-                    #print('std:',s[0],s[1],std_result[s[2]][0],std_result[s[2]][1])
-                    #if r != -1 :
-                    #    print('rst:',s[0],s[1],std_result[r][0],std_result[r][1])
-                    #else :
-                    #    print('rst:',s[0],s[1],'root')
-                    pass
             else :
                 self.root_std+=1
                 if s[2]==r : self.root_cor+=1

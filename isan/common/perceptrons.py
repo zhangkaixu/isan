@@ -165,6 +165,7 @@ class Model_PA(Model) :
         学习，根据生句子和标准分词结果
         """
         raw=arg.get('raw')
+        self.raw=raw
         y=arg.get('y',None)
         Y_a=arg.get('Y_a',None)
         Y_b=arg.get('Y_b',None)
