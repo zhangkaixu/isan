@@ -11,6 +11,7 @@ public:
     /* 搜索是否需要提前终止
      * */
     virtual bool early_stop(
+            int step,
             const std::vector<STATE>& last_states,
             const std::vector<ACTION>& actions,
             const std::vector<STATE>& states
@@ -363,7 +364,7 @@ public:
             actions.push_back((*(iter->second)).action);
             last_states.push_back((*(iter->second)).state1);
         };
-        return this->data->early_stop(last_states,actions,next_states);
+        return this->data->early_stop(step,last_states,actions,next_states);
     };
 
     /*
@@ -392,9 +393,6 @@ public:
         
         int step=0;
         while(true){
-            //if(steps==21){
-            //    std::cout<<"search: STEP "<<step<<"\n";
-            //};
             this->thrink(step,beam);//thrink, get beam
             if(step==steps||early_stop(step,beam)) break;
 
@@ -406,9 +404,7 @@ public:
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
                 SCORE& last_sub_score=beam[i].second->sub_score;
-                //if(steps==21){
-                //    std::cout<<"score "<<last_score<<" subscore"<<last_sub_score<<"\n";
-                //};
+
                 auto& predictors=(*this->sequence[step])[last_state].predictors;
                 
                 this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
@@ -478,14 +474,10 @@ public:
         
         //make result
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
-        const Alpha& item=(*this->sequence[steps])[beam.back().first].alphas[0];
-        //std::cout<<item.score<<"\n";
+        const Alpha* item=&(*this->sequence[step])[beam.back().first].alphas[0];
         
-
-        result.resize(steps);
-        set_result(item,0,steps,result);
-        //std::cout<<item.score<<"\n";
-        
+        result.resize(step);
+        set_result(item,0,step,result);
     };
     /*
      * beta
@@ -518,16 +510,23 @@ public:
             };
         };
     };
-    void set_result(const Alpha& alpha,int begin,int end, std::vector<ACTION>& result){
-        result[end-1]=alpha.action;
+    void set_result(const Alpha* alpha,int begin,int end, std::vector<ACTION>& result){
+        result[end-1]=alpha->action;
+        while(((begin+1)!=end)&&(alpha->is_shift)){
+            
+            end--;
+            alpha=&(*this->sequence[alpha->ind1])[alpha->state1].alphas[0];
+            result[end-1]=alpha->action;
+        };
         if(begin==end)return;
-        if(alpha.is_shift)return;
-        int last_ind=alpha.ind1;
-        const STATE& last_state=alpha.state1;
-        int p_ind=alpha.ind2;
-        const STATE& p_state=alpha.state2;
-        set_result((*this->sequence[p_ind])[p_state].alphas[0],begin,p_ind,result);
-        set_result((*this->sequence[last_ind])[last_state].alphas[0],p_ind,end-1,result);
+        if(alpha->is_shift)return;
+        int last_ind=alpha->ind1;
+        const STATE& last_state=alpha->state1;
+        int p_ind=alpha->ind2;
+        const STATE& p_state=alpha->state2;
+        set_result(&(*this->sequence[p_ind])[p_state].alphas[0],begin,p_ind,result);
+        set_result(&(*this->sequence[last_ind])[last_state].alphas[0],p_ind,end-1,result);
+        alpha++;
     };
 };
 };//isan

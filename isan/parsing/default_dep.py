@@ -86,7 +86,16 @@ class Dep:
                     ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])))),
                     )
         return rtn
-    def early_stop(self,a,b,c):
+    def early_stop(self,step,last_states,actions,next_states):
+        if (not hasattr(self,"std_states")) or (not self.std_states) : return False
+        flag=False
+        for last_state,action,next_state in zip(last_states,actions,next_states):
+            if last_state==b'': return False
+            last_state=pickle.loads(last_state)
+            action=chr(action)
+            next_state=pickle.loads(next_state)
+            if next_state == self.std_states[step] : flag = True
+        return not flag
         return False
     def set_raw(self,raw,Y):
         """
@@ -256,9 +265,9 @@ class Dep:
         #    input("no !")
 
         return actions
-    def actions_to_stats(self,actions):
+    def actions_to_stats(self,raw,actions):
         sn=sum(1 if a==self.shift_action else 0 for a in actions)
-        assert(sn*2-1==len(actions))
+        #assert(sn*2-1==len(actions))
         stat=None
         stack=[]# [ w,t,l_t,r_t , span[0],span[1]]
         ind=0
@@ -269,7 +278,7 @@ class Dep:
                         ))
             yield pickle.dumps(stat)
             if action==self.shift_action :
-                stack.append([self.raw[ind][0],self.raw[ind][1],None,None,ind,ind+1])
+                stack.append([raw[ind][0],raw[ind][1],None,None,ind,ind+1])
                 ind+=1
             else :
                 if action==self.left_reduce :

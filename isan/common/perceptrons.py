@@ -3,6 +3,7 @@ import sys
 import pickle
 import collections
 
+
 class Model(object):
     name="平均感知器"
     def __init__(self,model_file,schema=None,Searcher=None,beam_width=8,**conf):
@@ -93,87 +94,48 @@ class Model(object):
         学习，根据生句子和标准分词结果
         """
         raw=arg.get('raw')
-        self.raw=(' '.join(w+'_'+t for w,t in raw))
+        self.raw=raw
         y=arg.get('y',None)
         Y_a=arg.get('Y_a',None)
 
-
-
-        std_stats={}
-        #if raw[0][0]=='当然' :
-        #    self.schema.set_raw(raw,None)
-
-        #    std_actions=self.schema.result_to_actions(y)#得到标准动作
-        #    for i,stat in enumerate(self.schema.actions_to_stats(std_actions)) :
-        #        stat=pickle.loads(stat)
-        #        std_stats[stat]=i
-        #    self.schema.std_step=1
-        self.schema.std_stats=std_stats
-
-        
         #学习步数加一
         self.step+=1
+
+        #get standard actions
+        std_actions=self.schema.result_to_actions(y)#得到标准动作
+
+        std_stats=[]
+        for i,stat in enumerate(self.schema.actions_to_stats(raw,std_actions)) :
+            stat=pickle.loads(stat)
+            std_stats.append(stat)
+        self.schema.std_states=std_stats
+
+        
 
         #get result actions
         rst_actions=self.search(raw,Y_a)#得到解码后动作
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
 
-        #get standard actions
-        std_actions=self.schema.result_to_actions(y)#得到标准动作
 
 
         #update
         #if y!=hat_y:#如果动作不一致，则更新
         if std_actions!=rst_actions:#如果动作不一致，则更新
-            #if ([x[2] for x in y]==hat_y): 
-            #    #print(y)
-            #    return y,hat_y
+            #print(std_actions)
+            #print(rst_actions)
+            
             self.update(std_actions,rst_actions)
+        self.schema.std_states=[]
         return y,hat_y
     def update(self,std_actions,rst_actions):
-        w=[]
-        for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
-            ind,span,stack=pickle.loads(stat)
-            #print(ind,span,list(reversed(stack)))
-            #print(chr(action))
-
-            v=self.searcher.sum_weights(stat,action)
-            w.append(v)
-        ww=[]
-        for stat,action in zip(self.schema.actions_to_stats(rst_actions),rst_actions):
-            v=self.searcher.sum_weights(stat,action)
-            ww.append(v)
-        self.wrong+=1
-
-
-        states=self.searcher.get_states()
-        states_set=set(s[0] for s in states)
-        for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
-            self.searcher.update_action(stat,action,1,self.step)
-        for stat,action in zip(self.schema.actions_to_stats(rst_actions),rst_actions):
-            self.searcher.update_action(stat,action,-1,self.step)
-        if sum(w)> sum(ww) :
-            #c=collections.Counter([chr(x) for x in std_actions])
-            #cc=collections.Counter([chr(x) for x in rst_actions])
-            #print(sum(w),*w)
-            #print(sum(ww),*ww)
-            self.stg+=1
-        #    if self.raw[:2]!='当然' : return
-        #    print(len(std_actions),max_ind)
-        #    print(self.raw)
-        #    print(sum(w),w)
-        #    print(sum(ww),ww)
-        #    max_score=sum(ww)
-        #    std_stats=set(pickle.loads(stat) for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions))
-        #    for stat,action in zip(self.schema.actions_to_stats(std_actions),std_actions):
-        #        print(pickle.loads(stat),chr(action))
-        #        print(self.searcher.sum_weights(stat,action),
-        #                )
-        #    for state,value in states :
-        #        state=pickle.loads(state)
-        #        
-
-        #        print(state,state in std_stats,value-max_score)
+        for std_stat,std_action,rst_stat,rst_action in zip(
+                self.schema.actions_to_stats(self.raw,std_actions),
+                std_actions,
+                self.schema.actions_to_stats(self.raw,rst_actions),
+                rst_actions,
+                ):
+            self.searcher.update_action(std_stat,std_action,1,self.step)
+            self.searcher.update_action(rst_stat,rst_action,-1,self.step)
 
         
     def train(self,training_file,iteration=5,dev_file=None):
@@ -184,17 +146,12 @@ class Model(object):
             print("训练集第 \033[33;01m%i\033[1;m 次迭代"%(it+1),file=sys.stderr)
             eval=self.schema.Eval()#测试用的对象
             if type(training_file)==str:training_file=[training_file]
-            self.stg=0
-            self.sts=0
-            self.wrong=0
             for t_file in training_file:
                 for line in open(t_file):#迭代每个句子
                     rtn=self.schema.codec.decode(line.strip())#得到标准输出
                     if not rtn:continue
-                    self.sts+=1
                     y,hat_y=self._learn_sentence(rtn)#根据（输入，输出）学习参数，顺便得到解码结果
                     eval(y,hat_y)#根据解码结果和标准输出，评价效果
-            print("sts",self.sts,"wrong",self.wrong,"strange",self.stg)
             eval.print_result()#打印评测结果
             
             if dev_file:

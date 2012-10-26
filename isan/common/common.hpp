@@ -90,6 +90,7 @@ template <class STATE, class ACTION>
 class Early_Stop_Checker{
 public:
     virtual bool operator()(
+        int step,
         const std::vector<STATE>& last_states,
         const std::vector<ACTION>& actions,
         const std::vector<STATE>& states
@@ -115,6 +116,7 @@ public:
         Py_DECREF(callback);
     };
     virtual bool operator()(
+        int step,
         const std::vector<State_Type>& last_states,
         const std::vector<Action_Type>& actions,
         const std::vector<State_Type>& next_states
@@ -138,7 +140,8 @@ public:
             );
         };
 
-        PyObject * arglist=PyTuple_Pack(3,last_state_list,action_list,next_state_list);
+        PyObject * py_step=PyLong_FromLong(step);
+        PyObject * arglist=PyTuple_Pack(4,py_step,last_state_list,action_list,next_state_list);
         PyObject * pfv= PyObject_CallObject(this->callback, arglist);
 
         //for(int i=0;i<next_states.size();i++){
@@ -146,6 +149,7 @@ public:
             //PyList_GET_ITEM(last_state_list,i);
         //};
         //std::cout<<"haha\n";
+        Py_DECREF(py_step);
         Py_DECREF(last_state_list);
         Py_DECREF(action_list);
         Py_DECREF(next_state_list);
