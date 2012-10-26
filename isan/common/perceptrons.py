@@ -104,26 +104,22 @@ class Model(object):
         #get standard actions
         std_actions=self.schema.result_to_actions(y)#得到标准动作
 
+        #this is for the early-update
         std_stats=[]
         for i,stat in enumerate(self.schema.actions_to_stats(raw,std_actions)) :
             std_stats.append(stat)
         self.schema.std_states=std_stats
 
-        
-
         #get result actions
         rst_actions=self.search(raw,Y_a)#得到解码后动作
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
 
-
-
         #update
         #if y!=hat_y:#如果动作不一致，则更新
         if std_actions!=rst_actions:#如果动作不一致，则更新
-            #print(std_actions)
-            #print(rst_actions)
-            
             self.update(std_actions,rst_actions)
+
+        #clean the early-update data
         self.schema.std_states=[]
         return y,hat_y
     def update(self,std_actions,rst_actions):

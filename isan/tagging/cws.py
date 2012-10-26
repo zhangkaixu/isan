@@ -102,7 +102,7 @@ class Task:
                     stat=s
         yield stat
     def early_stop(self,step,last_states,actions,next_states):
-        #return False
+        return False
         if (not hasattr(self,"std_states")) or (not self.std_states) : return False
         for last_state,action,next_state in zip(last_states,actions,next_states):
             if last_state==b'': return False

@@ -320,23 +320,16 @@ public:
                 for(int j=0;j<next_actions.size();j++){
                     STATE& key=next_keys[j];
                     got=this_map.find(key);
-
                     if(got==this_map.end()){
                         this_map[key]=State_Info();
-                        this_map[key].alphas.push_back(Alpha(
-                                    last_score+scores[j],
-                                    scores[j],
-                                    next_actions[j],
-                                    last_key
-                                    ));
-                    }else{
-                        got->second.alphas.push_back(Alpha(
-                                    last_score+scores[j],
-                                    scores[j],
-                                    next_actions[j],
-                                    last_key
-                                    ));
+                        got=this_map.find(key);
                     };
+                    got->second.alphas.push_back(Alpha(
+                                last_score+scores[j],
+                                scores[j],
+                                next_actions[j],
+                                last_key
+                                ));
                 };
             };
             step++;
@@ -382,6 +375,7 @@ public:
         std::vector<SCORE> reduce_scores;
         std::vector<STATE> reduced_states;
 
+        typename My_Map::iterator got;
 
         
         //clear and init the sequence, release memory
@@ -413,13 +407,13 @@ public:
                 this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
                 for(int j=0;j<shift_actions.size();j++){
                     const auto& next_state=shifted_states[j];
-                    auto got=this_map.find(next_state);
+                    got=this_map.find(next_state);
                     if(got==this_map.end()){
                         this_map[next_state]=State_Info();
+                        got=this_map.find(next_state);
                     };
-                    auto& next_state_info=this_map[next_state];
-                    next_state_info.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
-                    next_state_info.alphas.push_back(Alpha(
+                    got->second.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
+                    got->second.alphas.push_back(Alpha(
                                 last_score+shift_scores[j],//prefix score
                                 0,//inner score
                                 shift_scores[j],//delta score
@@ -443,11 +437,12 @@ public:
                         auto& next_state=reduced_states[j];
                         auto& next_action=reduce_actions[j];
 
-                        auto got=this_map.find(next_state);
+                        got=this_map.find(next_state);
                         if(got==this_map.end()){
                             this_map[next_state]=State_Info();
+                            got=this_map.find(next_state);
                         };
-                        auto& next_state_info=this_map[next_state];
+                        auto& next_state_info=got->second;
                         for(auto it=p_state_info.predictors.begin();
                                 it!=p_state_info.predictors.end();
                                 ++it){
