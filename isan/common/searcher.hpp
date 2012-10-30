@@ -10,6 +10,10 @@ class Searcher_Data{
 public:
     /* 搜索是否需要提前终止
      * */
+    Searcher_Data(){
+        use_early_stop=false;
+    };
+    bool use_early_stop;
     virtual bool early_stop(
             int step,
             const std::vector<STATE>& last_states,
@@ -350,6 +354,7 @@ public:
 
 
     inline bool early_stop(int step,std::vector<std::pair<STATE,Alpha*> >& top_n){
+        if(!(data->use_early_stop))return false;
         //return false;
         std::vector<STATE> last_states;
         std::vector<ACTION> actions;

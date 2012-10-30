@@ -101,16 +101,16 @@ class Task:
                 if action==a:
                     stat=s
         yield stat
-    def early_stop(self,step,last_states,actions,next_states):
-        return False
-        if (not hasattr(self,"std_states")) or (not self.std_states) : return False
-        for last_state,action,next_state in zip(last_states,actions,next_states):
-            if last_state==b'': return False
-            action=chr(action)
-            if next_state == self.std_states[step] : 
-                if step==0 or last_state==self.std_states[step-1] :
-                    return False
-        return True
+    #def early_stop(self,step,last_states,actions,next_states):
+    #    return False
+    #    if (not hasattr(self,"std_states")) or (not self.std_states) : return False
+    #    for last_state,action,next_state in zip(last_states,actions,next_states):
+    #        if last_state==b'': return False
+    #        action=chr(action)
+    #        if next_state == self.std_states[step] : 
+    #            if step==0 or last_state==self.std_states[step-1] :
+    #                return False
+    #    return True
 
     def _gen_actions_and_stats(self,stat):
         """

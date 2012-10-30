@@ -30,6 +30,7 @@ public:
         this->feature_generator=feature_generator;
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=NULL;
+        this->use_early_stop=false;
         cached_state=State_Type();
     };
     General_Searcher_Data(
@@ -37,6 +38,7 @@ public:
             General_State_Generator *shifted_state_generator,
             General_Reduced_State_Generator *reduced_state_generator,
             General_Feature_Generator* feature_generator){
+        this->use_early_stop=true;
         this->early_stop_checker=early_stop_checker;
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=reduced_state_generator;

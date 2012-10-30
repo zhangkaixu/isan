@@ -256,7 +256,8 @@ class Dep:
                     stack[-1][2]-=1
                 else:
                     break
-        assert(len(actions)==2*len(result)-1)
+
+        #assert(len(actions)==2*len(result)-1)
 
         #the following is used to check whether the rst is right
         #rst=self.actions_to_result(actions,self.raw)
