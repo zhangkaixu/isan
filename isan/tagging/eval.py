@@ -107,6 +107,7 @@ class TaggingEval:
         self.cor,self.seg_cor=0,0
         self.sep=sep
         self.characters=0
+        self.overlaps=0
     def print_result(self):
         """
         打印结果
@@ -117,10 +118,10 @@ class TaggingEval:
         f=2*p*r/(r+p) if (r+p) else 0
         time_used=time.time()-self.otime
         speed=self.characters/time_used
-        print("标准: %d 输出: %d 正确: %d f1: \033[32;01m%.4f\033[1;m 时间: %.4f (%.0f字/秒)"
-                    %(self.std,self.rst,self.cor,f,time_used,speed),file=sys.stdout)
-        print("标准: %d 输出: %d 正确: %d f1: \033[32;01m%.4f\033[1;m 时间: %.4f (%.0f字/秒)"
-                    %(self.std,self.rst,self.cor,f,time_used,speed),file=sys.stderr)
+        line=("标准: %d 输出: %d 正确: %d f1: \033[32;01m%.4f\033[1;m ol: %d 时间: %.4f (%.0f字/秒)"
+                    %(self.std,self.rst,self.cor,f,self.overlaps,time_used,speed))
+        print(line,file=sys.stdout)
+        print(line,file=sys.stderr)
         
     def _set_based(self,std,rst):
         self.std+=len(std)
@@ -128,6 +129,22 @@ class TaggingEval:
         self.cor+=len(std&rst)
         self.characters+=sum(len(w)for _,w,_ in std)
         self.seg_cor+=len({(b,e) for b,e,t in std}&{(b,e) for b,e,t in rst})
+
+        std=sorted(list(std))
+        rst=sorted(list(rst))
+        std_ind=0
+        for b,w,*_ in rst :
+            e=b+len(w)
+            while std_ind < len(std) and std[std_ind][0]<b :
+                std_ind += 1
+            while std_ind < len(std) and std[std_ind][0]<e :
+                bb=std[std_ind][0]
+                ee=bb+len(std[std_ind][1])
+                if bb>b and e>bb and ee>e :
+                    self.overlaps+=1
+                std_ind += 1
+
+        #print(std,rst)
     
     def _to_set(self,seq):
         s=set()
