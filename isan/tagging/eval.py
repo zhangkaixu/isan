@@ -120,8 +120,8 @@ class TaggingEval:
         speed=self.characters/time_used
         line=("标准: %d 输出: %d 正确: %d f1: \033[32;01m%.4f\033[1;m ol: %d 时间: %.4f (%.0f字/秒)"
                     %(self.std,self.rst,self.cor,f,self.overlaps,time_used,speed))
-        print(line,file=sys.stdout)
         print(line,file=sys.stderr)
+        sys.stderr.flush()
         
     def _set_based(self,std,rst):
         self.std+=len(std)
