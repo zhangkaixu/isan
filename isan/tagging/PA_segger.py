@@ -40,6 +40,10 @@ class Segger(cws.Task):
                     'Y_b' : None,
                     }
 
+    def set_oracle(self,raw,y,Y) :
+        std_actions=self.result_to_actions(y)#得到标准动作
+        return std_actions
+
     def is_belong(self,raw,actions,Y):
         seq,intervals=Y
         

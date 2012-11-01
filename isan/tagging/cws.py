@@ -101,6 +101,10 @@ class Task:
                 if action==a:
                     stat=s
         yield stat
+    ## stuffs about the early update
+    def set_oracle(self,raw,y) :
+        std_actions=self.result_to_actions(y)#得到标准动作
+        return std_actions
     #def early_stop(self,step,last_states,actions,next_states):
     #    return False
     #    if (not hasattr(self,"std_states")) or (not self.std_states) : return False
@@ -111,6 +115,8 @@ class Task:
     #            if step==0 or last_state==self.std_states[step-1] :
     #                return False
     #    return True
+    def remove_oracle(self):
+        pass
 
     def _gen_actions_and_stats(self,stat):
         """

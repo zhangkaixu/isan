@@ -77,16 +77,6 @@ class Dep:
                     ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])))),
                     )
         return rtn
-    def early_stop(self,step,last_states,actions,next_states):
-        if (not hasattr(self,"std_states")) or (not self.std_states) : return False
-        for last_state,action,next_state in zip(last_states,actions,next_states):
-            if last_state==b'': return False
-            next_state=pickle.loads(next_state)
-            if next_state == pickle.loads(self.std_states[step]) : 
-                last_state=pickle.loads(last_state)
-                if step==0 or last_state==pickle.loads(self.std_states[step-1]) :
-                    return False
-        return True
     def set_raw(self,raw,Y):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
@@ -282,10 +272,119 @@ class Dep:
                     stack[-2]=stack[-1]
                     stack.pop()
 
+    ## stuffs about the early update
+    def set_oracle(self,raw,y) :
+        self.std_stats=[]
+        std_actions=self.result_to_actions(y)#得到标准动作
+        for i,stat in enumerate(self.actions_to_stats(raw,std_actions)) :
+            self.std_stats.append(stat)
+        return std_actions
+    def early_stop(self,step,last_states,actions,next_states):
+        if (not hasattr(self,"std_states")) or (not self.std_states) : return False
+        for last_state,action,next_state in zip(last_states,actions,next_states):
+            if last_state==b'': return False
+            next_state=pickle.loads(next_state)
+            if next_state == pickle.loads(self.std_states[step]) : 
+                last_state=pickle.loads(last_state)
+                if step==0 or last_state==pickle.loads(self.std_states[step-1]) :
+                    return False
+        return True
+    def remove_oracle(self):
+        self.std_stats=[]
 
 class PA_Dep (Dep):
-    def is_belong(self,raw,actions,Y_set) :
+    def set_oracle(self,raw,y,Y) :
+        if Y :
+            data=[]
+            for ind,it in enumerate(Y) :
+                data.append([ind,it[2],0,[ind,ind+1],[]])
+            for it in data:
+                if it[1]!=-1 :
+                    data[it[1]][2]+=1
+            un=set(x[0] for x in data)
+            while un :
+                for ind in un :
+                    if data[ind][2] == 0 :
+                        for l,r in data[ind][4] :
+                            if l < data[ind][3][0] : data[ind][3][0]=l
+                            if r > data[ind][3][1] : data[ind][3][1]=r
+                        head_ind=data[ind][1]
+                        if head_ind != -1 :
+                            data[head_ind][4].append(data[ind][3])
+                            data[head_ind][2]-=1
+                        un.remove(ind)
+                        break
+            self.oracle_reduce_rules={}
+            self.oracle_shift_rules={}
+            for h,_,_,span,chs in data:
+                if span[1] not in self.oracle_shift_rules or self.oracle_shift_rules[span[1]]>span[0] :
+                   self.oracle_shift_rules[span[1]]=span[0]
+                for ch in chs:
+                   self.oracle_reduce_rules[tuple(ch)]=h
+        else :
+            self.oracle_reduce_rules=None
+            self.oracle_shift_rules=None
+
+        std_actions=self.result_to_actions(y)#得到标准动作
+
+        self.oracle_states={pickle.loads(self.init_stat)}
+        return std_actions
+    def early_stop(self,step,last_states,actions,next_states):
+        if (not hasattr(self,"oracle_states")) or (not self.oracle_states) : return False
+        next_oracle=set()
+        for last_state,action,next_state in zip(last_states,actions,next_states):
+            if last_state==b'': return False
+
+            last_state=pickle.loads(last_state)
+            if last_state not in self.oracle_states : continue
+
+            next_state=pickle.loads(next_state)
+            if action==self.shift_action :
+                if self.can_shift(last_state,self.oracle_shift_rules,self.oracle_reduce_rules) :
+                    next_oracle.add(next_state)
+                    continue
+            else :
+                rtn= self.can_reduce(last_state,next_state,self.oracle_reduce_rules)
+                if action in rtn :
+                    next_oracle.add(next_state)
+                    continue
+        self.oracle_states = next_oracle
+            
+
+
+        return not next_oracle
+    def remove_oracle(self):
+        self.oracle_reduce_rules=None
+        self.oracle_shift_rules=None
+        self.oracle_states=set()
+
+    def is_belong(self,raw,actions,Y) :
         rst=self.actions_to_result(actions,raw)
 
-        std=[x[2] for x in Y_set]
+        std=[x[2] for x in Y]
         return rst==std
+
+    def can_shift(self,stat,shift_rules=None,reduce_rules=None):
+        _,span,_=stat
+
+        if reduce_rules :
+            if span in reduce_rules and reduce_rules[span]<span[0] :
+                return []
+        if span[1] in shift_rules and span[0]> shift_rules[span[1]] :
+            return []
+        return set([self.shift_action])
+
+    def can_reduce(self,stat,next_stat,reduce_rules=None):
+        ind,span,stack_top=stat
+        s0,s1,s2=stack_top
+        _,span,_=stat
+        p_span=next_stat[1][0],span[0]
+        rtn=set()
+        if s0==None or s1==None : return rtn
+        h=reduce_rules.get(span,-1)
+        if h>=p_span[0] and h<p_span[1]:
+            rtn.add(self.left_reduce)
+        h=reduce_rules.get(p_span,-1)
+        if h>=span[0] and h<span[1]:
+            rtn.add(self.right_reduce)
+        return rtn
