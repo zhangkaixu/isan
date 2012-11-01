@@ -44,15 +44,6 @@ class Dep:
 
     def reduce(self,stat,predictor):
         stat=pickle.loads(stat)
-        #if self.dbg :
-        #    print(stat,self.std_stats.get(stat,'false'))
-        #    if stat in self.std_stats :
-        #        step=self.std_stats[stat]
-        #        if step == self.std_step :
-        #            print('step',self.std_step)
-        #            self.std_step+=1
-        #        else :
-        #            print('over')
 
         ind,span,stack_top=stat
         predictor=pickle.loads(predictor)
@@ -290,6 +281,9 @@ class Dep:
                     stack[-1][4]=stack[-2][4]
                     stack[-2]=stack[-1]
                     stack.pop()
+
+
+class PA_Dep (Dep):
     def is_belong(self,raw,actions,Y_set) :
         rst=self.actions_to_result(actions,raw)
 

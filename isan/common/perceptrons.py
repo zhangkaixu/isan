@@ -168,9 +168,16 @@ class Model_PA(Model) :
         
         #学习步数加一
         self.step+=1
-        if self.step%100==0:
-            pass
 
+        #get standard actions
+        std_actions=self.schema.result_to_actions(y)#得到标准动作
+
+        #this is for the early-update
+        std_stats=[]
+        for i,stat in enumerate(self.schema.actions_to_stats(raw,std_actions)) :
+            std_stats.append(stat)
+        self.schema.std_states=std_stats
+        
         #get result actions
         rst_actions=self.search(raw,Y_a)#得到解码后动作
         hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
@@ -181,6 +188,7 @@ class Model_PA(Model) :
             else:
                 std_actions=self.search(raw,Y_b)
                 yy=self.schema.actions_to_result(std_actions,raw)
-                #assert(yy==[x[2] for x in y])
             self.update(std_actions,rst_actions)
+        #clean the early-update data
+        self.schema.std_states=[]
         return y,hat_y
