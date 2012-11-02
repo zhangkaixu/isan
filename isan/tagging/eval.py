@@ -108,18 +108,31 @@ class TaggingEval:
         self.sep=sep
         self.characters=0
         self.overlaps=0
+        self.with_tags=False
     def print_result(self):
         """
         打印结果
         """
+        time_used=time.time()-self.otime
+        speed=self.characters/time_used
+
         cor=self.cor
         p=cor/self.rst if self.rst else 0
         r=cor/self.std if self.std else 0
         f=2*p*r/(r+p) if (r+p) else 0
-        time_used=time.time()-self.otime
-        speed=self.characters/time_used
-        line=("标准: %d 输出: %d 正确: %d f1: \033[32;01m%.4f\033[1;m ol: %d 时间: %.4f (%.0f字/秒)"
-                    %(self.std,self.rst,self.cor,f,self.overlaps,time_used,speed))
+
+        if self.with_tags :
+            seg_cor=self.seg_cor
+            p=seg_cor/self.rst if self.rst else 0
+            r=seg_cor/self.std if self.std else 0
+            seg_f=2*p*r/(r+p) if (r+p) else 0
+
+        if self.with_tags :
+            line=("标准: %d 输出: %d seg正确: %d 正确: %d seg_f1: \033[32;01m%.4f\033[1;m tag_f1: \033[32;01m%.4f\033[1;m ol: %d 时间: %.4f (%.0f字/秒)"
+                        %(self.std,self.rst,self.seg_cor,self.cor,seg_f,f,self.overlaps,time_used,speed))
+        else :
+            line=("标准: %d 输出: %d 正确: %d f1: \033[32;01m%.4f\033[1;m ol: %d 时间: %.4f (%.0f字/秒)"
+                        %(self.std,self.rst,self.cor,f,self.overlaps,time_used,speed))
         print(line,file=sys.stderr)
         sys.stderr.flush()
         
@@ -129,6 +142,7 @@ class TaggingEval:
         self.cor+=len(std&rst)
         self.characters+=sum(len(w)for _,w,_ in std)
         self.seg_cor+=len({(b,e) for b,e,t in std}&{(b,e) for b,e,t in rst})
+
 
         std=sorted(list(std))
         rst=sorted(list(rst))
@@ -149,6 +163,7 @@ class TaggingEval:
     def _to_set(self,seq):
         s=set()
         if type(seq[0])!=str:#word with tag
+            self.with_tags=True
             offset=0
             for word,tag in seq:
                 s.add((offset,word,tag))
