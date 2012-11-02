@@ -332,7 +332,6 @@ public:
         std::vector<STATE> next_keys;
         std::vector<SCORE> scores;
         typename My_Map::iterator got;
-        My_Map final;
         
         //初始化sequence
         if(this->sequence.size()){
