@@ -62,7 +62,7 @@ public:
         return (*early_stop_checker)(step,last_states,actions,states);
     };
 
-    void shift(
+    inline void shift(
             State_Type& state, 
             std::vector<Action_Type>& next_actions,
             std::vector<State_Type>& next_states,
