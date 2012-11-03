@@ -12,6 +12,12 @@ class Dep:
     left_reduce=ord('l')
     right_reduce=ord('r')
     #init=(0,(0,0),(None,None,None))
+
+    def check(self,std_moves,rst_moves):
+        #print(std_moves)
+        #print(rst_moves)
+        return std_moves[1]!=rst_moves[1]
+
     def init(self):
         pass
     init_stat=pickle.dumps((0,(0,0),(None,None,None)))
@@ -180,7 +186,8 @@ class Dep:
         #print(*[x.decode() for x in fv])
         #input()
         return fv
-    def actions_to_result(self,actions,raw):
+    def moves_to_result(self,moves,raw):
+        actions=moves[1]
         ind=0
         stack=[]
         arcs=[]
@@ -278,9 +285,10 @@ class Dep:
         std_actions=self.result_to_actions(y)#得到标准动作
         for i,stat in enumerate(self.actions_to_stats(raw,std_actions)) :
             self.std_stats.append(stat)
-        return std_actions
+        std_states=self.actions_to_stats(raw,std_actions)
+        return list(std_states),std_actions
     def early_stop(self,step,last_states,actions,next_states):
-        if (not hasattr(self,"std_states")) or (not self.std_states) : return False
+        if (not hasattr(self,"std_stats")) or (not self.std_stats) : return False
         for last_state,action,next_state in zip(last_states,actions,next_states):
             if last_state==b'': return False
             next_state=pickle.loads(next_state)

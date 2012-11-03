@@ -437,7 +437,13 @@ public:
     /*
      * 二叉树搜索
      * */
-    void operator()(const STATE& init_key,const int steps,std::vector<ACTION>& result){
+    void operator()(
+            const STATE& init_key,
+            const int steps,
+            std::vector<STATE>& result_states,
+            std::vector<ACTION>& result_actions
+            )
+    {
         std::vector<std::pair<STATE,Alpha*> > beam;
         std::vector<ACTION> shift_actions;
         std::vector<SCORE> shift_scores;
@@ -545,8 +551,9 @@ public:
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         const Alpha* item=&(*this->sequence[step])[beam.back().first].alphas[0];
         
-        result.resize(step);
-        set_result(item,0,step,result);
+        result_actions.resize(step);
+        result_states.resize(step);
+        set_result(item,0,step,result_states,result_actions);
     };
     /*
      * beta
@@ -579,13 +586,22 @@ public:
             };
         };
     };
-    void set_result(const Alpha* alpha,int begin,int end, std::vector<ACTION>& result){
+    void set_result(
+            const Alpha* alpha,
+            int begin,
+            int end, 
+            std::vector<STATE>& result_states,
+            std::vector<ACTION>& result
+            )
+    {
         result[end-1]=alpha->action;
+        result_states[end-1]=alpha->state1;
         while(((begin+1)!=end)&&(alpha->is_shift)){
             
             end--;
             alpha=&(*this->sequence[alpha->ind1])[alpha->state1].alphas[0];
             result[end-1]=alpha->action;
+            result_states[end-1]=alpha->state1;
         };
         if(begin==end)return;
         if(alpha->is_shift)return;
@@ -593,8 +609,8 @@ public:
         const STATE& last_state=alpha->state1;
         int p_ind=alpha->ind2;
         const STATE& p_state=alpha->state2;
-        set_result(&(*this->sequence[p_ind])[p_state].alphas[0],begin,p_ind,result);
-        set_result(&(*this->sequence[last_ind])[last_state].alphas[0],p_ind,end-1,result);
+        set_result(&(*this->sequence[p_ind])[p_state].alphas[0],begin,p_ind,result_states,result);
+        set_result(&(*this->sequence[last_ind])[last_state].alphas[0],p_ind,end-1,result_states,result);
         alpha++;
     };
 };

@@ -117,7 +117,6 @@ class Task:
     def set_oracle(self,raw,y) :
         std_actions=self.result_to_actions(y)#得到标准动作
         std_states=self.actions_to_stats(raw,std_actions)
-
         return std_states,std_actions
 
     #def early_stop(self,step,last_states,actions,next_states):
