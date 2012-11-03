@@ -63,6 +63,42 @@ public:
     };
 
     inline void shift(
+            const int& ind,
+            State_Type& state, 
+            std::vector<Action_Type>& next_actions,
+            std::vector<int>& next_inds,
+            std::vector<State_Type>& next_states,
+            std::vector<Score_Type>& scores
+            ){
+
+        next_inds.clear();
+        if(!(cached_state==state)){
+            (*feature_generator)(state,fv);
+            cached_state=state;
+            cached_scores.clear();
+        }
+        (*shifted_state_generator)(ind,state,next_actions,next_inds,next_states);
+        scores.resize(next_actions.size());
+        for(int i=0;i<next_actions.size();i++){
+            auto action=next_actions[i];
+            auto got=actions.find(action);
+            if(got==actions.end()){
+                actions[action]=new Default_Weights();
+            };
+            scores[i]=(*actions[action])(fv);
+        };
+
+        if (next_states.size()==next_inds.size()) return;
+        next_inds.resize(actions.size());
+        for(int i=0;i<actions.size();++i){
+            if ( ind+1 ==max_step){
+                next_inds[i]=-1;
+            }else{
+                next_inds[i]=ind+1;
+            }
+        }
+    };
+    inline void shift(
             State_Type& state, 
             std::vector<Action_Type>& next_actions,
             std::vector<State_Type>& next_states,

@@ -72,6 +72,17 @@ public:
     void set_raw(RAW* raw){
         this->raw=raw;
     };
+    inline virtual void operator()(
+            const int& ind, STATE& key,
+            std::vector<ACTION>& actions,
+            std::vector<int>& next_inds,
+            std::vector<STATE > & next_states){
+        (*this)(key,actions,next_states);
+        next_inds.clear();
+        for(int i=0;i<actions.size();i++){
+            next_inds.push_back(ind+1);
+        };
+    };
     virtual void operator()(STATE& key, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
 };
 
@@ -203,6 +214,37 @@ public:
     ~Python_State_Generator(){
         Py_DECREF(callback);
     };
+
+    inline virtual void operator()(
+            const int& ind,
+            State_Type& key,
+            std::vector<Action_Type>& next_actions,
+            std::vector<int>& next_inds,
+            std::vector<State_Type>& next_states)
+    {
+        PyObject * state=key.pack();
+        PyObject * arglist=Py_BuildValue("(iO)",ind,state);
+        PyObject * result= PyObject_CallObject(this->callback, arglist);
+        Py_CLEAR(state);Py_CLEAR(arglist);
+        
+        long size=PySequence_Size(result);
+        PyObject * tri;
+        next_actions.resize(size);
+        next_states.clear();
+        for(int i=0;i<size;i++){
+            tri=PyList_GET_ITEM(result,i);
+            if(PyTuple_GET_SIZE(tri)==2){
+                next_actions[i]=(PyLong_AsLong(PyTuple_GET_ITEM(tri,0)));
+                next_states.push_back(State_Type(PyTuple_GET_ITEM(tri,1)));
+            }else{
+                next_actions[i]=(PyLong_AsLong(PyTuple_GET_ITEM(tri,0)));
+                next_inds.push_back(PyLong_AsLong(PyTuple_GET_ITEM(tri,1)));
+                next_states.push_back(State_Type(PyTuple_GET_ITEM(tri,2)));
+            };
+        };
+        Py_DECREF(result);
+    };
+
     void operator()(State_Type& key, std::vector<Action_Type>&next_actions,std::vector<State_Type> & next_states){
         PyObject * state=key.pack();
         PyObject * arglist=Py_BuildValue("(O)",state);

@@ -31,7 +31,7 @@ public:
             std::vector<STATE>& next_states,
             std::vector<SCORE>& scores
             )=0;
-    inline virtual void dag_shift(
+    inline virtual void shift(
             const int& ind,
             STATE& state, 
             std::vector<ACTION>& actions,
@@ -355,7 +355,7 @@ public:
                 STATE& last_key=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
 
-                this->data->dag_shift(step,
+                this->data->shift(step,
                         last_key,
                         next_actions,
                         next_inds,

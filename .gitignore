@@ -13,3 +13,4 @@ scripts/test
 datasets/*
 __pycache__
 README.html
+*tags

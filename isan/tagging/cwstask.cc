@@ -215,7 +215,41 @@ public:
 
 class CWS_State_Generator: public General_State_Generator{
 public:
-    void operator()(State_Type& super_key, std::vector<Action_Type>& next_actions,
+    void operator()(
+            State_Type& super_key,
+            std::vector<Action_Type>& next_actions,
+            std::vector< State_Type > & super_states){
+
+        next_actions.resize(2);
+        next_actions[0]=11;
+        next_actions[1]=22;
+
+        Default_State_Type& key=(Default_State_Type&)super_key;
+        int ind=*key.ind()+1;
+        int sepind=(*key.sep_ind());
+        super_states.clear();
+        //s
+        super_states.push_back(Default_State_Type(
+                    ind,
+                    '1',
+                    *key.last_action(),
+                    1,
+                    *key.sep_ind()
+                    ));
+        //c
+        super_states.push_back(Default_State_Type(
+                    ind,
+                    '2',
+                    *key.last_action(),
+                    sepind+1,
+                    *key.sep_ind_2()
+                    ));
+    };
+    void operator()(
+            const int& last_ind,
+            State_Type& super_key,
+            std::vector<Action_Type>& next_actions,
+            std::vector<int>& next_inds,
             std::vector< State_Type > & super_states){
 
         next_actions.resize(2);

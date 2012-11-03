@@ -72,13 +72,15 @@ class Task:
     """分词搜索时的初始状态"""
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0,0))
 
-    def gen_actions_and_stats(self,stat):
+    def gen_actions_and_stats(self,ind,stat):
         """
         根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
         """
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
-        return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
-                (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+        next_ind=ind+1 if ind+1 <= len(self.raw) else -1
+        #print(ind,self.raw,next_ind)
+        return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
+                (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
 
     def init(self):
         """
