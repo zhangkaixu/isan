@@ -44,12 +44,13 @@ class Segger(cws.Task):
         std_actions=self.result_to_actions(y)#得到标准动作
         return std_actions
 
-    def is_belong(self,raw,actions,Y):
+    def is_belong(self,raw,moves,Y):
+        actions=moves[1]
         seq,intervals=Y
         
         if intervals :
             offset=0
-            y=self.actions_to_result(actions,raw)
+            y=self.moves_to_result(moves,raw)
             for w in y:
                 r=intervals[offset][1]
                 if r!=-1 and offset+len(w)>r : 
@@ -65,26 +66,28 @@ class Segger(cws.Task):
                     return False
             return True
 
-    def gen_actions_and_stats(self,stat):
+    def gen_actions_and_stats(self,last_ind,stat):
         """
         根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
         """
+        
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
+        next_ind=last_ind+1 if last_ind+1 <= len(self.raw) else -1
         if self.actions and self.actions[ind]:
             if self.actions[ind]=='s':
-                return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl))]
+                return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl))]
             else :
-                return [(self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+                return [(self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
         if self.intervals :
             rtn=[]
             ll,lr=self.intervals[ind-wordl]
             rl,rr=self.intervals[ind]
             if lr!=-1 and lr<=ind :
-                return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl))]
+                return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl))]
             if rl!=-1 and ind-wordl<rl :
-                return [(self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
-        return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
-                (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+                return [(self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+        return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
+                (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
 
     def init(self):
         """
@@ -98,6 +101,7 @@ class Segger(cws.Task):
         """
         这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度
         """
+        self.raw=raw
         if Y:
             self.actions,self.intervals=Y
         else :

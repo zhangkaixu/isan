@@ -324,7 +324,12 @@ public:
     /*
      * 线性搜索
      * */
-    void call(STATE& init_key,int steps,std::vector<ACTION>& result){
+    void call(
+            STATE& init_key,
+            int steps,
+            std::vector<ACTION>& result_actions,
+            std::vector<STATE>& result_states)
+    {
         this->data->max_step=steps;
         std::vector<std::pair<STATE,Alpha*> > beam;
         std::vector<ACTION> next_actions;
@@ -347,7 +352,8 @@ public:
         //
         int step=0;
         while(true){
-            if(step==steps||early_stop(step,beam)) break;
+            if(early_stop(step,beam)) break;
+            if(step>=sequence.size()) break;
             this->thrink(sequence[step],beam);//thrink, get beam
 
             //gen_next
@@ -390,19 +396,25 @@ public:
             };
             step++;
         };
+
         //make result
         this->thrink(&final,beam);//thrink, get beam
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
-        Alpha* item=&(final[beam.back().first].alphas[0]);
 
-        result.clear();
+        result_actions.clear();
+        result_states.clear();
+
+        Alpha* item=&(final[beam.back().first].alphas[0]);
+        result_states.push_back(beam.back().first);
         int ind=step-1;
         while(ind>=0){
-            result.push_back(item->action);
+            result_actions.push_back(item->action);
+            result_states.push_back(item->state1);
             item=&((*this->sequence[ind])[item->state1].alphas[0]);
             ind=item->ind1;
         };
-        std::reverse(result.begin(),result.end());
+        std::reverse(result_actions.begin(),result_actions.end());
+        std::reverse(result_states.begin(),result_states.end());
         //cal_betas();
     };
 

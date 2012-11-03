@@ -46,10 +46,11 @@ class Task:
     sep=11
     com=22
 
-    def actions_to_result(self,actions,raw):
+    def moves_to_result(self,moves,raw):
         """
         告诉isan，有了输入和动作序列，输出该是什么
         """
+        actions=moves[1]
         last_sep=0
         sen=[]
         for i,a in enumerate(actions[1:]):
@@ -72,21 +73,30 @@ class Task:
     """分词搜索时的初始状态"""
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0,0))
 
-    def gen_actions_and_stats(self,ind,stat):
+    def gen_actions_and_stats(self,last_ind,stat):
         """
         根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
         """
+        #last_ind/=2
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
-        next_ind=ind+1 if ind+1 <= len(self.raw) else -1
+        next_ind=last_ind+1 if last_ind+1 <= len(self.raw) else -1
+        #next_ind=-1 if next_ind==-1 else int(next_ind*2)
+
+        #print(next_ind)
         #print(ind,self.raw,next_ind)
         return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+
+
+
+    def check(self,std_moves,rst_moves):
+        return std_moves[1]!=rst_moves[1]
 
     def init(self):
         """
         分词搜索时的初始状态
         """
-        self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
+        #self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
         #self.set_raw=
         #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
         pass
@@ -106,7 +116,10 @@ class Task:
     ## stuffs about the early update
     def set_oracle(self,raw,y) :
         std_actions=self.result_to_actions(y)#得到标准动作
-        return std_actions
+        std_states=self.actions_to_stats(raw,std_actions)
+
+        return std_states,std_actions
+
     #def early_stop(self,step,last_states,actions,next_states):
     #    return False
     #    if (not hasattr(self,"std_states")) or (not self.std_states) : return False

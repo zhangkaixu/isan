@@ -19,15 +19,21 @@ search(PyObject *self, PyObject *arg)
     PyArg_ParseTuple(arg, "LL", &interface,&steps);
     
     std::vector<Action_Type> result;
-    interface->push_down->call(interface->init_state,steps,result);
+    std::vector<State_Type> result_states;
+    interface->push_down->call(interface->init_state,steps,result,result_states);
 
     PyObject * list=PyList_New(result.size());
-    
     for(int i=0;i<result.size();i++){
         PyList_SetItem(list,i,PyLong_FromLong(result[i]));
     }
+    PyObject * state_list=PyList_New(result_states.size());
+    for(int i=0;i<result_states.size();i++){
+        PyList_SetItem(state_list,i,result_states[i].pack());
+    }
     //std::cout<<"searchend\n";
+    return PyTuple_Pack(2,state_list,list);
     return list;
+
 };
 
 static PyObject *

@@ -16,8 +16,8 @@ class Searcher:
     def un_average_weights(self):
         self.searcher.un_average_weights(self.handler)
 
-    def update_action(self,stat,action,delta,step):
-        self.searcher.update_action(self.handler,stat,action,delta,step)
+    def update_action(self,move,delta,step):
+        self.searcher.update_action(self.handler,move[0],move[1],delta,step)
 
     def make_dat(self):
         self.searcher.make_dat(self.handler)
@@ -49,6 +49,12 @@ class DFA(Searcher):
                 schema.gen_actions_and_stats,
                 schema.gen_features,
                 )
+    def search(self):
+        return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
+        actions,states=self.searcher.search(self.handler,self.raw_to_steps(self.raw))
+        print(actions)
+        print(states)
+        return actions
 class Push_Down(Searcher):
     name='Shift-reduce'
     searcher=pushdown
