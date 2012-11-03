@@ -281,14 +281,14 @@ class Dep:
 
     ## stuffs about the early update
     def set_oracle(self,raw,y) :
-        self.std_stats=[]
+        self.std_states=[]
         std_actions=self.result_to_actions(y)#得到标准动作
         for i,stat in enumerate(self.actions_to_stats(raw,std_actions)) :
-            self.std_stats.append(stat)
+            self.std_states.append(stat)
         std_states=self.actions_to_stats(raw,std_actions)
         return list(std_states),std_actions
     def early_stop(self,step,last_states,actions,next_states):
-        if (not hasattr(self,"std_stats")) or (not self.std_stats) : return False
+        if (not hasattr(self,"std_states")) or (not self.std_states) : return False
         for last_state,action,next_state in zip(last_states,actions,next_states):
             if last_state==b'': return False
             next_state=pickle.loads(next_state)
@@ -298,7 +298,7 @@ class Dep:
                     return False
         return True
     def remove_oracle(self):
-        self.std_stats=[]
+        self.std_states=[]
 
 class PA_Dep (Dep):
     def set_oracle(self,raw,y,Y) :
