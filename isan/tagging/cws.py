@@ -59,11 +59,24 @@ class Task:
                 last_sep=i+1
         return sen
     
-    def result_to_actions(self,y):
-        """
-        有了输出，需要怎样的动作序列才能得到
-        """
-        return sum(([self.com]*(len(w)-1)+[self.sep] for w in y),[self.sep])
+
+    def result_to_moves(self,y) :
+        def _gen_actions_and_stats(stat):
+            ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
+            return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
+                    (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+        actions=sum(([self.com]*(len(w)-1)+[self.sep] for w in y),[self.sep])
+        states=[]
+        stat=self.init_stat
+        for action in actions:
+            states.append(stat)
+            for a,s in _gen_actions_and_stats(stat):
+                if action==a:
+                    stat=s
+        states.append(stat)
+
+        return states,actions
+
 
     """
     在isan中，状态是一个bytes对象，但Python中tuple好处理一些，
@@ -72,22 +85,17 @@ class Task:
     stat_fmt=Struct('hcchh')
     """分词搜索时的初始状态"""
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0,0))
+    def get_init_states(self) :
+        return [self.init_stat]
 
     def gen_actions_and_stats(self,last_ind,stat):
         """
         根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
         """
-        #last_ind/=2
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
         next_ind=last_ind+1 if last_ind+1 <= len(self.raw) else -1
-        #next_ind=-1 if next_ind==-1 else int(next_ind*2)
-
-        #print(next_ind)
-        #print(ind,self.raw,next_ind)
         return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
-
-
 
     def check(self,std_moves,rst_moves):
         return std_moves[1]!=rst_moves[1]
@@ -96,49 +104,22 @@ class Task:
         """
         分词搜索时的初始状态
         """
-        #self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
-        #self.set_raw=
+        self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
         #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
         pass
 
-    def actions_to_stats(self,raw,actions):
-        """
-        维特比解码中，状态根据动作而转移，
-        有了动作序列，就能确定一个状态序列
-        """
-        stat=self.init_stat
-        for action in actions:
-            yield stat
-            for a,s in self._gen_actions_and_stats(stat):
-                if action==a:
-                    stat=s
-        yield stat
-    ## stuffs about the early update
+    """
+    stuffs about the early update
+    """
     def set_oracle(self,raw,y) :
-        std_actions=self.result_to_actions(y)#得到标准动作
-        std_states=self.actions_to_stats(raw,std_actions)
-        return std_states,std_actions
+        return self.result_to_moves(y)
 
-    #def early_stop(self,step,last_states,actions,next_states):
-    #    return False
-    #    if (not hasattr(self,"std_states")) or (not self.std_states) : return False
-    #    for last_state,action,next_state in zip(last_states,actions,next_states):
-    #        if last_state==b'': return False
-    #        action=chr(action)
-    #        if next_state == self.std_states[step] : 
-    #            if step==0 or last_state==self.std_states[step-1] :
-    #                return False
-    #    return True
     def remove_oracle(self):
         pass
 
-    def _gen_actions_and_stats(self,stat):
-        """
-        根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
-        """
-        ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
-        return [(self.sep,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
-                (self.com,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+    """
+    stuffs about the feature generation
+    """
     def set_raw(self,raw,_):
         """
         这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度
@@ -210,6 +191,10 @@ class Task:
     """
     Eval=tagging_eval.TaggingEval
 
+
+    """
+    to generate candidates to make lattice
+    """
     def gen_candidates(self,states,threshold=10):
         threshold=threshold*1000
         raw=self.raw

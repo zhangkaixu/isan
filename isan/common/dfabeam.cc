@@ -15,25 +15,28 @@ static PyObject *
 search(PyObject *self, PyObject *arg)
 {
     Interface* interface;
-    unsigned long steps;
-    PyArg_ParseTuple(arg, "LL", &interface,&steps);
+    PyObject *py_init_states;
+    PyArg_ParseTuple(arg, "LO", &interface,&py_init_states);
     
-    std::vector<Action_Type> result;
+    std::vector<Action_Type> result_actions;
     std::vector<State_Type> result_states;
-    interface->push_down->call(interface->init_state,steps,result,result_states);
 
-    PyObject * list=PyList_New(result.size());
-    for(int i=0;i<result.size();i++){
-        PyList_SetItem(list,i,PyLong_FromLong(result[i]));
+    std::vector<State_Type> init_states;
+    for(int i=0;i<PyList_GET_SIZE(py_init_states);i++){
+        init_states.push_back(State_Type(PyList_GetItem(py_init_states,i)));
+    };
+
+    interface->push_down->call(init_states,result_actions,result_states);
+
+    PyObject * list=PyList_New(result_actions.size());
+    for(int i=0;i<result_actions.size();i++){
+        PyList_SetItem(list,i,PyLong_FromLong(result_actions[i]));
     }
     PyObject * state_list=PyList_New(result_states.size());
     for(int i=0;i<result_states.size();i++){
         PyList_SetItem(state_list,i,result_states[i].pack());
     }
-    //std::cout<<"searchend\n";
     return PyTuple_Pack(2,state_list,list);
-    return list;
-
 };
 
 static PyObject *
@@ -55,32 +58,25 @@ get_states(PyObject *self, PyObject *arg)
                 );
     };
     return list;
-
 };
 
 static PyObject *
 searcher_new(PyObject *self, PyObject *arg)
 {
-    PyObject * py_init_stat;
     PyObject * py_early_stop_callback;
     PyObject * py_state_cb;
     PyObject * py_feature_cb;
     int beam_width;
-    PyArg_ParseTuple(arg, "iOOOO", 
+    PyArg_ParseTuple(arg, "iOOO", 
             &beam_width,
-            &py_init_stat,
             &py_early_stop_callback,
             &py_state_cb,
             &py_feature_cb);
-    State_Type* init_state = NULL;
-    init_state = new State_Type(py_init_stat);
-    Interface* interface=new Interface(*init_state,
+    Interface* interface=new Interface(
             beam_width,
             py_early_stop_callback,
             py_state_cb,
             py_feature_cb);
-    delete init_state;
-    
     return PyLong_FromLong((long)interface);
 };
 

@@ -172,7 +172,7 @@ class Model_PA(Model) :
 
         if not self.schema.is_belong(raw,rst_moves,Y_b): #y!=hat_y:#如果动作不一致，则更新
             if y and not Y_b:
-                std_actions=self.schema.result_to_actions(y)#得到标准动作
+                std_moves=self.schema.result_to_moves(y)#得到标准动作
             else:
                 std_moves=self.search(raw,Y_b)
                 yy=self.schema.moves_to_result(std_moves,raw)

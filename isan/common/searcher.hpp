@@ -30,7 +30,7 @@ public:
             std::vector<ACTION>& actions,
             std::vector<STATE>& next_states,
             std::vector<SCORE>& scores
-            )=0;
+            ){};
     inline virtual void shift(
             const int& ind,
             STATE& state, 
@@ -325,12 +325,10 @@ public:
      * 线性搜索
      * */
     void call(
-            STATE& init_key,
-            int steps,
+            const std::vector<STATE>& init_keys,
             std::vector<ACTION>& result_actions,
             std::vector<STATE>& result_states)
     {
-        this->data->max_step=steps;
         std::vector<std::pair<STATE,Alpha*> > beam;
         std::vector<ACTION> next_actions;
         std::vector<int> next_inds;
@@ -345,10 +343,11 @@ public:
         }
         this->sequence.clear();
         this->sequence.push_back(new My_Map());
-        (*this->sequence.back())[init_key]=State_Info();
-        (*this->sequence.back())[init_key].alphas.push_back(Alpha());
+        for(auto it=init_keys.begin();it!=init_keys.end();++it){
+            (*this->sequence.back())[(*it)]=State_Info();
+            (*this->sequence.back())[(*it)].alphas.push_back(Alpha());
+        };
         final.clear();
-        
         //
         int step=0;
         while(true){
@@ -416,6 +415,18 @@ public:
         std::reverse(result_actions.begin(),result_actions.end());
         std::reverse(result_states.begin(),result_states.end());
         //cal_betas();
+    };
+    void call(
+            STATE& init_key,
+            int steps,
+            std::vector<ACTION>& result_actions,
+            std::vector<STATE>& result_states)
+    {
+        this->data->max_step=steps;
+        std::vector<STATE> init_states;
+        init_states.push_back(init_key);
+        call(init_states,result_actions,result_states);
+        this->data->max_step=-1;
     };
 
 

@@ -83,7 +83,7 @@ public:
             next_inds.push_back(ind+1);
         };
     };
-    virtual void operator()(STATE& key, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
+    virtual void operator()(STATE& key, std::vector<ACTION>&,std::vector<STATE > & nexts){};
 };
 
 template <class RAW, class STATE, class ACTION>
