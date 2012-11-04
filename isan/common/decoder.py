@@ -51,7 +51,8 @@ class DFA(Searcher):
                 schema.gen_features,
                 )
     def search(self):
-        return self.searcher.search(self.handler,self.get_init_states())
+        x=self.searcher.search(self.handler,self.get_init_states())
+        return x[:2]
 class Push_Down(Searcher):
     name='Shift-reduce'
     searcher=pushdown

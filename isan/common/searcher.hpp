@@ -173,6 +173,7 @@ struct State_Info{
     std::vector<Alpha> betas;
     inline void max_top(){
         if(alphas.size()==0)
+            std::cout<<"zero alphas!!!\n";
             return;
         int max_ind=0;
         for(int ind=1;ind<alphas.size();ind++)
@@ -349,11 +350,12 @@ public:
         };
         final.clear();
         //
+        int is_early_stop=false;
         int step=0;
         while(true){
-            if(early_stop(step,beam)) break;
             if(step>=sequence.size()) break;
             this->thrink(sequence[step],beam);//thrink, get beam
+            if(is_early_stop=early_stop(step,beam)) break;
 
             //gen_next
             for(int i=0;i<beam.size();i++){
@@ -398,13 +400,19 @@ public:
         };
 
         //make result
-        this->thrink(&final,beam);//thrink, get beam
+
+        My_Map* end_map=&final;
+        if(is_early_stop){
+            end_map=sequence[step];
+        }
+        this->thrink(end_map,beam);//thrink, get beam
+        
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
 
         result_actions.clear();
         result_states.clear();
 
-        Alpha* item=&(final[beam.back().first].alphas[0]);
+        Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
         result_states.push_back(beam.back().first);
         int ind=item->ind1;
         //std::cout<<"make result\n";
@@ -418,7 +426,6 @@ public:
         };
         std::reverse(result_actions.begin(),result_actions.end());
         std::reverse(result_states.begin(),result_states.end());
-        //std::cout<<"make result\n";
         //cal_betas();
     };
     void call(

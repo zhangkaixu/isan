@@ -31,6 +31,7 @@ public:
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=NULL;
         this->use_early_stop=false;
+        //this->use_early_stop=true;
         cached_state=State_Type();
     };
     General_Searcher_Data(

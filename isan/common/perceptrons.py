@@ -103,23 +103,29 @@ class Model(object):
         self.step+=1
 
         #set oracle, get standard actions
-        std_moves=self.schema.set_oracle(raw,y)
+        if hasattr(self.schema,'set_oracle'):
+            std_moves=self.schema.set_oracle(raw,y)
 
         #get result actions
         rst_moves=self.search(raw,Y_a)#得到解码后动作
-        #print(len(rst_moves[1]))
 
         #update
         if not self.schema.check(std_moves,rst_moves):#check
             self.update(std_moves,rst_moves)#update
 
         #clean oracle
-        self.schema.remove_oracle()
+        if hasattr(self.schema,'remove_oracle'):
+            self.schema.remove_oracle()
 
         hat_y=self.schema.moves_to_result(rst_moves,raw)#得到解码后结果
         return y,hat_y
 
     def update(self,std_moves,rst_moves):
+        if hasattr(self.schema,'update_moves'):
+            for move,delta in self.schema.update_moves(std_moves,rst_moves) :
+                self.searcher.update_action(move,delta,self.step)
+            return
+
         for std_move,rst_move in zip(
                 zip(*std_moves),
                 zip(*rst_moves),
@@ -148,6 +154,7 @@ class Model(object):
                 print("使用开发集 %s 评价当前模型效果"%(dev_file),file=sys.stderr)
                 self.develop(dev_file)
             #input('end of one iteration')
+
 
 class Model_PA(Model) :
     name="局部标注平均感知器"

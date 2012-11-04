@@ -23,7 +23,7 @@ class Path_Finding :
                 offset=int(offset)
                 weight=[int(weight)] if weight else []
                 item=[(offset,word,tag),weight]
-                raw.append(item)
+                if oracle!='-1': raw.append(item)
                 if oracle=='1' : y.append(item[0])
 
             return {'raw':raw,
@@ -34,6 +34,12 @@ class Path_Finding :
         @staticmethod
         def encode(y):
             return ' '.join(y)
+    def update_moves(self,std_moves,rst_moves) :
+        for state,action in zip(*std_moves):
+            yield  (state,action),1
+        for state,action in zip(*rst_moves):
+            yield  (state,action),-1
+        pass
     def set_raw(self,raw,Y):
         self.raw=raw
         self.begins={}
@@ -78,19 +84,22 @@ class Path_Finding :
     def gen_features(self,state):
         state=Struct.unpack(self.stat_fmt,state)
         ind1,ind2,ind3=state
+        raw1=self.raw[ind1] if ind1 != -1 else [(-1,'~','~'),[]]
         raw2=self.raw[ind2] if ind2 != -1 else [(-1,'~','~'),[]]
         raw3=self.raw[ind3] if ind3 != -1 else [(-1,'~','~'),[]]
         fv=[]
-        fv+=[str(x).encode() for x in raw3[1]]
+        fv+=[b'a0~'+str(x).encode() for x in raw3[1]]
 
         fv+=[
-                raw3[0][1].encode(),
-                raw3[0][2].encode(),
-                raw2[0][1].encode(),
-                raw2[0][2].encode(),
+                b'3w~'+raw3[0][1].encode(),
+                b'3t~'+raw3[0][2].encode(),
+                b'l3~'+str(len(raw3[0][1])).encode(),
+                b't3t2~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode(),
+                b'w3w2~'+raw3[0][1].encode()+b'~'+raw2[0][1].encode(),
+                b'w3t2~'+raw3[0][1].encode()+b'~'+raw2[0][2].encode(),
+                b't3w2~'+raw3[0][2].encode()+b'~'+raw2[0][1].encode(),
+                b't3t2t1~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode()+b'~'+raw1[0][2].encode(),
                 ]
-
-        #print(fv)
 
         return fv
 
@@ -103,17 +112,34 @@ class Path_Finding :
     def set_oracle(self,raw,y):
         words=list(reversed(y[:]))
         inds=[-1,-1]
+        offset=0
+        offsets=[offset]
         for ind,item in enumerate(raw) :
             if not words : break
             if item[0]==words[-1] :
-                words.pop()
+                word=words.pop()
                 inds.append(ind)
+                offset+=len(word[1])
+                offsets.append(offset)
+                
+
         inds.append(-1)
         states=[inds[i:i+3] for i in range(len(inds)-2)]
         states=[Struct.pack(self.stat_fmt,*state) for state in states]
         actions=[1 for x in range(len(states)-1)]
+        #print(len(states)==len(offsets))
+        self.oracle={o:s for o,s in zip(offsets,states)}
         return states,actions
+    def early_stop(self,step,last_states,actions,next_states):
+        return False
+        if not hasattr(self,'oracle') or self.oracle==None : return False
+        
+        if step in self.oracle :
+            if not (self.oracle[step]in next_states) :
+                return True
+        return False
     def remove_oracle(self):
+        self.oracle=None
         pass
 
     class Eval :
@@ -126,7 +152,7 @@ class Path_Finding :
             self.cor,self.seg_cor=0,0
             self.characters=0
             self.overlaps=0
-            self.with_tags=False
+            self.with_tags=True
         def __call__(self,std,rst):
             std=set(std)
             rst=set(rst)

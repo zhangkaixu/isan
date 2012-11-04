@@ -24,7 +24,7 @@ search(PyObject *self, PyObject *arg)
     std::vector<State_Type> init_states;
     
     for(int i=0;i<PyList_GET_SIZE(py_init_states);i++){
-        init_states.push_back(State_Type(PyList_GetItem(py_init_states,i)));
+        init_states.push_back(State_Type(PyList_GET_ITEM(py_init_states,i)));
     };
 
     interface->push_down->call(init_states,result_actions,result_states);
@@ -37,7 +37,11 @@ search(PyObject *self, PyObject *arg)
     for(int i=0;i<result_states.size();i++){
         PyList_SetItem(state_list,i,result_states[i].pack());
     }
-    return PyTuple_Pack(2,state_list,list);
+    PyObject * tmp=PyTuple_Pack(2,state_list,list);
+    
+    Py_DECREF(list);
+    Py_DECREF(state_list);
+    return tmp;
 };
 
 static PyObject *
