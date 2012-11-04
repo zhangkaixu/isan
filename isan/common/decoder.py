@@ -27,7 +27,8 @@ class Searcher:
 
     def set_raw(self,raw):
         self.raw=raw
-        self.searcher.set_raw(self.handler,raw)
+        if self.do_set_raw :
+            self.searcher.set_raw(self.handler,raw)
     def __call__(self):
         return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
     def search(self):
@@ -40,6 +41,8 @@ class DFA(Searcher):
     name='状态转移'
     searcher=dfabeam
     def __init__(self,schema,beam_width):
+        self.do_set_raw=True
+        if hasattr(schema,'do_not_set_raw_for_searcher') : self.do_set_raw=False
         self.get_init_states=schema.get_init_states
         self.handler=self.searcher.new(
                 beam_width,
@@ -54,6 +57,7 @@ class Push_Down(Searcher):
     searcher=pushdown
     raw_to_steps=lambda self,x:2*len(x)-1
     def __init__(self,schema,beam_width):
+        self.do_set_raw=True
         self.handler=self.searcher.new(
                 beam_width,
                 schema.init_stat,

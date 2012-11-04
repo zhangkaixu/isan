@@ -74,6 +74,7 @@ public:
         next_inds.clear();
         if(!(cached_state==state)){
             (*feature_generator)(state,fv);
+            //std::cout<<fv.size()<<"\n";
             cached_state=state;
             cached_scores.clear();
         }

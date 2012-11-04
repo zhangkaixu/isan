@@ -22,6 +22,7 @@ search(PyObject *self, PyObject *arg)
     std::vector<State_Type> result_states;
 
     std::vector<State_Type> init_states;
+    
     for(int i=0;i<PyList_GET_SIZE(py_init_states);i++){
         init_states.push_back(State_Type(PyList_GetItem(py_init_states,i)));
     };

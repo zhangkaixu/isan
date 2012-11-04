@@ -62,11 +62,13 @@ update_weights(PyObject *self, PyObject *arg)
     long delta=0;
     long step=0;
     Action_Type action;
+    //std::cout<<"in update\n";
     PyArg_ParseTuple(arg, "LOBii", &interface,&py_state,&action,&delta,&step);
     State_Type state(py_state);
     
     Feature_Vector fv;
     (*(interface->feature_generator))(state,fv);
+    //std::cout<<fv.size()<<" in update\n";
 
     auto& actions=interface->data->actions;
     auto got=actions.find(action);

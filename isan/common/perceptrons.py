@@ -98,6 +98,7 @@ class Model(object):
         y=arg.get('y',None)
         Y_a=arg.get('Y_a',None)
 
+
         #学习步数加一
         self.step+=1
 
@@ -106,9 +107,10 @@ class Model(object):
 
         #get result actions
         rst_moves=self.search(raw,Y_a)#得到解码后动作
+        #print(len(rst_moves[1]))
 
         #update
-        if self.schema.check(std_moves,rst_moves):#check
+        if not self.schema.check(std_moves,rst_moves):#check
             self.update(std_moves,rst_moves)#update
 
         #clean oracle

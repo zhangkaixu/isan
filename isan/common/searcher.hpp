@@ -384,6 +384,7 @@ public:
                         (*this_map)[key]=State_Info();
                         got=this_map->find(key);
                     };
+                    //std::cout<<scores[j]<<"\n";
                     got->second.alphas.push_back(Alpha(
                                 last_score+scores[j],
                                 scores[j],
@@ -405,8 +406,11 @@ public:
 
         Alpha* item=&(final[beam.back().first].alphas[0]);
         result_states.push_back(beam.back().first);
-        int ind=step-1;
+        int ind=item->ind1;
+        //std::cout<<"make result\n";
         while(ind>=0){
+            //std::cout<<"one\n";
+            //std::cout<<item->ind1<<"one\n";
             result_actions.push_back(item->action);
             result_states.push_back(item->state1);
             item=&((*this->sequence[ind])[item->state1].alphas[0]);
@@ -414,6 +418,7 @@ public:
         };
         std::reverse(result_actions.begin(),result_actions.end());
         std::reverse(result_states.begin(),result_states.end());
+        //std::cout<<"make result\n";
         //cal_betas();
     };
     void call(
