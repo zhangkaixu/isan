@@ -49,4 +49,18 @@ typedef std::vector<Feature_String> Feature_Vector;
 typedef unsigned short Chinese_Character;
 typedef Smart_String<Chinese_Character> Chinese;
 
+template<class Alpha>
+inline static PyObject *
+pack_alpha(Alpha alpha){
+    PyObject * py_step=PyLong_FromLong(alpha->ind1);
+    PyObject * py_state=alpha->state1.pack();
+    PyObject * py_action=PyLong_FromLong(alpha->action);
+    PyObject * py_move=PyTuple_Pack(3,py_step,py_state,py_action);
+    Py_DECREF( py_step);
+    Py_DECREF( py_state);
+    Py_DECREF( py_action);
+    return py_move;
+
+};
+
 };

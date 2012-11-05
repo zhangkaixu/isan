@@ -93,46 +93,31 @@ public:
         const std::vector<Alpha*>& last_alphas,
         const std::vector<State_Type>& next_states
             ){
-        PyObject * last_state_list=PyList_New( last_alphas.size());
-        for(int i=0;i< last_alphas.size();i++){
-            PyList_SetItem(last_state_list,i,
-                //last_states[i].pack()
-                last_alphas[i]->state1.pack()
-            );
-        };
-        PyObject * step_list=PyList_New( last_alphas.size());
-        for(int i=0;i< last_alphas.size();i++){
-            PyList_SetItem(step_list,i,
-                PyLong_FromLong(last_alphas[i]->ind1)
-            );
-        };
         PyObject * next_state_list=PyList_New(next_states.size());
         for(int i=0;i<next_states.size();i++){
             PyList_SetItem(next_state_list,i,
                 next_states[i].pack()
             );
         };
-        PyObject * action_list=PyList_New(next_states.size());
+        PyObject * move_list=PyList_New(next_states.size());
         for(int i=0;i<next_states.size();i++){
-            PyList_SetItem(action_list,i,
-                PyLong_FromLong(last_alphas[i]->action)
-            );
+            PyList_SetItem(
+                    move_list,
+                    i,
+                    pack_alpha(last_alphas[i])
+                    );
         };
 
         PyObject * py_step=PyLong_FromLong(step);
-        PyObject * arglist=PyTuple_Pack(5,
+        PyObject * arglist=PyTuple_Pack(3,
                 py_step,
                 next_state_list,
-                step_list,
-                last_state_list,
-                action_list
+                move_list
                 );
         PyObject * pfv= PyObject_CallObject(this->callback, arglist);
 
         Py_DECREF(py_step);
-        Py_DECREF(last_state_list);
-        Py_DECREF(action_list);
-        Py_DECREF(step_list);
+        Py_DECREF(move_list);
         Py_DECREF(next_state_list);
         Py_DECREF(arglist);
 
