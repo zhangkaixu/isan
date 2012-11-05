@@ -10,9 +10,6 @@ typedef State_Info_t<Alpha_Type> State_Info_Type;
 };
 #include "isan/common/weights.hpp"
 #include "isan/common/decoder.hpp"
-namespace isan{
-typedef General_Interface<State_Info_Type > Interface;
-};
 #include "isan/common/python_interface.hpp"
 using namespace isan;
 

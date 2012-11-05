@@ -217,12 +217,13 @@ struct State_Info_t : public State_Info<ALPHA > {
     typedef ALPHA Alpha;
 };
 
-template<class ACTION,class STATE,class SCORE>
-struct State_Info_s : public State_Info<Alpha_s<ACTION,STATE,SCORE> > {
-    __gnu_cxx::hash_map< STATE, std::pair<int, SCORE>, typename STATE::HASH> predictors;
-    typedef ACTION Action;
-    typedef STATE State;
-    typedef SCORE Score;
+template<class ALPHA>
+struct State_Info_s : public State_Info<ALPHA > {
+    typedef typename ALPHA::Action Action;
+    typedef typename ALPHA::State State;
+    typedef typename ALPHA::Score Score;
+    typedef ALPHA Alpha;
+    __gnu_cxx::hash_map< State, std::pair<int, Score>, typename State::HASH> predictors;
 };
 
 

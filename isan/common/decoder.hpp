@@ -156,9 +156,8 @@ public:
     };
 };
 
-template<class STATE_INFO>
-class General_Interface{
-    typedef Searcher<STATE_INFO > My_Searcher;
+class Interface{
+    typedef Searcher<State_Info_Type > My_Searcher;
 public:
     State_Type init_state;
     int beam_width;
@@ -173,7 +172,7 @@ public:
     
     Chinese* raw;
     
-    General_Interface(State_Type init_state,int beam_width,
+    Interface(State_Type init_state,int beam_width,
             PyObject * py_early_stop_callback,
             PyObject * py_shift_callback,
             PyObject * py_reduce_callback,
@@ -194,7 +193,7 @@ public:
         this->push_down=new My_Searcher(this->data,beam_width);
 
     };
-    General_Interface(int beam_width,
+    Interface(int beam_width,
             PyObject * py_early_stop_callback,
             PyObject * py_shift_callback,
             PyObject * py_feature_cb
@@ -234,7 +233,7 @@ public:
         this->feature_generator->set_raw(this->raw);
     }
 
-    ~General_Interface(){
+    ~Interface(){
         delete this->data;
         delete this->push_down;
         delete feature_generator;

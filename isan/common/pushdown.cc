@@ -6,11 +6,9 @@
 #include "isan/common/general_types.hpp"
 namespace isan{
 typedef Alpha_s<Action_Type,State_Type,Score_Type> Alpha_Type;
+typedef State_Info_s<Alpha_Type> State_Info_Type;
 };
 #include "isan/common/decoder.hpp"
-namespace isan{
-typedef General_Interface<State_Info_s<Action_Type,State_Type,Score_Type>> Interface;
-};
 #include "isan/common/python_interface.hpp"
 
 
