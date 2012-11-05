@@ -126,13 +126,6 @@ class Model(object):
                 self.searcher.update_action(move,delta,self.step)
             return
 
-        for std_move,rst_move in zip(
-                zip(*std_moves),
-                zip(*rst_moves),
-                ):
-            self.searcher.update_action(std_move,1,self.step)
-            self.searcher.update_action(rst_move,-1,self.step)
-
         
     def train(self,training_file,iteration=5,dev_file=None):
         """

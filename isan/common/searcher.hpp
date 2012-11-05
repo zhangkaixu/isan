@@ -5,6 +5,7 @@
 #include <vector>
 namespace isan{
 
+
 template <class ACTION, class STATE, class SCORE>
 class Searcher_Data{
 public :
@@ -172,9 +173,10 @@ struct State_Info{
     std::vector<Alpha> alphas;
     std::vector<Alpha> betas;
     inline void max_top(){
-        if(alphas.size()==0)
+        if(alphas.size()==0){
             std::cout<<"zero alphas!!!\n";
             return;
+        }
         int max_ind=0;
         for(int ind=1;ind<alphas.size();ind++)
             if (alphas[ind]>alphas[max_ind])
@@ -327,6 +329,7 @@ public:
      * */
     void call(
             const std::vector<STATE>& init_keys,
+            std::vector<int>& result_steps,
             std::vector<ACTION>& result_actions,
             std::vector<STATE>& result_states)
     {
@@ -411,14 +414,12 @@ public:
 
         result_actions.clear();
         result_states.clear();
+        result_steps.clear();
 
         Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
-        result_states.push_back(beam.back().first);
         int ind=item->ind1;
-        //std::cout<<"make result\n";
         while(ind>=0){
-            //std::cout<<"one\n";
-            //std::cout<<item->ind1<<"one\n";
+            result_steps.push_back(item->ind1);
             result_actions.push_back(item->action);
             result_states.push_back(item->state1);
             item=&((*this->sequence[ind])[item->state1].alphas[0]);
@@ -426,21 +427,9 @@ public:
         };
         std::reverse(result_actions.begin(),result_actions.end());
         std::reverse(result_states.begin(),result_states.end());
+        std::reverse(result_steps.begin(),result_steps.end());
         //cal_betas();
     };
-    void call(
-            STATE& init_key,
-            int steps,
-            std::vector<ACTION>& result_actions,
-            std::vector<STATE>& result_states)
-    {
-        this->data->max_step=steps;
-        std::vector<STATE> init_states;
-        init_states.push_back(init_key);
-        call(init_states,result_actions,result_states);
-        this->data->max_step=-1;
-    };
-
 
     inline bool early_stop(int step,std::vector<std::pair<STATE,Alpha*> >& top_n){
         if(!(data->use_early_stop))return false;

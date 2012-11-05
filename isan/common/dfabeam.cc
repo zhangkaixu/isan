@@ -18,6 +18,7 @@ search(PyObject *self, PyObject *arg)
     PyObject *py_init_states;
     PyArg_ParseTuple(arg, "LO", &interface,&py_init_states);
     
+    std::vector<int> result_steps;
     std::vector<Action_Type> result_actions;
     std::vector<State_Type> result_states;
 
@@ -27,7 +28,11 @@ search(PyObject *self, PyObject *arg)
         init_states.push_back(State_Type(PyList_GET_ITEM(py_init_states,i)));
     };
 
-    interface->push_down->call(init_states,result_actions,result_states);
+    interface->push_down->call(
+            init_states,
+            result_steps,
+            result_actions,
+            result_states);
 
     PyObject * list=PyList_New(result_actions.size());
     for(int i=0;i<result_actions.size();i++){
@@ -37,9 +42,14 @@ search(PyObject *self, PyObject *arg)
     for(int i=0;i<result_states.size();i++){
         PyList_SetItem(state_list,i,result_states[i].pack());
     }
-    PyObject * tmp=PyTuple_Pack(2,state_list,list);
+    PyObject * step_list=PyList_New(result_steps.size());
+    for(int i=0;i<result_steps.size();i++){
+        PyList_SetItem(step_list,i,PyLong_FromLong(result_steps[i]));
+    }
+    PyObject * tmp=PyTuple_Pack(3,step_list,state_list,list);
     
     Py_DECREF(list);
+    Py_DECREF(step_list);
     Py_DECREF(state_list);
     return tmp;
 };

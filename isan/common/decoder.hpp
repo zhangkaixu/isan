@@ -7,6 +7,7 @@
 namespace isan{
 
 
+
 class General_Searcher_Data : public Searcher_Data<Action_Type,State_Type,Score_Type>{
 public:
 

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from struct import Struct
 import time
+import math
 import sys
 class Path_Finding :
     do_not_set_raw_for_searcher=None
@@ -14,17 +15,19 @@ class Path_Finding :
             编码、解码
             从一行文本中，得到输入（raw）和输出（y）
             """
+
             if not line: return []
+            log2=math.log(2)
             seq=[word.split('_') for word in line.split()]
 
             raw=[]
             y=[]
             for offset,word,tag,weight,oracle in seq :
                 offset=int(offset)
-                weight=[int(weight)] if weight else []
+                weight=[math.floor(math.log(int(weight)/1000+1)/log2)] if weight else []
                 item=[(offset,word,tag),weight]
                 if oracle!='-1': raw.append(item)
-                if oracle=='1' : y.append(item[0])
+                if oracle!='0' : y.append(item[0])
 
             return {'raw':raw,
                     'y':y,
@@ -131,7 +134,6 @@ class Path_Finding :
         self.oracle={o:s for o,s in zip(offsets,states)}
         return states,actions
     def early_stop(self,step,last_states,actions,next_states):
-        return False
         if not hasattr(self,'oracle') or self.oracle==None : return False
         
         if step in self.oracle :

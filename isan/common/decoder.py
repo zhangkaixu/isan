@@ -17,7 +17,7 @@ class Searcher:
         self.searcher.un_average_weights(self.handler)
 
     def update_action(self,move,delta,step):
-        self.searcher.update_action(self.handler,move[0],move[1],delta,step)
+        self.searcher.update_action(self.handler,move[1],move[2],delta,step)
 
     def make_dat(self):
         self.searcher.make_dat(self.handler)
@@ -52,7 +52,8 @@ class DFA(Searcher):
                 )
     def search(self):
         x=self.searcher.search(self.handler,self.get_init_states())
-        return x[:2]
+        x=list(zip(*x))
+        return x
 class Push_Down(Searcher):
     name='Shift-reduce'
     searcher=pushdown

@@ -50,7 +50,8 @@ class Task:
         """
         告诉isan，有了输入和动作序列，输出该是什么
         """
-        actions=moves[1]
+        actions=list(zip(*moves))[2]
+        #print(actions)
         last_sep=0
         sen=[]
         for i,a in enumerate(actions[1:]):
@@ -75,7 +76,9 @@ class Task:
                     stat=s
         states.append(stat)
 
-        return states,actions
+        moves=[(i,states[i],actions[i])for i in range(len(actions))]
+
+        return moves
 
 
     """
@@ -98,7 +101,17 @@ class Task:
                 (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
 
     def check(self,std_moves,rst_moves):
-        return std_moves[1]!=rst_moves[1]
+        return all(
+                std_move[2]==rst_move[2]
+                for std_move,rst_move in zip(std_moves,rst_moves)
+                )
+
+    def update_moves(self,std_moves,rst_moves) :
+        for move in std_moves :
+            yield move, 1
+        for move in rst_moves :
+            yield move, -1
+        pass
 
     def init(self):
         """
