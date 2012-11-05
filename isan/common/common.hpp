@@ -3,56 +3,10 @@
 #include <vector>
 #include <map>
 #include "isan/common/smart_string.hpp"
+#include "isan/common/general_types.hpp"
 
 namespace isan{
 
-typedef unsigned char Action_Type;
-class Smart_Chars: public Smart_String<unsigned char>{
-public:
-    PyObject* pack() const{
-        return PyBytes_FromStringAndSize((char*)pt,length);
-    };
-    Smart_Chars(){
-        //std::cout<<*_ref_count<<"\n";
-    };
-    Smart_Chars(PyObject* py_key){
-        char* buffer;
-        Py_ssize_t len;
-        PyBytes_AsStringAndSize(py_key,&buffer,&len);
-        length=(size_t)len;
-        pt=new unsigned char[length];
-        memcpy(pt,buffer,length*sizeof(unsigned char));        
-    };
-    Smart_Chars(unsigned long length){
-        pt=new unsigned char[length];
-        this->length=length;
-    };
-    Smart_Chars(unsigned char* buffer, Smart_Chars::SIZE_T length){
-        pt=new unsigned char[length];
-        this->length=length;
-        memcpy(pt,buffer,length*sizeof(unsigned char));
-        //for(int i=0;i<length;i++){
-        //    if(!pt[i])pt[i]=120;
-        //};
-    };
-    void make_positive(){
-        for(int i=0;i<length;i++){
-            if(pt[i]==0){
-                std::cout<<"zero\n";
-            };
-        };
-    };
-    inline unsigned char& operator[](const int i) const{
-        return pt[i];
-    };
-};
-typedef int Score_Type;
-typedef Smart_Chars State_Type;
-typedef Smart_Chars Feature_String;
-typedef std::vector<Feature_String> Feature_Vector;
-
-typedef unsigned short Chinese_Character;
-typedef Smart_String<Chinese_Character> Chinese;
 
 template <class RAW, class STATE, class FEATURE_VECTOR>
 class Feature_Generator{
@@ -64,9 +18,12 @@ public:
     virtual void operator()(const STATE& key, FEATURE_VECTOR& fv)=0;
 };
 
-template <class RAW, class STATE, class ACTION>
+template <class RAW, class ALPHA>
 class State_Generator{
 public:
+    typedef ALPHA Alpha;
+    typedef typename Alpha::State STATE;
+    typedef typename Alpha::Action ACTION;
     RAW* raw;
     STATE init_state;
     void set_raw(RAW* raw){
@@ -86,9 +43,12 @@ public:
     virtual void operator()(STATE& key, std::vector<ACTION>&,std::vector<STATE > & nexts){};
 };
 
-template <class RAW, class STATE, class ACTION>
+template <class RAW, class ALPHA>
 class Reduced_State_Generator{
 public:
+    typedef ALPHA Alpha;
+    typedef typename Alpha::State STATE;
+    typedef typename Alpha::Action ACTION;
     RAW* raw;
     STATE init_state;
     void set_raw(RAW* raw){
@@ -97,9 +57,12 @@ public:
     virtual void operator()(const STATE& key,const STATE& key2, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
 };
 
-template <class STATE, class ACTION>
+template <class ALPHA>
 class Early_Stop_Checker{
 public:
+    typedef ALPHA Alpha;
+    typedef typename Alpha::State STATE;
+    typedef typename Alpha::Action ACTION;
     virtual bool operator()(
         int step,
         const std::vector<int>& last_steps,
@@ -113,9 +76,9 @@ public:
 
 
 typedef Feature_Generator<Chinese,State_Type,Feature_Vector> General_Feature_Generator;
-typedef State_Generator<Chinese,State_Type,Action_Type> General_State_Generator;
-typedef Reduced_State_Generator<Chinese,State_Type,Action_Type> General_Reduced_State_Generator;
-typedef Early_Stop_Checker<State_Type,Action_Type> General_Early_Stop_Checker;
+typedef State_Generator<Chinese,Alpha_Type> General_State_Generator;
+typedef Reduced_State_Generator<Chinese,Alpha_Type> General_Reduced_State_Generator;
+typedef Early_Stop_Checker<Alpha_Type> General_Early_Stop_Checker;
 
 class Python_Early_Stop_Checker : public General_Early_Stop_Checker{
 public:

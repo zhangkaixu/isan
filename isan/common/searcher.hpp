@@ -238,9 +238,8 @@ public:
     typedef typename STATE_INFO::State STATE;
     typedef typename STATE_INFO::Score SCORE;
 
-    typedef STATE_INFO my_STATE_INFO;
     typedef STATE_INFO State_Info;
-    typedef __gnu_cxx::hash_map<STATE,my_STATE_INFO,typename STATE::HASH> My_Map;
+    typedef __gnu_cxx::hash_map<STATE, State_Info,typename STATE::HASH> My_Map;
     typedef typename STATE_INFO::Alpha Alpha;
     int beam_width;
     Searcher_Data<Alpha>* data;

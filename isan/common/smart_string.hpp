@@ -1,3 +1,4 @@
+#pragma once
 template<class ITEM>
 class Smart_String{
 public:

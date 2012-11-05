@@ -3,13 +3,14 @@
 #include <vector>
 #include <map>
 #include "isan/common/searcher.hpp"
-#include "isan/common/weights.hpp"
+#include "isan/common/general_types.hpp"
 namespace isan{
-typedef Alpha_t<Action_Type,State_Type,Score> Alpha_Type;
+typedef Alpha_t<Action_Type,State_Type,Score_Type> Alpha_Type;
 };
+#include "isan/common/weights.hpp"
 #include "isan/common/decoder.hpp"
 namespace isan{
-typedef General_Interface<State_Info_t<Action_Type,State_Type,Score> > Interface;
+typedef General_Interface<State_Info_t<Action_Type,State_Type,Score_Type> > Interface;
 };
 #include "isan/common/python_interface.hpp"
 using namespace isan;
