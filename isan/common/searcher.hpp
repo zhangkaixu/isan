@@ -444,7 +444,7 @@ public:
      * 二叉树搜索
      * */
     void operator()(
-            const STATE& init_key,
+            const std::vector<STATE>& init_keys,
             const int steps,
             std::vector<Alpha*>& result_alphas
             )
@@ -468,8 +468,10 @@ public:
         }
         this->sequence.clear();
         this->sequence.push_back(new My_Map());
-        (*this->sequence.back())[init_key]=State_Info();
-        (*this->sequence.back())[init_key].alphas.push_back(Alpha());
+        for(auto it=init_keys.begin();it!=init_keys.end();++it){
+            (*this->sequence.back())[(*it)]=State_Info();
+            (*this->sequence.back())[(*it)].alphas.push_back(Alpha());
+        };
         
         int step=0;
         while(true){

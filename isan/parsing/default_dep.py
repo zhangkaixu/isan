@@ -22,6 +22,8 @@ class Dep:
     def init(self):
         pass
     init_stat=pickle.dumps((0,(0,0),(None,None,None)))
+    def get_init_states(self) :
+        return [self.init_stat]
     Eval=eval.Eval
     codec=codec
     def shift(self,last_ind,stat):

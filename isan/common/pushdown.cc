@@ -43,25 +43,22 @@ get_states(PyObject *self, PyObject *arg)
 static PyObject *
 pushdown_new(PyObject *self, PyObject *arg)
 {
-    PyObject * py_init_stat;
     PyObject * py_early_stop_callback;
     PyObject * py_shift_callback;
     PyObject * py_reduce_callback;
     PyObject * py_feature_cb;
     int beam_width;
-    PyArg_ParseTuple(arg, "iOOOOO", &beam_width,&py_init_stat,
+    PyArg_ParseTuple(arg, "iOOOO", &beam_width,
             &py_early_stop_callback,
             &py_shift_callback,
             &py_reduce_callback,
             &py_feature_cb);
-    State_Type* init_key = NULL;
-    init_key = new State_Type(py_init_stat);
 
-    Interface* interface=new Interface(*init_key,beam_width,
+    Interface* interface=new Interface(beam_width,
             py_early_stop_callback,
-            py_shift_callback,py_reduce_callback,
-        py_feature_cb);
-    delete init_key;
+            py_shift_callback,
+            py_reduce_callback,
+            py_feature_cb);
     return PyLong_FromLong((long)interface);
 };
 
@@ -72,28 +69,25 @@ search(PyObject *self, PyObject *arg)
 
     Interface* interface;
     unsigned long steps;
-    PyArg_ParseTuple(arg, "LL", &interface,&steps);
+    PyObject *py_init_states;
+    PyArg_ParseTuple(arg, "LLO", &interface,&steps,&py_init_states);
 
-    std::vector<Action_Type> result;
-    std::vector<State_Type> result_states;
+    std::vector<State_Type> init_states;
+    for(int i=0;i<PyList_GET_SIZE(py_init_states);i++){
+        init_states.push_back(State_Type(PyList_GET_ITEM(py_init_states,i)));
+    };
+
     std::vector<Alpha_Type* > result_alphas;
 
     (*interface->push_down)(
-            interface->init_state,
+            init_states,
             steps,
             result_alphas);
-
-    PyObject * list=PyList_New(result_alphas.size());
+    PyObject * rtn_list=PyList_New(result_alphas.size());
     for(int i=0;i<result_alphas.size();i++){
-        PyList_SetItem(list,i,PyLong_FromUnsignedLong(result_alphas[i]->action));
+        PyList_SetItem(rtn_list,i,pack_alpha(result_alphas[i]));
     }
-    PyObject * state_list=PyList_New(result_alphas.size());
-    for(int i=0;i<result_alphas.size();i++){
-        PyList_SetItem(state_list,i,result_alphas[i]->state1.pack());
-    }
-    return PyTuple_Pack(2,state_list,list);
-    
-    return list;
+    return rtn_list;
 };
 
 

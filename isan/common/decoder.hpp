@@ -152,7 +152,7 @@ public:
     
     Chinese* raw;
     
-    Interface(State_Type init_state,int beam_width,
+    Interface(int beam_width,
             PyObject * py_early_stop_callback,
             PyObject * py_shift_callback,
             PyObject * py_reduce_callback,
@@ -163,7 +163,6 @@ public:
         feature_generator=new Python_Feature_Generator(py_feature_cb);
         early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
 
-        this->init_state=init_state;
         this->beam_width=beam_width;
         this->data=new General_Searcher_Data(
                 early_stop_checker,

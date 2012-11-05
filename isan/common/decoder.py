@@ -31,12 +31,10 @@ class Searcher:
             self.searcher.set_raw(self.handler,raw)
     def __call__(self):
         return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
+
     def search(self):
         rst=self.searcher.search(self.handler,self.raw_to_steps(self.raw))
-        ss,acts=rst
-        rst=[(i,ss[i],acts[i])for i in range(len(acts))]
         return rst
-
     def __del__(self):
         self.searcher.delete(self.handler)
 
@@ -62,11 +60,14 @@ class Push_Down(Searcher):
     raw_to_steps=lambda self,x:2*len(x)-1
     def __init__(self,schema,beam_width):
         self.do_set_raw=True
+        self.get_init_states=schema.get_init_states
         self.handler=self.searcher.new(
                 beam_width,
-                schema.init_stat,
                 schema.early_stop,
                 schema.shift,
                 schema.reduce,
                 schema.gen_features,
                 )
+    def search(self):
+        rst=self.searcher.search(self.handler,self.raw_to_steps(self.raw),self.get_init_states())
+        return rst
