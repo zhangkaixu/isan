@@ -214,30 +214,34 @@ struct State_Info{
 
 template<class ACTION,class STATE,class SCORE>
 struct State_Info_t : public State_Info<Alpha_t<ACTION,STATE,SCORE> > {
+    typedef ACTION Action;
+    typedef STATE State;
+    typedef SCORE Score;
 };
 
 template<class ACTION,class STATE,class SCORE>
 struct State_Info_s : public State_Info<Alpha_s<ACTION,STATE,SCORE> > {
     __gnu_cxx::hash_map< STATE, std::pair<int, SCORE>, typename STATE::HASH> predictors;
+    typedef ACTION Action;
+    typedef STATE State;
+    typedef SCORE Score;
 };
 
 
 
 
 
-template <class ACTION, class STATE, class SCORE,
-         template<class,class,class>class STATE_INFO
-         >
+template <class STATE_INFO>
 class Searcher{
 public:
-    //typedef typename ALPHA::Action ACTION;
-    //typedef typename ALPHA::State STATE;
-    //typedef typename ALPHA::Score SCORE;
+    typedef typename STATE_INFO::Action ACTION;
+    typedef typename STATE_INFO::State STATE;
+    typedef typename STATE_INFO::Score SCORE;
 
-    typedef STATE_INFO< ACTION, STATE, SCORE> my_STATE_INFO;
-    typedef STATE_INFO<ACTION,STATE,SCORE> State_Info;
+    typedef STATE_INFO my_STATE_INFO;
+    typedef STATE_INFO State_Info;
     typedef __gnu_cxx::hash_map<STATE,my_STATE_INFO,typename STATE::HASH> My_Map;
-    typedef typename STATE_INFO<ACTION, STATE, SCORE>::Alpha Alpha;
+    typedef typename STATE_INFO::Alpha Alpha;
     int beam_width;
     Searcher_Data<Alpha>* data;
     Searcher(){

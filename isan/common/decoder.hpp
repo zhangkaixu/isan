@@ -161,9 +161,9 @@ public:
     };
 };
 
-template<template <class a,class b,class c> class STATE_INFO>
+template<class STATE_INFO>
 class General_Interface{
-    typedef Searcher<Action_Type,State_Type,Score_Type,STATE_INFO> My_Searcher;
+    typedef Searcher<STATE_INFO > My_Searcher;
 public:
     State_Type init_state;
     int beam_width;

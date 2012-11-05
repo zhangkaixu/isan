@@ -10,7 +10,7 @@ typedef Alpha_s<Action_Type,State_Type,Score> Alpha_Type;
 };
 #include "isan/common/decoder.hpp"
 namespace isan{
-typedef General_Interface<State_Info_s> Interface;
+typedef General_Interface<State_Info_s<Action_Type,State_Type,Score>> Interface;
 };
 #include "isan/common/python_interface.hpp"
 
