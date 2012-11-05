@@ -24,9 +24,6 @@ public:
     virtual bool early_stop(
             int step,
             const std::vector<Alpha*>& last_alphas,
-            const std::vector<int>& last_steps,
-            const std::vector<STATE>& last_states,
-            const std::vector<ACTION>& actions,
             const std::vector<STATE>& states
             ){
         return false;
@@ -467,9 +464,6 @@ public:
         return this->data->early_stop(
                 step,
                 last_alphas,
-                last_steps,
-                last_states,
-                actions,
                 next_states);
     };
 

@@ -59,16 +59,11 @@ public:
     virtual bool early_stop(
             int step,
             const std::vector<Alpha_Type*>& last_alphas,
-            const std::vector<int>& last_steps,
-            const std::vector<State_Type>& last_states,
-            const std::vector<Action_Type>& actions,
             const std::vector<State_Type>& states
             ){
         return (*early_stop_checker)(
                 step,
-                last_steps,
-                last_states,
-                actions,
+                last_alphas,
                 states);
     };
 

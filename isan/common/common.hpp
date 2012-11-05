@@ -65,9 +65,7 @@ public:
     typedef typename Alpha::Action ACTION;
     virtual bool operator()(
         int step,
-        const std::vector<int>& last_steps,
-        const std::vector<STATE>& last_states,
-        const std::vector<ACTION>& actions,
+        const std::vector<Alpha*>& last_alphas,
         const std::vector<STATE>& states
             ){
         return false;
@@ -92,33 +90,32 @@ public:
     };
     virtual bool operator()(
         int step,
-        const std::vector<int>& last_steps,
-        const std::vector<State_Type>& last_states,
-        const std::vector<Action_Type>& actions,
+        const std::vector<Alpha*>& last_alphas,
         const std::vector<State_Type>& next_states
             ){
-        PyObject * last_state_list=PyList_New(last_states.size());
-        for(int i=0;i<last_states.size();i++){
+        PyObject * last_state_list=PyList_New( last_alphas.size());
+        for(int i=0;i< last_alphas.size();i++){
             PyList_SetItem(last_state_list,i,
-                last_states[i].pack()
+                //last_states[i].pack()
+                last_alphas[i]->state1.pack()
             );
         };
-        PyObject * step_list=PyList_New(last_steps.size());
-        for(int i=0;i<last_steps.size();i++){
+        PyObject * step_list=PyList_New( last_alphas.size());
+        for(int i=0;i< last_alphas.size();i++){
             PyList_SetItem(step_list,i,
-                PyLong_FromLong(last_steps[i])
-            );
-        };
-        PyObject * action_list=PyList_New(next_states.size());
-        for(int i=0;i<next_states.size();i++){
-            PyList_SetItem(action_list,i,
-                PyLong_FromLong(actions[i])
+                PyLong_FromLong(last_alphas[i]->ind1)
             );
         };
         PyObject * next_state_list=PyList_New(next_states.size());
         for(int i=0;i<next_states.size();i++){
             PyList_SetItem(next_state_list,i,
                 next_states[i].pack()
+            );
+        };
+        PyObject * action_list=PyList_New(next_states.size());
+        for(int i=0;i<next_states.size();i++){
+            PyList_SetItem(action_list,i,
+                PyLong_FromLong(last_alphas[i]->action)
             );
         };
 
