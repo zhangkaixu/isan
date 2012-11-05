@@ -118,6 +118,7 @@ class Model(object):
             self.schema.remove_oracle()
 
         hat_y=self.schema.moves_to_result(rst_moves,raw)#得到解码后结果
+        #input()
         return y,hat_y
 
     def update(self,std_moves,rst_moves):

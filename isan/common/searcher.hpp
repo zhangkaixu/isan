@@ -44,9 +44,10 @@ public:
             const int predictor_ind,
             const STATE& predictor,
             std::vector<ACTION>& actions,
+            std::vector<int>& next_inds,
             std::vector<STATE>& next_states,
             std::vector<SCORE>& scores
-            ){return;};
+            )=0;
 };
 
 
@@ -459,6 +460,7 @@ public:
         std::vector<SCORE> reduce_scores;
         std::vector<STATE> reduced_states;
         std::vector<int> next_inds;
+        std::vector<int> next_reduce_inds;
 
         typename My_Map::iterator got;
 
@@ -506,6 +508,14 @@ public:
 
                 for(int j=0;j<shift_actions.size();j++){
                     int next_ind=next_inds[j];
+                    My_Map* next_map;
+                    if (next_ind >= 0 ){
+                        while(next_ind>=sequence.size())
+                            this->sequence.push_back(new My_Map());
+                        next_map=this->sequence[next_ind];
+                    }else{
+                        next_map=&final;
+                    }
 
                     const auto& next_state=shifted_states[j];
                     got=this_map.find(next_state);
@@ -539,10 +549,12 @@ public:
                             p_step,
                             p_state,
                             reduce_actions,
+                            next_reduce_inds,
                             reduced_states,
                             reduce_scores
                             );
                     for(int j=0;j<reduce_actions.size();j++){
+                        //std::cout<<step<<" "<<steps<<" "<<next_reduce_inds[j]<<"\n";
                         auto& next_state=reduced_states[j];
                         auto& next_action=reduce_actions[j];
 

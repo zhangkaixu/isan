@@ -112,6 +112,7 @@ public:
             const int predictor_ind,
             const State_Type& predictor,
             std::vector<Action_Type>& next_actions,
+            std::vector<int>& next_inds,
             std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores
             ){
@@ -126,6 +127,7 @@ public:
                 predictor_ind,
                 predictor,
                 next_actions,
+                next_inds,
                 next_states);
         scores.resize(next_actions.size());
         for(int i=0;i<next_actions.size();i++){
