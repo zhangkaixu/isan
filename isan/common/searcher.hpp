@@ -331,9 +331,8 @@ public:
      * */
     void call(
             const std::vector<STATE>& init_keys,
-            std::vector<int>& result_steps,
-            std::vector<ACTION>& result_actions,
-            std::vector<STATE>& result_states)
+            std::vector<Alpha*>& result_alphas
+            )
     {
         std::vector<std::pair<STATE,Alpha*> > beam;
         std::vector<ACTION> next_actions;
@@ -414,22 +413,16 @@ public:
         
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
 
-        result_actions.clear();
-        result_states.clear();
-        result_steps.clear();
+        result_alphas.clear();
 
         Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
         int ind=item->ind1;
         while(ind>=0){
-            result_steps.push_back(item->ind1);
-            result_actions.push_back(item->action);
-            result_states.push_back(item->state1);
+            result_alphas.push_back(item);
             item=&((*this->sequence[ind])[item->state1].alphas[0]);
             ind=item->ind1;
         };
-        std::reverse(result_actions.begin(),result_actions.end());
-        std::reverse(result_states.begin(),result_states.end());
-        std::reverse(result_steps.begin(),result_steps.end());
+        std::reverse(result_alphas.begin(),result_alphas.end());
         //cal_betas();
     };
 
@@ -439,6 +432,7 @@ public:
         std::vector<STATE> last_states;
         std::vector<ACTION> actions;
         std::vector<STATE> next_states;
+        std::vector<Alpha*> last_alphas;
         std::vector<int> last_steps;
 
         for(auto iter=top_n.begin();iter!=top_n.end();++iter){
@@ -446,6 +440,7 @@ public:
             actions.push_back((*(iter->second)).action);
             last_steps.push_back((*(iter->second)).ind1);
             last_states.push_back((*(iter->second)).state1);
+            last_alphas.push_back(iter->second);
         };
         return this->data->early_stop(
                 step,
