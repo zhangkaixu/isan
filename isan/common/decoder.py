@@ -55,7 +55,6 @@ class DFA(Searcher):
                 )
     def search(self):
         x=self.searcher.search(self.handler,self.get_init_states())
-        x=list(zip(*x))
         return x
 class Push_Down(Searcher):
     name='Shift-reduce'

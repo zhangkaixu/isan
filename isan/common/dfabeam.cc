@@ -34,24 +34,38 @@ search(PyObject *self, PyObject *arg)
             result_actions,
             result_states);
 
-    PyObject * list=PyList_New(result_actions.size());
-    for(int i=0;i<result_actions.size();i++){
-        PyList_SetItem(list,i,PyLong_FromLong(result_actions[i]));
-    }
-    PyObject * state_list=PyList_New(result_states.size());
-    for(int i=0;i<result_states.size();i++){
-        PyList_SetItem(state_list,i,result_states[i].pack());
-    }
-    PyObject * step_list=PyList_New(result_steps.size());
+    //PyObject * list=PyList_New(result_actions.size());
+    //for(int i=0;i<result_actions.size();i++){
+    //    PyList_SetItem(list,i,PyLong_FromLong(result_actions[i]));
+    //}
+    //PyObject * state_list=PyList_New(result_states.size());
+    //for(int i=0;i<result_states.size();i++){
+    //    PyList_SetItem(state_list,i,result_states[i].pack());
+    //}
+    //PyObject * step_list=PyList_New(result_steps.size());
+    //for(int i=0;i<result_steps.size();i++){
+    //    PyList_SetItem(step_list,i,PyLong_FromLong(result_steps[i]));
+    //}
+    //PyObject * tmp=PyTuple_Pack(3,step_list,state_list,list);
+    //
+    //Py_DECREF(list);
+    //Py_DECREF(step_list);
+    //Py_DECREF(state_list);
+    //return tmp;
+
+    PyObject * rtn_list=PyList_New(result_steps.size());
     for(int i=0;i<result_steps.size();i++){
-        PyList_SetItem(step_list,i,PyLong_FromLong(result_steps[i]));
+        PyObject * py_step=PyLong_FromLong(result_steps[i]);
+        PyObject * py_state=result_states[i].pack();
+        PyObject * py_action=PyLong_FromLong(result_actions[i]);
+        PyObject * py_move=PyTuple_Pack(3,py_step,py_state,py_action);
+        Py_DECREF( py_step);
+        Py_DECREF( py_state);
+        Py_DECREF( py_action);
+        PyList_SetItem(rtn_list,i,py_move);
     }
-    PyObject * tmp=PyTuple_Pack(3,step_list,state_list,list);
-    
-    Py_DECREF(list);
-    Py_DECREF(step_list);
-    Py_DECREF(state_list);
-    return tmp;
+    return rtn_list;
+
 };
 
 static PyObject *
