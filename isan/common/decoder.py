@@ -69,5 +69,5 @@ class Push_Down(Searcher):
                 schema.gen_features,
                 )
     def search(self):
-        rst=self.searcher.search(self.handler,self.raw_to_steps(self.raw),self.get_init_states())
+        rst=self.searcher.search(self.handler,self.get_init_states())
         return rst

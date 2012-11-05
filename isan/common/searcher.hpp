@@ -448,7 +448,6 @@ public:
      * */
     void operator()(
             const std::vector<STATE>& init_keys,
-            const int steps,
             std::vector<Alpha*>& result_alphas
             )
     {
@@ -481,20 +480,15 @@ public:
         My_Map* end_map=&final;
         int step=0;
         while(true){
-            
-            
             if(step>=sequence.size()){
-                
                 break;
             };
             this->thrink(sequence[step],beam);//thrink, get beam
             if(early_stop(step,beam)){
-                
                 end_map=sequence[step];
                 break;
             };
             /*gen next step*/
-
             for(int i=0;i<beam.size();i++){
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
@@ -604,23 +598,15 @@ public:
             };
             step++;
         };
-        
-        
         //make result
         this->thrink(end_map,beam);//thrink, get beam
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         
-        
         Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
-        //Alpha* item=&(*this->sequence[step])[beam.back().first].alphas[0];
-        
-        //result_alphas.resize(step);
-        //set_result(item,0,step,result_alphas);
 
         result_alphas.clear();
         int ind=item->ind1;
         while(ind>=0){
-            
             result_alphas.push_back(item);
             item=&((*this->sequence[ind])[item->state1].alphas[0]);
             ind=item->ind1;

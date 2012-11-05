@@ -68,9 +68,8 @@ search(PyObject *self, PyObject *arg)
 {
 
     Interface* interface;
-    unsigned long steps;
     PyObject *py_init_states;
-    PyArg_ParseTuple(arg, "LLO", &interface,&steps,&py_init_states);
+    PyArg_ParseTuple(arg, "LO", &interface,&py_init_states);
 
     std::vector<State_Type> init_states;
     for(int i=0;i<PyList_GET_SIZE(py_init_states);i++){
@@ -81,7 +80,6 @@ search(PyObject *self, PyObject *arg)
 
     (*interface->push_down)(
             init_states,
-            steps,
             result_alphas);
     PyObject * rtn_list=PyList_New(result_alphas.size());
     for(int i=0;i<result_alphas.size();i++){
