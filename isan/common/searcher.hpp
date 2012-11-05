@@ -211,6 +211,10 @@ struct State_Info{
 
 template<class ACTION,class STATE,class SCORE>
 struct State_Info_t : public State_Info<Alpha_t<ACTION,STATE,SCORE> > {
+    //typedef typename ALPHA::Action ACTION;
+    //typedef typename ALPHA::State STATE;
+    //typedef typename ALPHA::Score SCORE;
+    //typedef ALPHA Alpha;
     typedef ACTION Action;
     typedef STATE State;
     typedef SCORE Score;

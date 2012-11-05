@@ -217,7 +217,7 @@ public:
 };
 
 
-class CWS_State_Generator: public General_State_Generator{
+class CWS_State_Generator: public State_Generator{
 public:
     void operator()(
             const int& last_ind,
@@ -266,7 +266,7 @@ static PyObject *
 task_new(PyObject *self, PyObject *arg)
 {
 
-    General_State_Generator * shifted_state_generator;
+    State_Generator * shifted_state_generator;
     Feature_Generator * feature_generator;
     State_Type* init_state;
 

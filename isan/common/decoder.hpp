@@ -13,9 +13,9 @@ class General_Searcher_Data :
 public:
 
     Feature_Generator * feature_generator;
-    General_State_Generator * shifted_state_generator;
-    General_Reduced_State_Generator * reduced_state_generator;
-    General_Early_Stop_Checker * early_stop_checker;
+    State_Generator * shifted_state_generator;
+    Reduced_State_Generator * reduced_state_generator;
+    Early_Stop_Checker * early_stop_checker;
 
     std::map<Action_Type, Default_Weights* > actions;
 
@@ -25,8 +25,8 @@ public:
     Feature_Vector fv;
 
     General_Searcher_Data(
-            General_Early_Stop_Checker * early_stop_checker,
-            General_State_Generator *shifted_state_generator,
+            Early_Stop_Checker * early_stop_checker,
+            State_Generator *shifted_state_generator,
             Feature_Generator * feature_generator){
         this->early_stop_checker=early_stop_checker;
         this->feature_generator=feature_generator;
@@ -37,9 +37,9 @@ public:
         cached_state=State_Type();
     };
     General_Searcher_Data(
-            General_Early_Stop_Checker * early_stop_checker,
-            General_State_Generator *shifted_state_generator,
-            General_Reduced_State_Generator *reduced_state_generator,
+            Early_Stop_Checker * early_stop_checker,
+            State_Generator *shifted_state_generator,
+            Reduced_State_Generator *reduced_state_generator,
             Feature_Generator* feature_generator){
         this->use_early_stop=true;
         this->early_stop_checker=early_stop_checker;
@@ -166,10 +166,10 @@ public:
 
     My_Searcher * push_down;
     
-    General_State_Generator * shifted_state_generator;
-    General_Reduced_State_Generator * reduced_state_generator;
+    State_Generator * shifted_state_generator;
+    Reduced_State_Generator * reduced_state_generator;
     Feature_Generator * feature_generator;
-    General_Early_Stop_Checker * early_stop_checker;
+    Early_Stop_Checker * early_stop_checker;
     
     Chinese* raw;
     
@@ -200,7 +200,7 @@ public:
             PyObject * py_feature_cb
             ){
         if(PyLong_Check(py_shift_callback)){
-            shifted_state_generator=(General_State_Generator *) PyLong_AsUnsignedLong(py_shift_callback);
+            shifted_state_generator=(State_Generator *) PyLong_AsUnsignedLong(py_shift_callback);
         }else{
             shifted_state_generator=new Python_State_Generator(py_shift_callback);
         };

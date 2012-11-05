@@ -17,7 +17,7 @@ public:
     virtual void operator()(const State_Type& key,Feature_Vector& fv)=0;
 };
 
-class General_State_Generator{
+class State_Generator{
 public:
     typedef Alpha_Type Alpha;
     typedef typename Alpha::State STATE;
@@ -41,7 +41,7 @@ public:
     virtual void operator()(STATE& key, std::vector<ACTION>&,std::vector<STATE > & nexts){};
 };
 
-class General_Reduced_State_Generator{
+class Reduced_State_Generator{
 public:
     typedef Alpha_Type Alpha;
     typedef typename Alpha::State STATE;
@@ -54,7 +54,7 @@ public:
     virtual void operator()(const STATE& key,const STATE& key2, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
 };
 
-class General_Early_Stop_Checker{
+class Early_Stop_Checker{
 public:
     typedef Alpha_Type Alpha;
     typedef typename Alpha::State STATE;
@@ -68,7 +68,7 @@ public:
     };
 };
 
-class Python_Early_Stop_Checker : public General_Early_Stop_Checker{
+class Python_Early_Stop_Checker : public Early_Stop_Checker{
 public:
     PyObject * callback;
     Python_Early_Stop_Checker(PyObject * callback){
@@ -148,7 +148,7 @@ public:
 };
 
 
-class Python_State_Generator: public General_State_Generator{
+class Python_State_Generator: public State_Generator{
 public:
     PyObject * callback;
     Python_State_Generator(PyObject * callback){
@@ -209,7 +209,7 @@ public:
 };
 
 
-class Python_Reduced_State_Generator: public General_Reduced_State_Generator{
+class Python_Reduced_State_Generator: public Reduced_State_Generator{
 public:
     PyObject * callback;
     Python_Reduced_State_Generator(PyObject * callback){
