@@ -4,6 +4,9 @@
 #include <map>
 #include "isan/common/searcher.hpp"
 #include "isan/common/weights.hpp"
+namespace isan{
+typedef Alpha_t<Action_Type,State_Type,Score> Alpha_Type;
+};
 #include "isan/common/decoder.hpp"
 namespace isan{
 typedef General_Interface<State_Info_t> Interface;
@@ -18,17 +21,14 @@ search(PyObject *self, PyObject *arg)
     PyObject *py_init_states;
     PyArg_ParseTuple(arg, "LO", &interface,&py_init_states);
     
-    std::vector<int> result_steps;
-    std::vector<Action_Type> result_actions;
-    std::vector<State_Type> result_states;
-
     std::vector<State_Type> init_states;
     
     for(int i=0;i<PyList_GET_SIZE(py_init_states);i++){
         init_states.push_back(State_Type(PyList_GET_ITEM(py_init_states,i)));
     };
 
-    std::vector<Alpha_t<Action_Type,State_Type,Score_Type >* > result_alphas;
+    std::vector<Alpha_Type* > result_alphas;
+    
     interface->push_down->call(
             init_states,
             result_alphas);
