@@ -3,11 +3,13 @@
 #include <vector>
 #include <map>
 #include "isan/common/searcher.hpp"
+#include "isan/common/general_types.hpp"
+namespace isan{
+typedef Alpha_t<Action_Type,State_Type,Score_Type> Alpha_Type;
+typedef State_Info_t<Alpha_Type> State_Info_Type;
+};
 #include "isan/common/weights.hpp"
 #include "isan/common/decoder.hpp"
-namespace isan{
-typedef General_Interface<State_Info_t> Interface;
-};
 #include "isan/common/python_interface.hpp"
 using namespace isan;
 
@@ -18,40 +20,23 @@ search(PyObject *self, PyObject *arg)
     PyObject *py_init_states;
     PyArg_ParseTuple(arg, "LO", &interface,&py_init_states);
     
-    std::vector<int> result_steps;
-    std::vector<Action_Type> result_actions;
-    std::vector<State_Type> result_states;
-
     std::vector<State_Type> init_states;
     
     for(int i=0;i<PyList_GET_SIZE(py_init_states);i++){
         init_states.push_back(State_Type(PyList_GET_ITEM(py_init_states,i)));
     };
 
+    std::vector<Alpha_Type* > result_alphas;
+    
     interface->push_down->call(
             init_states,
-            result_steps,
-            result_actions,
-            result_states);
+            result_alphas);
 
-    PyObject * list=PyList_New(result_actions.size());
-    for(int i=0;i<result_actions.size();i++){
-        PyList_SetItem(list,i,PyLong_FromLong(result_actions[i]));
+    PyObject * rtn_list=PyList_New(result_alphas.size());
+    for(int i=0;i<result_alphas.size();i++){
+        PyList_SetItem(rtn_list,i,pack_alpha(result_alphas[i]));
     }
-    PyObject * state_list=PyList_New(result_states.size());
-    for(int i=0;i<result_states.size();i++){
-        PyList_SetItem(state_list,i,result_states[i].pack());
-    }
-    PyObject * step_list=PyList_New(result_steps.size());
-    for(int i=0;i<result_steps.size();i++){
-        PyList_SetItem(step_list,i,PyLong_FromLong(result_steps[i]));
-    }
-    PyObject * tmp=PyTuple_Pack(3,step_list,state_list,list);
-    
-    Py_DECREF(list);
-    Py_DECREF(step_list);
-    Py_DECREF(state_list);
-    return tmp;
+    return rtn_list;
 };
 
 static PyObject *

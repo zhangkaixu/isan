@@ -2,13 +2,13 @@
 #include <iostream>
 #include <vector>
 #include <map>
-#include "isan/common/common.hpp"
-#include "isan/common/weights.hpp"
 #include "isan/common/searcher.hpp"
-#include "isan/common/decoder.hpp"
+#include "isan/common/general_types.hpp"
 namespace isan{
-typedef General_Interface<State_Info_s> Interface;
+typedef Alpha_s<Action_Type,State_Type,Score_Type> Alpha_Type;
+typedef State_Info_s<Alpha_Type> State_Info_Type;
 };
+#include "isan/common/decoder.hpp"
 #include "isan/common/python_interface.hpp"
 
 
@@ -76,15 +76,20 @@ search(PyObject *self, PyObject *arg)
 
     std::vector<Action_Type> result;
     std::vector<State_Type> result_states;
-    (*interface->push_down)(interface->init_state,steps,result_states,result);
+    std::vector<Alpha_Type* > result_alphas;
 
-    PyObject * list=PyList_New(result.size());
-    for(int i=0;i<result.size();i++){
-        PyList_SetItem(list,i,PyLong_FromUnsignedLong(result[i]));
+    (*interface->push_down)(
+            interface->init_state,
+            steps,
+            result_alphas);
+
+    PyObject * list=PyList_New(result_alphas.size());
+    for(int i=0;i<result_alphas.size();i++){
+        PyList_SetItem(list,i,PyLong_FromUnsignedLong(result_alphas[i]->action));
     }
-    PyObject * state_list=PyList_New(result_states.size());
-    for(int i=0;i<result_states.size();i++){
-        PyList_SetItem(state_list,i,result_states[i].pack());
+    PyObject * state_list=PyList_New(result_alphas.size());
+    for(int i=0;i<result_alphas.size();i++){
+        PyList_SetItem(state_list,i,result_alphas[i]->state1.pack());
     }
     return PyTuple_Pack(2,state_list,list);
     

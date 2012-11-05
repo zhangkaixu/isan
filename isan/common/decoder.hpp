@@ -8,13 +8,14 @@ namespace isan{
 
 
 
-class General_Searcher_Data : public Searcher_Data<Action_Type,State_Type,Score_Type>{
+class General_Searcher_Data : 
+        public Searcher_Data<Alpha_Type>{
 public:
 
-    General_Feature_Generator * feature_generator;
-    General_State_Generator * shifted_state_generator;
-    General_Reduced_State_Generator * reduced_state_generator;
-    General_Early_Stop_Checker * early_stop_checker;
+    Feature_Generator * feature_generator;
+    State_Generator * shifted_state_generator;
+    Reduced_State_Generator * reduced_state_generator;
+    Early_Stop_Checker * early_stop_checker;
 
     std::map<Action_Type, Default_Weights* > actions;
 
@@ -24,22 +25,22 @@ public:
     Feature_Vector fv;
 
     General_Searcher_Data(
-            General_Early_Stop_Checker * early_stop_checker,
-            General_State_Generator *shifted_state_generator,
-            General_Feature_Generator * feature_generator){
+            Early_Stop_Checker * early_stop_checker,
+            State_Generator *shifted_state_generator,
+            Feature_Generator * feature_generator){
         this->early_stop_checker=early_stop_checker;
         this->feature_generator=feature_generator;
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=NULL;
         this->use_early_stop=false;
-        //this->use_early_stop=true;
+        if(this->early_stop_checker)this->use_early_stop=true;
         cached_state=State_Type();
     };
     General_Searcher_Data(
-            General_Early_Stop_Checker * early_stop_checker,
-            General_State_Generator *shifted_state_generator,
-            General_Reduced_State_Generator *reduced_state_generator,
-            General_Feature_Generator* feature_generator){
+            Early_Stop_Checker * early_stop_checker,
+            State_Generator *shifted_state_generator,
+            Reduced_State_Generator *reduced_state_generator,
+            Feature_Generator* feature_generator){
         this->use_early_stop=true;
         this->early_stop_checker=early_stop_checker;
         this->shifted_state_generator=shifted_state_generator;
@@ -57,11 +58,13 @@ public:
 
     virtual bool early_stop(
             int step,
-            const std::vector<State_Type>& last_states,
-            const std::vector<Action_Type>& actions,
+            const std::vector<Alpha_Type*>& last_alphas,
             const std::vector<State_Type>& states
             ){
-        return (*early_stop_checker)(step,last_states,actions,states);
+        return (*early_stop_checker)(
+                step,
+                last_alphas,
+                states);
     };
 
     inline void shift(
@@ -92,6 +95,8 @@ public:
         };
 
         if (next_states.size()==next_inds.size()) return;
+        std::cout<<"oh no!"<<"\n";
+        
         next_inds.resize(actions.size());
         for(int i=0;i<actions.size();++i){
             if ( ind+1 ==max_step){
@@ -100,28 +105,6 @@ public:
                 next_inds[i]=ind+1;
             }
         }
-    };
-    inline void shift(
-            State_Type& state, 
-            std::vector<Action_Type>& next_actions,
-            std::vector<State_Type>& next_states,
-            std::vector<Score_Type>& scores
-            ){
-        if(!(cached_state==state)){
-            (*feature_generator)(state,fv);
-            cached_state=state;
-            cached_scores.clear();
-        }
-        (*shifted_state_generator)(state,next_actions,next_states);
-        scores.resize(next_actions.size());
-        for(int i=0;i<next_actions.size();i++){
-            auto action=next_actions[i];
-            auto got=actions.find(action);
-            if(got==actions.end()){
-                actions[action]=new Default_Weights();
-            };
-            scores[i]=(*actions[action])(fv);
-        };
     };
     void reduce(
             const State_Type& state, 
@@ -153,9 +136,8 @@ public:
     };
 };
 
-template<template <class a,class b,class c> class STATE_INFO>
-class General_Interface{
-    typedef Searcher<Action_Type,State_Type,Score_Type,STATE_INFO> My_Searcher;
+class Interface{
+    typedef Searcher<State_Info_Type > My_Searcher;
 public:
     State_Type init_state;
     int beam_width;
@@ -163,14 +145,14 @@ public:
 
     My_Searcher * push_down;
     
-    General_State_Generator * shifted_state_generator;
-    General_Reduced_State_Generator * reduced_state_generator;
-    General_Feature_Generator * feature_generator;
-    General_Early_Stop_Checker * early_stop_checker;
+    State_Generator * shifted_state_generator;
+    Reduced_State_Generator * reduced_state_generator;
+    Feature_Generator * feature_generator;
+    Early_Stop_Checker * early_stop_checker;
     
     Chinese* raw;
     
-    General_Interface(State_Type init_state,int beam_width,
+    Interface(State_Type init_state,int beam_width,
             PyObject * py_early_stop_callback,
             PyObject * py_shift_callback,
             PyObject * py_reduce_callback,
@@ -191,24 +173,27 @@ public:
         this->push_down=new My_Searcher(this->data,beam_width);
 
     };
-    General_Interface(int beam_width,
+    Interface(int beam_width,
             PyObject * py_early_stop_callback,
             PyObject * py_shift_callback,
             PyObject * py_feature_cb
             ){
         if(PyLong_Check(py_shift_callback)){
-            shifted_state_generator=(General_State_Generator *) PyLong_AsUnsignedLong(py_shift_callback);
+            shifted_state_generator=(State_Generator *) PyLong_AsUnsignedLong(py_shift_callback);
         }else{
             shifted_state_generator=new Python_State_Generator(py_shift_callback);
         };
         if(PyLong_Check( py_feature_cb)){
-            feature_generator=(General_Feature_Generator*) PyLong_AsUnsignedLong( py_feature_cb);
+            feature_generator=(Feature_Generator*) PyLong_AsUnsignedLong( py_feature_cb);
         }else{
             feature_generator=new Python_Feature_Generator( py_feature_cb);
         };
         
-        early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
 
+        early_stop_checker=NULL;
+        if(py_early_stop_callback!=Py_None){
+            early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
+        }
         reduced_state_generator=NULL;
         raw=NULL;
         this->data=new General_Searcher_Data(
@@ -228,7 +213,7 @@ public:
         this->feature_generator->set_raw(this->raw);
     }
 
-    ~General_Interface(){
+    ~Interface(){
         delete this->data;
         delete this->push_down;
         delete feature_generator;

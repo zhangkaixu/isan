@@ -3,6 +3,10 @@
 #include <vector>
 #include <map>
 #include "isan/common/searcher.hpp"
+#include "isan/common/general_types.hpp"
+namespace isan{
+typedef Alpha_t<Action_Type,State_Type,Score_Type> Alpha_Type;
+};
 #include "isan/common/weights.hpp"
 using namespace isan;
 
@@ -56,7 +60,7 @@ public:
     };
 };
 
-class CWS_Feature_Generator: public General_Feature_Generator{
+class CWS_Feature_Generator: public Feature_Generator{
     std::vector<std::vector<Feature_Vector> > chr_based;
 public:
     struct F1{
@@ -213,7 +217,7 @@ public:
 };
 
 
-class CWS_State_Generator: public General_State_Generator{
+class CWS_State_Generator: public State_Generator{
 public:
     void operator()(
             const int& last_ind,
@@ -262,8 +266,8 @@ static PyObject *
 task_new(PyObject *self, PyObject *arg)
 {
 
-    General_State_Generator * shifted_state_generator;
-    General_Feature_Generator * feature_generator;
+    State_Generator * shifted_state_generator;
+    Feature_Generator * feature_generator;
     State_Type* init_state;
 
     shifted_state_generator=new CWS_State_Generator();

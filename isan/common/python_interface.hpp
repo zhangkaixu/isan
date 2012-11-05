@@ -7,7 +7,6 @@
 
 namespace isan{
 
-
 static PyObject *
 interface_delete(PyObject *self, PyObject *arg){
     delete (Interface*)PyLong_AsLong(arg);
