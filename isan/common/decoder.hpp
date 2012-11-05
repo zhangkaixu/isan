@@ -107,7 +107,9 @@ public:
         }
     };
     void reduce(
+            const int state_ind,
             const State_Type& state, 
+            const int predictor_ind,
             const State_Type& predictor,
             std::vector<Action_Type>& next_actions,
             std::vector<State_Type>& next_states,
@@ -118,7 +120,13 @@ public:
             cached_state=state;
             cached_scores.clear();
         };
-        (*reduced_state_generator)(state,predictor,next_actions,next_states);
+        (*reduced_state_generator)(
+                state_ind,
+                state,
+                predictor_ind,
+                predictor,
+                next_actions,
+                next_states);
         scores.resize(next_actions.size());
         for(int i=0;i<next_actions.size();i++){
             auto action=next_actions[i];

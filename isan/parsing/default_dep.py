@@ -52,7 +52,7 @@ class Dep:
 
         return rtn
 
-    def reduce(self,stat,predictor):
+    def reduce(self,ind1,stat,ind2,predictor):
         stat=pickle.loads(stat)
 
         ind,span,stack_top=stat

@@ -39,7 +39,9 @@ public:
             )=0;
 
     virtual void reduce(
+            const int state_ind,
             const STATE& state, 
+            const int predictor_ind,
             const STATE& predictor,
             std::vector<ACTION>& actions,
             std::vector<STATE>& next_states,
@@ -472,12 +474,17 @@ public:
             (*this->sequence.back())[(*it)]=State_Info();
             (*this->sequence.back())[(*it)].alphas.push_back(Alpha());
         };
+        final.clear();
         
+        My_Map* end_map=&final;
         int step=0;
         while(true){
+            if(step>=sequence.size()) break;
             this->thrink(sequence[step],beam);//thrink, get beam
-            if(step==steps||early_stop(step,beam)) break;
-
+            if(step==steps||early_stop(step,beam)){
+                end_map=sequence[step];
+                break;
+            };
             /*gen next step*/
             this->sequence.push_back(new My_Map());
             My_Map& this_map=(*this->sequence.back());
@@ -527,7 +534,9 @@ public:
                     auto& p_sub_score=p_state_info.alphas[0].sub_score;
                     
                     this->data->reduce(
+                            step,
                             last_state,
+                            p_step,
                             p_state,
                             reduce_actions,
                             reduced_states,
