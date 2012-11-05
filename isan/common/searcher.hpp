@@ -481,15 +481,19 @@ public:
         My_Map* end_map=&final;
         int step=0;
         while(true){
-            if(step>=sequence.size()) break;
+            
+            
+            if(step>=sequence.size()){
+                
+                break;
+            };
             this->thrink(sequence[step],beam);//thrink, get beam
-            if(step==steps||early_stop(step,beam)){
+            if(early_stop(step,beam)){
+                
                 end_map=sequence[step];
                 break;
             };
             /*gen next step*/
-            this->sequence.push_back(new My_Map());
-            My_Map& this_map=(*this->sequence.back());
 
             for(int i=0;i<beam.size();i++){
                 STATE& last_state=beam[i].first;
@@ -518,10 +522,10 @@ public:
                     }
 
                     const auto& next_state=shifted_states[j];
-                    got=this_map.find(next_state);
-                    if(got==this_map.end()){
-                        this_map[next_state]=State_Info();
-                        got=this_map.find(next_state);
+                    got=next_map->find(next_state);
+                    if(got==next_map->end()){
+                        (*next_map)[next_state]=State_Info();
+                        got=next_map->find(next_state);
                     };
                     got->second.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
                     got->second.alphas.push_back(Alpha(
@@ -554,14 +558,24 @@ public:
                             reduce_scores
                             );
                     for(int j=0;j<reduce_actions.size();j++){
+                        int next_ind=next_reduce_inds[j];
+                        
+                        My_Map* next_map;
+                        if (next_ind >= 0 ){
+                            while(next_ind>=sequence.size())
+                                this->sequence.push_back(new My_Map());
+                            next_map=this->sequence[next_ind];
+                        }else{
+                            next_map=&final;
+                        }
                         //std::cout<<step<<" "<<steps<<" "<<next_reduce_inds[j]<<"\n";
                         auto& next_state=reduced_states[j];
                         auto& next_action=reduce_actions[j];
 
-                        got=this_map.find(next_state);
-                        if(got==this_map.end()){
-                            this_map[next_state]=State_Info();
-                            got=this_map.find(next_state);
+                        got=next_map->find(next_state);
+                        if(got==next_map->end()){
+                            (*next_map)[next_state]=State_Info();
+                            got=next_map->find(next_state);
                         };
                         auto& next_state_info=got->second;
                         for(auto it=p_state_info.predictors.begin();
@@ -591,12 +605,27 @@ public:
             step++;
         };
         
-        //make result
-        sort(beam.begin(),beam.end(),Alpha::state_comp_less);
-        Alpha* item=&(*this->sequence[step])[beam.back().first].alphas[0];
         
-        result_alphas.resize(step);
-        set_result(item,0,step,result_alphas);
+        //make result
+        this->thrink(end_map,beam);//thrink, get beam
+        sort(beam.begin(),beam.end(),Alpha::state_comp_less);
+        
+        
+        Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
+        //Alpha* item=&(*this->sequence[step])[beam.back().first].alphas[0];
+        
+        //result_alphas.resize(step);
+        //set_result(item,0,step,result_alphas);
+
+        result_alphas.clear();
+        int ind=item->ind1;
+        while(ind>=0){
+            
+            result_alphas.push_back(item);
+            item=&((*this->sequence[ind])[item->state1].alphas[0]);
+            ind=item->ind1;
+        };
+        std::reverse(result_alphas.begin(),result_alphas.end());
     };
     /*
      * beta
