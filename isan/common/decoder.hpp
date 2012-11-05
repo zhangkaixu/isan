@@ -9,11 +9,7 @@ namespace isan{
 
 
 class General_Searcher_Data : 
-        public Searcher_Data<
-                              Action_Type,
-                              State_Type,
-                              Score_Type,
-                              Alpha_Type>{
+        public Searcher_Data<Alpha_Type>{
 public:
 
     General_Feature_Generator * feature_generator;

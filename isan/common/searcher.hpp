@@ -6,10 +6,12 @@
 namespace isan{
 
 
-template <class ACTION, class STATE, class SCORE, class ALPHA>
+template <class ALPHA>
 class Searcher_Data{
 public :
-    typedef typename ALPHA::Action Action;
+    typedef typename ALPHA::Action ACTION;
+    typedef typename ALPHA::State STATE;
+    typedef typename ALPHA::Score SCORE;
     int max_step;
 public:
     /* 搜索是否需要提前终止
@@ -69,6 +71,8 @@ public:
 template<class ACTION,class STATE,class SCORE>
 struct Alpha_t{
     typedef ACTION Action;
+    typedef STATE State;
+    typedef SCORE Score;
 
     SCORE score;// score now
     SCORE inc;// score of last action
@@ -113,6 +117,8 @@ struct Alpha_t{
 template<class ACTION,class STATE,class SCORE>
 struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
     typedef ACTION Action;
+    typedef STATE State;
+    typedef SCORE Score;
     SCORE sub_score;
     bool is_shift;
     STATE state2;
@@ -224,10 +230,10 @@ public:
     typedef __gnu_cxx::hash_map<STATE,my_STATE_INFO,typename STATE::HASH> My_Map;
     typedef typename STATE_INFO<ACTION, STATE, SCORE>::Alpha Alpha;
     int beam_width;
-    Searcher_Data<ACTION,STATE,SCORE,Alpha>* data;
+    Searcher_Data<Alpha>* data;
     Searcher(){
     };
-    Searcher(Searcher_Data<ACTION,STATE,SCORE,Alpha>* data,int beam_width){
+    Searcher(Searcher_Data<Alpha>* data,int beam_width){
         this->beam_width=beam_width;
         this->data=data;
     };
