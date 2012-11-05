@@ -12,6 +12,7 @@ public :
     typedef typename ALPHA::Action ACTION;
     typedef typename ALPHA::State STATE;
     typedef typename ALPHA::Score SCORE;
+    typedef ALPHA Alpha;
     int max_step;
 public:
     /* 搜索是否需要提前终止
@@ -22,6 +23,7 @@ public:
     bool use_early_stop;
     virtual bool early_stop(
             int step,
+            const std::vector<Alpha*>& last_alphas,
             const std::vector<int>& last_steps,
             const std::vector<STATE>& last_states,
             const std::vector<ACTION>& actions,
@@ -454,6 +456,7 @@ public:
         };
         return this->data->early_stop(
                 step,
+                last_alphas,
                 last_steps,
                 last_states,
                 actions,
