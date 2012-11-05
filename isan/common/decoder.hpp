@@ -12,7 +12,7 @@ class General_Searcher_Data :
         public Searcher_Data<Alpha_Type>{
 public:
 
-    General_Feature_Generator * feature_generator;
+    Feature_Generator * feature_generator;
     General_State_Generator * shifted_state_generator;
     General_Reduced_State_Generator * reduced_state_generator;
     General_Early_Stop_Checker * early_stop_checker;
@@ -27,7 +27,7 @@ public:
     General_Searcher_Data(
             General_Early_Stop_Checker * early_stop_checker,
             General_State_Generator *shifted_state_generator,
-            General_Feature_Generator * feature_generator){
+            Feature_Generator * feature_generator){
         this->early_stop_checker=early_stop_checker;
         this->feature_generator=feature_generator;
         this->shifted_state_generator=shifted_state_generator;
@@ -40,7 +40,7 @@ public:
             General_Early_Stop_Checker * early_stop_checker,
             General_State_Generator *shifted_state_generator,
             General_Reduced_State_Generator *reduced_state_generator,
-            General_Feature_Generator* feature_generator){
+            Feature_Generator* feature_generator){
         this->use_early_stop=true;
         this->early_stop_checker=early_stop_checker;
         this->shifted_state_generator=shifted_state_generator;
@@ -168,7 +168,7 @@ public:
     
     General_State_Generator * shifted_state_generator;
     General_Reduced_State_Generator * reduced_state_generator;
-    General_Feature_Generator * feature_generator;
+    Feature_Generator * feature_generator;
     General_Early_Stop_Checker * early_stop_checker;
     
     Chinese* raw;
@@ -205,7 +205,7 @@ public:
             shifted_state_generator=new Python_State_Generator(py_shift_callback);
         };
         if(PyLong_Check( py_feature_cb)){
-            feature_generator=(General_Feature_Generator*) PyLong_AsUnsignedLong( py_feature_cb);
+            feature_generator=(Feature_Generator*) PyLong_AsUnsignedLong( py_feature_cb);
         }else{
             feature_generator=new Python_Feature_Generator( py_feature_cb);
         };

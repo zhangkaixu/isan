@@ -305,7 +305,6 @@ class Dep:
         self.std_states=[]
     def update_moves(self,std_moves,rst_moves) :
         for std,rst in zip(std_moves,rst_moves):
-
             yield std, 1
             yield rst, -1
 

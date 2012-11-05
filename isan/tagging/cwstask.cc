@@ -60,7 +60,7 @@ public:
     };
 };
 
-class CWS_Feature_Generator: public General_Feature_Generator{
+class CWS_Feature_Generator: public Feature_Generator{
     std::vector<std::vector<Feature_Vector> > chr_based;
 public:
     struct F1{
@@ -267,7 +267,7 @@ task_new(PyObject *self, PyObject *arg)
 {
 
     General_State_Generator * shifted_state_generator;
-    General_Feature_Generator * feature_generator;
+    Feature_Generator * feature_generator;
     State_Type* init_state;
 
     shifted_state_generator=new CWS_State_Generator();

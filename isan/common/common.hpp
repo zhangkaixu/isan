@@ -8,25 +8,23 @@
 namespace isan{
 
 
-template <class RAW, class STATE, class FEATURE_VECTOR>
 class Feature_Generator{
 public:
-    const RAW* raw;
-    virtual void set_raw(const RAW* raw){
+    const Chinese* raw;
+    virtual void set_raw(const Chinese* raw){
         this->raw=raw;
     };
-    virtual void operator()(const STATE& key, FEATURE_VECTOR& fv)=0;
+    virtual void operator()(const State_Type& key,Feature_Vector& fv)=0;
 };
 
-template <class RAW, class ALPHA>
-class State_Generator{
+class General_State_Generator{
 public:
-    typedef ALPHA Alpha;
+    typedef Alpha_Type Alpha;
     typedef typename Alpha::State STATE;
     typedef typename Alpha::Action ACTION;
-    RAW* raw;
+    Chinese* raw;
     STATE init_state;
-    void set_raw(RAW* raw){
+    void set_raw(Chinese* raw){
         this->raw=raw;
     };
     inline virtual void operator()(
@@ -43,40 +41,32 @@ public:
     virtual void operator()(STATE& key, std::vector<ACTION>&,std::vector<STATE > & nexts){};
 };
 
-template <class RAW, class ALPHA>
-class Reduced_State_Generator{
+class General_Reduced_State_Generator{
 public:
-    typedef ALPHA Alpha;
+    typedef Alpha_Type Alpha;
     typedef typename Alpha::State STATE;
     typedef typename Alpha::Action ACTION;
-    RAW* raw;
+    Chinese* raw;
     STATE init_state;
-    void set_raw(RAW* raw){
+    void set_raw(Chinese* raw){
         this->raw=raw;
     };
     virtual void operator()(const STATE& key,const STATE& key2, std::vector<ACTION>&,std::vector<STATE > & nexts)=0;
 };
 
-template <class ALPHA>
-class Early_Stop_Checker{
+class General_Early_Stop_Checker{
 public:
-    typedef ALPHA Alpha;
+    typedef Alpha_Type Alpha;
     typedef typename Alpha::State STATE;
     typedef typename Alpha::Action ACTION;
     virtual bool operator()(
-        int step,
+        const int step,
         const std::vector<Alpha*>& last_alphas,
         const std::vector<STATE>& states
             ){
         return false;
     };
 };
-
-
-typedef Feature_Generator<Chinese,State_Type,Feature_Vector> General_Feature_Generator;
-typedef State_Generator<Chinese,Alpha_Type> General_State_Generator;
-typedef Reduced_State_Generator<Chinese,Alpha_Type> General_Reduced_State_Generator;
-typedef Early_Stop_Checker<Alpha_Type> General_Early_Stop_Checker;
 
 class Python_Early_Stop_Checker : public General_Early_Stop_Checker{
 public:
@@ -89,7 +79,7 @@ public:
         Py_DECREF(callback);
     };
     virtual bool operator()(
-        int step,
+        const int step,
         const std::vector<Alpha*>& last_alphas,
         const std::vector<State_Type>& next_states
             ){
@@ -128,7 +118,7 @@ public:
 
 };
 
-class Python_Feature_Generator: public General_Feature_Generator{
+class Python_Feature_Generator: public Feature_Generator{
 public:
     PyObject * callback;
     Python_Feature_Generator(PyObject * callback){
