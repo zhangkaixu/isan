@@ -38,10 +38,11 @@ class Path_Finding :
         def encode(y):
             return ' '.join(y)
     def update_moves(self,std_moves,rst_moves) :
-        for move in std_moves :
-            yield move, 1
         for move in rst_moves :
             yield move, -1
+        for move in std_moves :
+            if self.stop_step>=0 and move[0]>=self.stop_step : return
+            yield move, 1
     def set_raw(self,raw,Y):
         self.raw=raw
         self.begins={}
@@ -138,14 +139,16 @@ class Path_Finding :
         moves=[]
         for state,action in zip(states,actions) :
             _,_,ind3=Struct.unpack(self.stat_fmt,state)
-            step=raw[ind3][0]
+            step=raw[ind3][0][0]
             moves.append((step,state,action))
         return moves
     def early_stop(self,step,last_states,actions,next_states):
         if not hasattr(self,'oracle') or self.oracle==None : return False
+        self.stop_step=-1
         
         if step in self.oracle :
             if not (self.oracle[step]in next_states) :
+                self.stop_step=step
                 return True
         return False
     def remove_oracle(self):
