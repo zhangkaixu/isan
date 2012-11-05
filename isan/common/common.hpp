@@ -102,6 +102,7 @@ class Early_Stop_Checker{
 public:
     virtual bool operator()(
         int step,
+        const std::vector<int>& last_steps,
         const std::vector<STATE>& last_states,
         const std::vector<ACTION>& actions,
         const std::vector<STATE>& states
@@ -128,6 +129,7 @@ public:
     };
     virtual bool operator()(
         int step,
+        const std::vector<int>& last_steps,
         const std::vector<State_Type>& last_states,
         const std::vector<Action_Type>& actions,
         const std::vector<State_Type>& next_states
@@ -136,6 +138,12 @@ public:
         for(int i=0;i<last_states.size();i++){
             PyList_SetItem(last_state_list,i,
                 last_states[i].pack()
+            );
+        };
+        PyObject * step_list=PyList_New(last_steps.size());
+        for(int i=0;i<last_steps.size();i++){
+            PyList_SetItem(step_list,i,
+                PyLong_FromLong(last_steps[i])
             );
         };
         PyObject * action_list=PyList_New(next_states.size());
@@ -152,24 +160,25 @@ public:
         };
 
         PyObject * py_step=PyLong_FromLong(step);
-        PyObject * arglist=PyTuple_Pack(4,py_step,last_state_list,action_list,next_state_list);
+        PyObject * arglist=PyTuple_Pack(5,
+                py_step,
+                next_state_list,
+                step_list,
+                last_state_list,
+                action_list
+                );
         PyObject * pfv= PyObject_CallObject(this->callback, arglist);
 
-        //for(int i=0;i<next_states.size();i++){
-        //    Py_DECREF(PyList_GET_ITEM(last_state_list,i));
-            //PyList_GET_ITEM(last_state_list,i);
-        //};
-        //std::cout<<"haha\n";
         Py_DECREF(py_step);
         Py_DECREF(last_state_list);
         Py_DECREF(action_list);
+        Py_DECREF(step_list);
         Py_DECREF(next_state_list);
         Py_DECREF(arglist);
 
         bool rtn = (pfv==Py_True);
         Py_DECREF(pfv);
         return rtn;
-
     };
 
 };

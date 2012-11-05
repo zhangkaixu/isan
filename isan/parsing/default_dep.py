@@ -290,7 +290,7 @@ class Dep:
         std_states=list(self.actions_to_stats(raw,std_actions))
         moves=[(i,std_states[i],std_actions[i])for i in range(len(std_actions))]
         return moves
-    def early_stop(self,step,last_states,actions,next_states):
+    def early_stop(self,step,next_states,last_steps,last_states,actions):
         if (not hasattr(self,"std_states")) or (not self.std_states) : return False
         for last_state,action,next_state in zip(last_states,actions,next_states):
             if last_state==b'': return False

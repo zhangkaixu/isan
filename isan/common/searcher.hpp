@@ -19,6 +19,7 @@ public:
     bool use_early_stop;
     virtual bool early_stop(
             int step,
+            const std::vector<int>& last_steps,
             const std::vector<STATE>& last_states,
             const std::vector<ACTION>& actions,
             const std::vector<STATE>& states
@@ -438,13 +439,20 @@ public:
         std::vector<STATE> last_states;
         std::vector<ACTION> actions;
         std::vector<STATE> next_states;
+        std::vector<int> last_steps;
 
         for(auto iter=top_n.begin();iter!=top_n.end();++iter){
             next_states.push_back(iter->first);
             actions.push_back((*(iter->second)).action);
+            last_steps.push_back((*(iter->second)).ind1);
             last_states.push_back((*(iter->second)).state1);
         };
-        return this->data->early_stop(step,last_states,actions,next_states);
+        return this->data->early_stop(
+                step,
+                last_steps,
+                last_states,
+                actions,
+                next_states);
     };
 
     /*

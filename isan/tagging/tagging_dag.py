@@ -142,7 +142,7 @@ class Path_Finding :
             step=raw[ind3][0][0]
             moves.append((step,state,action))
         return moves
-    def early_stop(self,step,last_states,actions,next_states):
+    def early_stop(self,step,next_states,last_steps,last_states,actions):
         if not hasattr(self,'oracle') or self.oracle==None : return False
         self.stop_step=-1
         
