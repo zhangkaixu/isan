@@ -236,12 +236,17 @@ public:
     typedef typename STATE_INFO::Action ACTION;
     typedef typename STATE_INFO::State STATE;
     typedef typename STATE_INFO::Score SCORE;
+    typedef typename STATE_INFO::Alpha Alpha;
 
     typedef STATE_INFO State_Info;
     typedef __gnu_cxx::hash_map<STATE, State_Info,typename STATE::HASH> My_Map;
-    typedef typename STATE_INFO::Alpha Alpha;
+
     int beam_width;
     Searcher_Data<Alpha>* data;
+
+    std::vector< My_Map* > sequence;
+    My_Map final;
+
     Searcher(){
     };
     Searcher(Searcher_Data<Alpha>* data,int beam_width){
@@ -249,8 +254,6 @@ public:
         this->data=data;
     };
 
-    std::vector< My_Map* > sequence;
-    My_Map final;
 
     inline void thrink(
             //int step,
@@ -278,14 +281,7 @@ public:
         };
         sort(top_n.begin(),top_n.end(),Alpha::state_comp_less);
     };
-    void _print_beam(std::vector<std::pair<STATE,SCORE> >& beam){
-        for(int j=0;j<beam.size();j++){
-            std::cout<<j<<":"<<(int)beam[j].second<<" ";
-        }
-        std::cout<<"\n";
-        int x;
-        std::cin>>x;
-    };
+
 
     void get_states(std::vector<STATE>& states,std::vector<SCORE>& scores){
         states.clear();
@@ -375,19 +371,22 @@ public:
         };
         final.clear();
         //
-        int is_early_stop=false;
+        My_Map* end_map=&final;
         int step=0;
         while(true){
             if(step>=sequence.size()) break;
             this->thrink(sequence[step],beam);//thrink, get beam
-            if(is_early_stop=early_stop(step,beam)) break;
-
+            if(early_stop(step,beam)){
+                end_map=sequence[step];
+                break;
+            };
             //gen_next
             for(int i=0;i<beam.size();i++){
                 STATE& last_key=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
 
-                this->data->shift(step,
+                this->data->shift(
+                        step,
                         last_key,
                         next_actions,
                         next_inds,
@@ -425,18 +424,12 @@ public:
         };
 
         //make result
-
-        My_Map* end_map=&final;
-        if(is_early_stop){
-            end_map=sequence[step];
-        }
         this->thrink(end_map,beam);//thrink, get beam
-        
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
+        
+        Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
 
         result_alphas.clear();
-
-        Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
         int ind=item->ind1;
         while(ind>=0){
             result_alphas.push_back(item);
@@ -447,7 +440,7 @@ public:
         //cal_betas();
     };
 
-    inline bool early_stop(int step,std::vector<std::pair<STATE,Alpha*> >& top_n){
+    inline bool early_stop(int& step,std::vector<std::pair<STATE,Alpha*> >& top_n){
         if(!(data->use_early_stop))return false;
         //return false;
         std::vector<STATE> next_states;
@@ -510,7 +503,12 @@ public:
 
                 auto& predictors=(*this->sequence[step])[last_state].predictors;
                 
-                this->data->shift(last_state,shift_actions,shifted_states,shift_scores);
+                this->data->shift(
+                        last_state,
+                        shift_actions,
+                        shifted_states,
+                        shift_scores);
+
                 for(int j=0;j<shift_actions.size();j++){
                     const auto& next_state=shifted_states[j];
                     got=this_map.find(next_state);
