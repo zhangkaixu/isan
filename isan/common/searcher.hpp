@@ -180,9 +180,12 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
     } state_comp_less;
 };
 
-template<class ACTION,class STATE,class SCORE, template <class,class,class>class ALPHA>
+template<class ALPHA>
 struct State_Info{
-    typedef ALPHA<ACTION,STATE,SCORE> Alpha;
+    typedef ALPHA Alpha;
+    typedef typename Alpha::Action ACTION;
+    typedef typename Alpha::State STATE;
+    typedef typename Alpha::Score SCORE;
     std::vector<Alpha> alphas;
     std::vector<Alpha> betas;
     inline void max_top(){
@@ -210,11 +213,11 @@ struct State_Info{
 };
 
 template<class ACTION,class STATE,class SCORE>
-struct State_Info_t : public State_Info<ACTION,STATE,SCORE,Alpha_t> {
+struct State_Info_t : public State_Info<Alpha_t<ACTION,STATE,SCORE> > {
 };
 
 template<class ACTION,class STATE,class SCORE>
-struct State_Info_s : public State_Info<ACTION,STATE,SCORE,Alpha_s> {
+struct State_Info_s : public State_Info<Alpha_s<ACTION,STATE,SCORE> > {
     __gnu_cxx::hash_map< STATE, std::pair<int, SCORE>, typename STATE::HASH> predictors;
 };
 
@@ -227,6 +230,10 @@ template <class ACTION, class STATE, class SCORE,
          >
 class Searcher{
 public:
+    //typedef typename ALPHA::Action ACTION;
+    //typedef typename ALPHA::State STATE;
+    //typedef typename ALPHA::Score SCORE;
+
     typedef STATE_INFO< ACTION, STATE, SCORE> my_STATE_INFO;
     typedef STATE_INFO<ACTION,STATE,SCORE> State_Info;
     typedef __gnu_cxx::hash_map<STATE,my_STATE_INFO,typename STATE::HASH> My_Map;
