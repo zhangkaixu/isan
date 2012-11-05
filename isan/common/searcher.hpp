@@ -233,13 +233,14 @@ public:
     inline void thrink(
             //int step,
             My_Map* map,
-            std::vector<std::pair<STATE,Alpha*> >& top_n){
+            std::vector<std::pair<STATE,Alpha*> >& top_n)
+    {
         top_n.clear();
         
         typename My_Map::iterator it;
         for (it=map->begin() ; it != map->end(); ++it ){
             it->second.max_top();
-            if (top_n.size()<this->beam_width){//if top_n is not full
+            if ((beam_width==0) || (top_n.size()<this->beam_width)){//if top_n is not full
                 top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
                 if(top_n.size()==this->beam_width){//full, make this a (min)heap
                     make_heap(top_n.begin(),top_n.end(),Alpha::state_comp_greater);

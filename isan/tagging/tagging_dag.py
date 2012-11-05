@@ -38,11 +38,10 @@ class Path_Finding :
         def encode(y):
             return ' '.join(y)
     def update_moves(self,std_moves,rst_moves) :
-        for state,action in zip(*std_moves):
-            yield  (state,action),1
-        for state,action in zip(*rst_moves):
-            yield  (state,action),-1
-        pass
+        for move in std_moves :
+            yield move, 1
+        for move in rst_moves :
+            yield move, -1
     def set_raw(self,raw,Y):
         self.raw=raw
         self.begins={}
@@ -58,9 +57,11 @@ class Path_Finding :
             self.ends[e].append(ind)
 
     def moves_to_result(self,moves,raw):
-        states=moves[0]
+        if not moves : return []
+        actions=list(zip(*moves))[2]
+        states=list(zip(*moves))[1]
         states=[Struct.unpack(self.stat_fmt,x) for x in states]
-        inds=[x[2] for x in states[:-1]]
+        inds=[x[2] for x in states[:]]
         result=[self.raw[ind][0] for ind in inds]
         return result
     def gen_actions_and_stats(self,ind,state):
@@ -83,7 +84,10 @@ class Path_Finding :
         return nexts
         pass
     def check(self,std_moves,rst_moves):
-        return std_moves[0]==rst_moves[0]
+        return all(
+                std_move[1]==rst_move[1]
+                for std_move,rst_move in zip(std_moves,rst_moves)
+                )
     def gen_features(self,state):
         state=Struct.unpack(self.stat_fmt,state)
         ind1,ind2,ind3=state
@@ -130,9 +134,13 @@ class Path_Finding :
         states=[inds[i:i+3] for i in range(len(inds)-2)]
         states=[Struct.pack(self.stat_fmt,*state) for state in states]
         actions=[1 for x in range(len(states)-1)]
-        #print(len(states)==len(offsets))
         self.oracle={o:s for o,s in zip(offsets,states)}
-        return states,actions
+        moves=[]
+        for state,action in zip(states,actions) :
+            _,_,ind3=Struct.unpack(self.stat_fmt,state)
+            step=raw[ind3][0]
+            moves.append((step,state,action))
+        return moves
     def early_stop(self,step,last_states,actions,next_states):
         if not hasattr(self,'oracle') or self.oracle==None : return False
         

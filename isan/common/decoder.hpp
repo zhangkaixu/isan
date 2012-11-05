@@ -32,7 +32,7 @@ public:
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=NULL;
         this->use_early_stop=false;
-        //this->use_early_stop=true;
+        if(this->early_stop_checker)this->use_early_stop=true;
         cached_state=State_Type();
     };
     General_Searcher_Data(
@@ -207,8 +207,11 @@ public:
             feature_generator=new Python_Feature_Generator( py_feature_cb);
         };
         
-        early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
 
+        early_stop_checker=NULL;
+        if(py_early_stop_callback!=Py_None){
+            early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
+        }
         reduced_state_generator=NULL;
         raw=NULL;
         this->data=new General_Searcher_Data(

@@ -14,9 +14,10 @@ class Dep:
     #init=(0,(0,0),(None,None,None))
 
     def check(self,std_moves,rst_moves):
-        #print(std_moves)
-        #print(rst_moves)
-        return std_moves[1]!=rst_moves[1]
+        return all(
+                std_move[2]==rst_move[2]
+                for std_move,rst_move in zip(std_moves,rst_moves)
+                )
 
     def init(self):
         pass
@@ -187,7 +188,8 @@ class Dep:
         #input()
         return fv
     def moves_to_result(self,moves,raw):
-        actions=moves[1]
+        #actions=moves[1]
+        actions=list(zip(*moves))[2]
         ind=0
         stack=[]
         arcs=[]
@@ -285,8 +287,9 @@ class Dep:
         std_actions=self.result_to_actions(y)#得到标准动作
         for i,stat in enumerate(self.actions_to_stats(raw,std_actions)) :
             self.std_states.append(stat)
-        std_states=self.actions_to_stats(raw,std_actions)
-        return list(std_states),std_actions
+        std_states=list(self.actions_to_stats(raw,std_actions))
+        moves=[(i,std_states[i],std_actions[i])for i in range(len(std_actions))]
+        return moves
     def early_stop(self,step,last_states,actions,next_states):
         if (not hasattr(self,"std_states")) or (not self.std_states) : return False
         for last_state,action,next_state in zip(last_states,actions,next_states):
@@ -299,6 +302,11 @@ class Dep:
         return True
     def remove_oracle(self):
         self.std_states=[]
+    def update_moves(self,std_moves,rst_moves) :
+        for std,rst in zip(std_moves,rst_moves):
+
+            yield std, 1
+            yield rst, -1
 
 class PA_Dep (Dep):
     def set_oracle(self,raw,y,Y) :

@@ -32,7 +32,10 @@ class Searcher:
     def __call__(self):
         return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
     def search(self):
-        return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
+        rst=self.searcher.search(self.handler,self.raw_to_steps(self.raw))
+        ss,acts=rst
+        rst=[(i,ss[i],acts[i])for i in range(len(acts))]
+        return rst
 
     def __del__(self):
         self.searcher.delete(self.handler)
@@ -46,7 +49,7 @@ class DFA(Searcher):
         self.get_init_states=schema.get_init_states
         self.handler=self.searcher.new(
                 beam_width,
-                schema.early_stop if hasattr(schema,'early_stop') else 0,
+                schema.early_stop if hasattr(schema,'early_stop') else None,
                 schema.gen_actions_and_stats,
                 schema.gen_features,
                 )
