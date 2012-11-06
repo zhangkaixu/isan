@@ -91,7 +91,7 @@ class Task:
     def get_init_states(self) :
         return [self.init_stat]
 
-    def gen_actions_and_stats(self,last_ind,stat):
+    def shift(self,last_ind,stat):
         """
         根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
         """
@@ -99,6 +99,7 @@ class Task:
         next_ind=last_ind+1 if last_ind+1 <= len(self.raw) else -1
         return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+    reduce=None
 
     def check(self,std_moves,rst_moves):
         return all(
@@ -117,7 +118,7 @@ class Task:
         """
         分词搜索时的初始状态
         """
-        self.init_stat,self.gen_actions_and_stats,self.gen_features=cwstask.new()
+        self.init_stat,self.shift,self.gen_features=cwstask.new()
         #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
         pass
 
