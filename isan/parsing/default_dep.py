@@ -16,8 +16,8 @@ class Dep:
     def check(self,std_moves,rst_moves):
         inds,states,actions=zip(*rst_moves)
         new_states=self.actions_to_stats(self.raw,actions)
-        for s,m in zip(new_states,rst_moves):
-            m[1]=s
+        #for s,m in zip(new_states,rst_moves):
+        #    m[1]=s
         ind=0
         for s,ns in zip(states,new_states):
             s=pickle.loads(s)

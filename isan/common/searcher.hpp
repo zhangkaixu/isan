@@ -108,6 +108,7 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
     SCORE sub_score;
     bool is_shift;
     STATE state2;
+    Alpha_s* p_alpha;
     int ind2;
     Alpha_s(){
         this->ind1=-1;
@@ -132,7 +133,7 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
     };
     Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
             int last_ind, STATE last_stat,
-            int p_ind,STATE p_stat)
+            int p_ind,STATE p_stat,Alpha_s* p_alpha)
         {
         this->score=(s);
         this->sub_score=(sub_s);
@@ -143,6 +144,7 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
         this->ind1=(last_ind);
         this->ind2=(p_ind);
         this->state2=(p_stat);
+        this->p_alpha=(p_alpha);
     };
     inline bool operator > (const Alpha_s& right){
         if( this->score > right.score) return true;
@@ -212,7 +214,8 @@ struct State_Info_s : public State_Info<ALPHA > {
     typedef typename ALPHA::State State;
     typedef typename ALPHA::Score Score;
     typedef ALPHA Alpha;
-    __gnu_cxx::hash_map< State, std::pair<int, Score>, typename State::HASH> predictors;
+    __gnu_cxx::hash_map< State, Alpha, typename State::HASH> predictors;
+    //__gnu_cxx::hash_map< State, std::pair<int, Score>, typename State::HASH> predictors;
 };
 
 
@@ -533,13 +536,17 @@ public:
                                 step,
                                 last_state
                                 ));
-                    got->second.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
+                    got->second.predictors[last_state]=(got->second.alphas.back());
+                    //got->second.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
 
                 };
                 for(auto p=predictors.begin();p!=predictors.end();++p){
                     auto& p_state=p->first;
-                    auto& p_step=p->second.first;
-                    auto& p_inc=p->second.second;
+                    auto& p_step=p->second.ind1;
+                    auto& p_inc=p->second.inc;
+                    auto& p_action=p->second.action;
+                    //auto& p_step=p->second.first;
+                    //auto& p_inc=p->second.second;
                     auto& p_state_info=(*this->sequence[p_step])[p_state];
                     auto& p_score=p_state_info.alphas[0].score;
                     auto& p_sub_score=p_state_info.alphas[0].sub_score;
@@ -594,7 +601,8 @@ public:
                                     step,
                                     last_state,
                                     p_step,
-                                    p_state
+                                    p_state,
+                                    &(p->second)
                                     ));
                     };
                 };
@@ -648,6 +656,12 @@ public:
                         item->ind2,
                         result_alphas);
             };
+            result_alphas.pop_back();
+            result_alphas.push_back(item->p_alpha);
+            //std::cout<<result_alphas.back()->action<<"\n";
+            //std::cout<<"p "<<item->p_alpha->action<<"\n";
+            
+            
             if( item->ind2 > begin_step){
                 make_result(
                         &(*this->sequence[item->ind2])[item->state2].alphas[0],
