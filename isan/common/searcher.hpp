@@ -61,9 +61,9 @@ struct Alpha{
     ACTION action;//last action
     int ind1;//index of last state
     STATE state1;//last state
+#ifdef REDUCE
     bool is_shift;
     SCORE sub_score;
-#ifdef REDUCE
     STATE state2;
     Alpha* p_alpha;
     int ind2;
@@ -71,25 +71,18 @@ struct Alpha{
     Alpha(){
         this->ind1=-1;
         this->score=0;
-        this->is_shift=true;
     };
-    Alpha(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
-        this->score=score;
-        this->inc=inc;
-        this->action=la;
-        this->ind1=ind1;
-        this->state1=lk;
-        this->is_shift=true;
-    };
-    Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat)
+    Alpha(SCORE s,SCORE i, ACTION act,int last_ind, STATE last_stat)
         {
         this->score=(s);
-        this->sub_score=(sub_s);
         this->inc=(i);
         this->action=(act);
         this->state1=(last_stat);
-        this->is_shift=(is_sh);
         this->ind1=(last_ind);
+#ifdef REDUCE
+        this->is_shift=true;
+        this->sub_score=0;
+#endif
     };
 #ifdef REDUCE
     Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
@@ -111,8 +104,10 @@ struct Alpha{
     inline bool operator > (const Alpha& right){
         if( this->score > right.score) return true;
         if( this->score < right.score) return false;
+#ifdef REDUCE
         if( this->sub_score > right.sub_score) return true;
         if( this->sub_score < right.sub_score) return false;
+#endif
         return false;
     };
     static class CompareFoo{
@@ -307,11 +302,13 @@ public:
         std::vector<ACTION> shift_actions;
         std::vector<SCORE> shift_scores;
         std::vector<STATE> shifted_states;
+        std::vector<int> next_inds;
+#ifdef REDUCE
         std::vector<ACTION> reduce_actions;
         std::vector<SCORE> reduce_scores;
         std::vector<STATE> reduced_states;
-        std::vector<int> next_inds;
         std::vector<int> next_reduce_inds;
+#endif
 
         typename My_Map::iterator got;
 
@@ -344,8 +341,8 @@ public:
             for(int i=0;i<beam.size();i++){
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
-                SCORE& last_sub_score=beam[i].second->sub_score;
 #ifdef REDUCE
+                SCORE& last_sub_score=beam[i].second->sub_score;
                 auto& predictors=(*this->sequence[step])[last_state].predictors;
 #endif
                 this->data->shift(
@@ -375,9 +372,7 @@ public:
                     };
                     got->second.alphas.push_back(Alpha(
                                 last_score+shift_scores[j],//prefix score
-                                0,//inner score
                                 shift_scores[j],//delta score
-                                true,//is_shift
                                 shift_actions[j],//shift action
                                 step,
                                 last_state
@@ -473,7 +468,9 @@ public:
             std::vector<Alpha*>& result_alphas){
         //std::cout<<"start make "<<begin_step<<"\n";
         result_alphas.push_back(item);
+#ifdef REDUCE
         if(item->is_shift){//shift
+#endif
             //std::cout<<begin_step<<" shift "<<item->ind1<<"\n";
             if( item->ind1 > begin_step){
                 make_result(
@@ -481,8 +478,8 @@ public:
                         begin_step,
                         result_alphas);
             };
-        }else{//reduce
 #ifdef REDUCE
+        }else{//reduce
             //std::cout<<begin_step<<" reduce "<<item->ind2<<" "<<item->ind1<<"\n";
             if( item->ind1>=0 && item->ind1 > item->ind2){
                 make_result(
@@ -498,8 +495,8 @@ public:
                         begin_step,
                         result_alphas);
             };
-#endif
         };
+#endif
     };
 
     /*
