@@ -1,4 +1,3 @@
-#pragma once
 #include <Python.h>
 #include "isan/common/common.hpp"
 #include "isan/common/decoder.hpp"
@@ -288,4 +287,5 @@ INIT_FUNC(PYINIT,__MODULE_NAME) (void)
 {
     return PyModule_Create(&module_struct);
 }
+
 };//end of isan
