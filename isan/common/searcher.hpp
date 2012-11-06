@@ -315,8 +315,7 @@ public:
         
         //clear and init the sequence, release memory
         if(this->sequence.size()){
-            for(int i=0;i<this->sequence.size();i++)
-                delete this->sequence[i];
+            for(int i=0;i<this->sequence.size();i++)delete this->sequence[i];
         }
         this->sequence.clear();
         this->sequence.push_back(new My_Map());
@@ -384,6 +383,7 @@ public:
 #ifdef REDUCE
                 for(auto p=predictors.begin();p!=predictors.end();++p){
                     auto& p_state=p->first;
+                    auto& p_alpha=p->second.p_alpha;
                     auto& p_step=p->second.ind1;
                     auto& p_inc=p->second.inc;
                     auto& p_action=p->second.action;
