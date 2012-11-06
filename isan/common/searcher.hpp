@@ -426,6 +426,7 @@ public:
             ind=item->ind1;
         };
         std::reverse(result_alphas.begin(),result_alphas.end());
+        
         //cal_betas();
     };
 
@@ -607,7 +608,6 @@ public:
         Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
 
         SCORE ms=item->score;
-        SCORE ls=0;
         SCORE hs=0;
 
 
@@ -616,30 +616,15 @@ public:
         result_alphas.clear();
         make_result(item,0,result_alphas);
         std::reverse(result_alphas.begin(),result_alphas.end());
-        return;
+        
         //std::cout<<"hl "<<result_alphas.size()<<"\n";
         for(auto it=result_alphas.begin();it!=result_alphas.end();++it){
             hs+=(*it)->inc;
         };
-        
 
-
-
-
-        result_alphas.clear();
-        int ind=item->ind1;
-        while(ind>=0){
-            ls+=item->inc;
-            result_alphas.push_back(item);
-            item=&((*this->sequence[ind])[item->state1].alphas[0]);
-            ind=item->ind1;
-        };
-        
-        std::reverse(result_alphas.begin(),result_alphas.end());
-        //std::cout<<result_alphas.size()<<"\n";
-        if(ms!=ls){
+        if(ms!=hs){
             std::cout<<"wrong"<<"\n";
-            std::cout<<ms<<" "<<ls<<" "<<hs<<"\n";
+            std::cout<<ms<<" "<<hs<<"\n";
             
         };
     };
