@@ -64,7 +64,9 @@ struct Alpha_s{
     bool is_shift;
     SCORE sub_score;
     STATE state2;
+#ifdef REDUCE
     Alpha_s* p_alpha;
+#endif
     int ind2;
     Alpha_s(){
         this->ind1=-1;
@@ -90,6 +92,7 @@ struct Alpha_s{
         this->is_shift=(is_sh);
         this->ind1=(last_ind);
     };
+#ifdef REDUCE
     Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
             int last_ind, STATE last_stat,
             int p_ind,STATE p_stat,Alpha_s* p_alpha)
@@ -105,6 +108,7 @@ struct Alpha_s{
         this->state2=(p_stat);
         this->p_alpha=(p_alpha);
     };
+#endif
     inline bool operator > (const Alpha_s& right){
         if( this->score > right.score) return true;
         if( this->score < right.score) return false;
@@ -136,6 +140,9 @@ struct State_Info{
     Alpha* best_alpha;
     std::vector<Alpha> alphas;
     std::vector<Alpha> betas;
+#ifdef REDUCE
+    __gnu_cxx::hash_map< STATE, Alpha, typename STATE::HASH> predictors;
+#endif
     inline void max_top(){
         if(alphas.size()==0){
             std::cout<<"zero alphas!!!\n";
@@ -160,27 +167,13 @@ struct State_Info{
 };
 
 
-template<class ALPHA>
-struct State_Info_s : public State_Info<ALPHA > {
-    typedef typename ALPHA::Action Action;
-    typedef typename ALPHA::State State;
-    typedef typename ALPHA::Score Score;
-    typedef ALPHA Alpha;
-#ifdef REDUCE
-    __gnu_cxx::hash_map< State, Alpha, typename State::HASH> predictors;
-#endif
-};
-
-
-
-
 
 template <class STATE_INFO>
 class Searcher{
 public:
-    typedef typename STATE_INFO::Action ACTION;
-    typedef typename STATE_INFO::State STATE;
-    typedef typename STATE_INFO::Score SCORE;
+    typedef typename STATE_INFO::ACTION ACTION;
+    typedef typename STATE_INFO::STATE STATE;
+    typedef typename STATE_INFO::SCORE SCORE;
     typedef typename STATE_INFO::Alpha Alpha;
 
     typedef STATE_INFO State_Info;
@@ -392,9 +385,7 @@ public:
                                 ));
 #ifdef REDUCE
                     got->second.predictors[last_state]=(got->second.alphas.back());
-                    //got->second.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
 #endif
-
                 };
 #ifdef REDUCE
                 for(auto p=predictors.begin();p!=predictors.end();++p){
@@ -402,8 +393,6 @@ public:
                     auto& p_step=p->second.ind1;
                     auto& p_inc=p->second.inc;
                     auto& p_action=p->second.action;
-                    //auto& p_step=p->second.first;
-                    //auto& p_inc=p->second.second;
                     auto& p_state_info=(*this->sequence[p_step])[p_state];
                     auto& p_score=p_state_info.best_alpha->score;
                     auto& p_sub_score=p_state_info.best_alpha->sub_score;
@@ -473,7 +462,6 @@ public:
         
         Alpha* item=((*end_map)[beam.back().first].best_alpha);
 
-        //std::cout<<"step "<<step<<"\n";
         result_alphas.clear();
         make_result(item,0,result_alphas);
         std::reverse(result_alphas.begin(),result_alphas.end());
@@ -495,6 +483,7 @@ public:
                         result_alphas);
             };
         }else{//reduce
+#ifdef REDUCE
             //std::cout<<begin_step<<" reduce "<<item->ind2<<" "<<item->ind1<<"\n";
             if( item->ind1>=0 && item->ind1 > item->ind2){
                 make_result(
@@ -504,16 +493,13 @@ public:
             };
             result_alphas.pop_back();
             result_alphas.push_back(item->p_alpha);
-            //std::cout<<result_alphas.back()->action<<"\n";
-            //std::cout<<"p "<<item->p_alpha->action<<"\n";
-            
-            
             if( item->ind2 > begin_step){
                 make_result(
                         (*this->sequence[item->ind2])[item->state2].best_alpha,
                         begin_step,
                         result_alphas);
             };
+#endif
         };
     };
 

@@ -64,6 +64,6 @@ pack_alpha(Alpha alpha){
 };
 
 typedef Alpha_s<Action_Type,State_Type,Score_Type> Alpha_Type;
-typedef State_Info_s<Alpha_Type> State_Info_Type;
+typedef State_Info<Alpha_Type> State_Info_Type;
 
 };
