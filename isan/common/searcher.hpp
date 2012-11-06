@@ -69,7 +69,7 @@ struct Alpha_t{
     Alpha_t(){
         this->ind1=-1;
         this->score=0;
-        this->is_shift=false;
+        this->is_shift=true;
     };
     Alpha_t(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
         this->score=score;
@@ -77,7 +77,7 @@ struct Alpha_t{
         this->action=la;
         this->ind1=ind1;
         this->state1=lk;
-        this->is_shift=false;
+        this->is_shift=true;
     };
     virtual inline bool operator > (const Alpha_t& right){
         if( this->score > right.score) return true;
@@ -116,7 +116,7 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
         this->ind1=-1;
         this->ind2=-1;
         this->score=0;
-        this->is_shift=false;
+        this->is_shift=true;
     };
     Alpha_s(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
         this->score=score;
@@ -124,7 +124,7 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
         this->action=la;
         this->ind1=ind1;
         this->state1=lk;
-        this->is_shift=false;
+        this->is_shift=true;
     };
     Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat)
         {
@@ -428,17 +428,8 @@ public:
         Alpha* item=((*end_map)[beam.back().first].best_alpha);
 
         result_alphas.clear();
-        int ind=item->ind1;
-        
-        while(ind>=0){
-            result_alphas.push_back(item);
-            item=((*this->sequence[ind])[item->state1].best_alpha);
-            ind=item->ind1;
-        };
-        //result_alphas.clear();
-        //make_result(item,0,result_alphas);
+        make_result(item,0,result_alphas);
         std::reverse(result_alphas.begin(),result_alphas.end());
-        
         //cal_betas();
     };
 
