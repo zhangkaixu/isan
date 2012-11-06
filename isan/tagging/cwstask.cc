@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include "isan/common/searcher.hpp"
+#include "isan/common/general_types.hpp"
 #include "isan/common/weights.hpp"
 using namespace isan;
 
@@ -56,7 +57,7 @@ public:
     };
 };
 
-class CWS_Feature_Generator: public General_Feature_Generator{
+class CWS_Feature_Generator: public Feature_Generator{
     std::vector<std::vector<Feature_Vector> > chr_based;
 public:
     struct F1{
@@ -213,10 +214,21 @@ public:
 };
 
 
-class CWS_State_Generator: public General_State_Generator{
+class CWS_State_Generator: public State_Generator{
 public:
-    void operator()(State_Type& super_key, std::vector<Action_Type>& next_actions,
+    void operator()(
+            const int& last_ind,
+            State_Type& super_key,
+            std::vector<Action_Type>& next_actions,
+            std::vector<int>& next_inds,
             std::vector< State_Type > & super_states){
+
+        //std::cout<<last_ind<<"\n";
+        //std::cout<<(this->raw)<<"\n";
+        int next_ind=-1;
+        if(last_ind+1 <= this->raw->size()) next_ind=last_ind+1;
+        next_inds.push_back(next_ind);
+        next_inds.push_back(next_ind);
 
         next_actions.resize(2);
         next_actions[0]=11;
@@ -251,8 +263,8 @@ static PyObject *
 task_new(PyObject *self, PyObject *arg)
 {
 
-    General_State_Generator * shifted_state_generator;
-    General_Feature_Generator * feature_generator;
+    State_Generator * shifted_state_generator;
+    Feature_Generator * feature_generator;
     State_Type* init_state;
 
     shifted_state_generator=new CWS_State_Generator();

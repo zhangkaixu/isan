@@ -81,8 +81,8 @@ class Model(object):
         """
         解码，读入生句子，返回词的数组
         """
-        rst_actions=self.search(raw,Y)
-        hat_y=self.schema.actions_to_result(rst_actions,raw)
+        rst_moves=self.search(raw,Y)
+        hat_y=self.schema.moves_to_result(rst_moves,raw)
         if threshold==0 : 
             return hat_y
         else:
@@ -98,39 +98,33 @@ class Model(object):
         y=arg.get('y',None)
         Y_a=arg.get('Y_a',None)
 
+
         #学习步数加一
         self.step+=1
 
-        #get standard actions
-        std_actions=self.schema.result_to_actions(y)#得到标准动作
-
-        #this is for the early-update
-        std_stats=[]
-        for i,stat in enumerate(self.schema.actions_to_stats(raw,std_actions)) :
-            std_stats.append(stat)
-        self.schema.std_states=std_stats
+        #set oracle, get standard actions
+        if hasattr(self.schema,'set_oracle'):
+            std_moves=self.schema.set_oracle(raw,y)
 
         #get result actions
-        rst_actions=self.search(raw,Y_a)#得到解码后动作
-        hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
+        rst_moves=self.search(raw,Y_a)#得到解码后动作
 
         #update
-        #if y!=hat_y:#如果动作不一致，则更新
-        if std_actions!=rst_actions:#如果动作不一致，则更新
-            self.update(std_actions,rst_actions)
+        if not self.schema.check(std_moves,rst_moves):#check
+            self.update(std_moves,rst_moves)#update
 
-        #clean the early-update data
-        self.schema.std_states=[]
+        #clean oracle
+        if hasattr(self.schema,'remove_oracle'):
+            self.schema.remove_oracle()
+
+        hat_y=self.schema.moves_to_result(rst_moves,raw)#得到解码后结果
         return y,hat_y
-    def update(self,std_actions,rst_actions):
-        for std_stat,std_action,rst_stat,rst_action in zip(
-                self.schema.actions_to_stats(self.raw,std_actions),
-                std_actions,
-                self.schema.actions_to_stats(self.raw,rst_actions),
-                rst_actions,
-                ):
-            self.searcher.update_action(std_stat,std_action,1,self.step)
-            self.searcher.update_action(rst_stat,rst_action,-1,self.step)
+
+    def update(self,std_moves,rst_moves):
+        if hasattr(self.schema,'update_moves'):
+            for move,delta in self.schema.update_moves(std_moves,rst_moves) :
+                self.searcher.update_action(move,delta,self.step)
+            return
 
         
     def train(self,training_file,iteration=5,dev_file=None):
@@ -154,6 +148,7 @@ class Model(object):
                 self.develop(dev_file)
             #input('end of one iteration')
 
+
 class Model_PA(Model) :
     name="局部标注平均感知器"
     def _learn_sentence(self,arg):
@@ -170,25 +165,20 @@ class Model_PA(Model) :
         self.step+=1
 
         #get standard actions
-        std_actions=self.schema.result_to_actions(y)#得到标准动作
+        self.schema.set_oracle(raw,y,Y_b)
 
-        #this is for the early-update
-        std_stats=[]
-        for i,stat in enumerate(self.schema.actions_to_stats(raw,std_actions)) :
-            std_stats.append(stat)
-        self.schema.std_states=std_stats
-        
         #get result actions
-        rst_actions=self.search(raw,Y_a)#得到解码后动作
-        hat_y=self.schema.actions_to_result(rst_actions,raw)#得到解码后结果
+        rst_moves=self.search(raw,Y_a)#得到解码后动作
+        
+        hat_y=self.schema.moves_to_result(rst_moves,raw)#得到解码后结果
 
-        if not self.schema.is_belong(raw,rst_actions,Y_b): #y!=hat_y:#如果动作不一致，则更新
+        if not self.schema.is_belong(raw,rst_moves,Y_b): #y!=hat_y:#如果动作不一致，则更新
             if y and not Y_b:
-                std_actions=self.schema.result_to_actions(y)#得到标准动作
+                std_moves=self.schema.result_to_moves(y)#得到标准动作
             else:
-                std_actions=self.search(raw,Y_b)
-                yy=self.schema.actions_to_result(std_actions,raw)
-            self.update(std_actions,rst_actions)
+                std_moves=self.search(raw,Y_b)
+                yy=self.schema.moves_to_result(std_moves,raw)
+            self.update(std_moves,rst_moves)
         #clean the early-update data
-        self.schema.std_states=[]
+        self.schema.remove_oracle()
         return y,hat_y

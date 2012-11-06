@@ -16,8 +16,8 @@ class Searcher:
     def un_average_weights(self):
         self.searcher.un_average_weights(self.handler)
 
-    def update_action(self,stat,action,delta,step):
-        self.searcher.update_action(self.handler,stat,action,delta,step)
+    def update_action(self,move,delta,step):
+        self.searcher.update_action(self.handler,move[1],move[2],delta,step)
 
     def make_dat(self):
         self.searcher.make_dat(self.handler)
@@ -27,38 +27,50 @@ class Searcher:
 
     def set_raw(self,raw):
         self.raw=raw
-        self.searcher.set_raw(self.handler,raw)
+        if self.do_set_raw :
+            self.searcher.set_raw(self.handler,raw)
     def __call__(self):
         return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
-    def search(self):
-        #self.searcher.search(self.handler,self.raw_to_steps(self.raw))
-        return self.searcher.search(self.handler,self.raw_to_steps(self.raw))
 
+    def search(self):
+        rst=self.searcher.search(self.handler,self.raw_to_steps(self.raw))
+        rst=[list(x) for x in rst]
+        return rst
     def __del__(self):
         self.searcher.delete(self.handler)
 
 class DFA(Searcher):
     name='状态转移'
     searcher=dfabeam
-    raw_to_steps=lambda self,x:len(x)+1
     def __init__(self,schema,beam_width):
+        self.do_set_raw=True
+        if hasattr(schema,'do_not_set_raw_for_searcher') : self.do_set_raw=False
+        self.get_init_states=schema.get_init_states
         self.handler=self.searcher.new(
                 beam_width,
-                schema.init_stat,
-                schema.early_stop if hasattr(schema,'early_stop') else 0,
+                schema.early_stop if hasattr(schema,'early_stop') else None,
                 schema.gen_actions_and_stats,
+                None,
                 schema.gen_features,
                 )
+    def search(self):
+        x=self.searcher.search(self.handler,self.get_init_states())
+        return x
 class Push_Down(Searcher):
     name='Shift-reduce'
     searcher=pushdown
     raw_to_steps=lambda self,x:2*len(x)-1
     def __init__(self,schema,beam_width):
+        self.do_set_raw=True
+        self.get_init_states=schema.get_init_states
         self.handler=self.searcher.new(
                 beam_width,
-                schema.init_stat,
                 schema.early_stop,
                 schema.shift,
                 schema.reduce,
                 schema.gen_features,
                 )
+    def search(self):
+        rst=self.searcher.search(self.handler,self.get_init_states())
+        rst=[list(x) for x in rst]
+        return rst
