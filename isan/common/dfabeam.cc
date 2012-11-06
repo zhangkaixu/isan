@@ -9,71 +9,13 @@
 #include "isan/common/python_interface.hpp"
 using namespace isan;
 
-
-static PyObject *
-get_states(PyObject *self, PyObject *arg)
-{
-    Interface* interface;
-    PyArg_ParseTuple(arg, "L", &interface);
-    interface->push_down->cal_betas();
-
-    std::vector<State_Type > states;
-    std::vector<Score> scores;
-
-    interface->push_down->get_states(states,scores);
-
-    PyObject * list=PyList_New(states.size());
-    for(int i=0;i<states.size();i++){
-        PyList_SetItem(list,i,
-                    PyTuple_Pack(2,states[i].pack(),PyLong_FromLong(scores[i]))
-                );
-    };
-    return list;
-};
-
-static PyObject *
-searcher_new(PyObject *self, PyObject *arg)
-{
-    PyObject * py_early_stop_callback;
-    PyObject * py_state_cb;
-    PyObject * py_feature_cb;
-    int beam_width;
-    PyArg_ParseTuple(arg, "iOOO", 
-            &beam_width,
-            &py_early_stop_callback,
-            &py_state_cb,
-            &py_feature_cb);
-    Interface* interface=new Interface(
-            beam_width,
-            py_early_stop_callback,
-            py_state_cb,
-            NULL,
-            py_feature_cb);
-    return PyLong_FromLong((long)interface);
-};
-
-/** stuffs about the module def */
-static PyMethodDef dfabeamMethods[] = {
-    {"new",  searcher_new, METH_VARARGS,""},
-    {"delete",  interface_delete, METH_O,""},
-    {"set_raw",  set_raw, METH_VARARGS,""},
-    {"search",  search, METH_VARARGS,""},
-    {"set_action",  set_weights, METH_VARARGS,""},
-    {"update_action",  update_weights, METH_VARARGS,""},
-    {"export_weights",  export_weights, METH_VARARGS,""},
-    {"make_dat",  make_dat, METH_VARARGS,""},
-    {"average_weights", average_weights , METH_VARARGS,""},
-    {"un_average_weights", un_average_weights , METH_VARARGS,""},
-    {"get_states",  get_states, METH_VARARGS,""},
-    {NULL, NULL, 0, NULL}        /* Sentinel */
-};
 static struct PyModuleDef dfabeammodule = {
    PyModuleDef_HEAD_INIT,
    "dfabeam",   /* name of module */
    NULL, /* module documentation, may be NULL */
    -1,       /* size of per-interpreter state of the module,
                 or -1 if the module keeps state in global variables. */
-   dfabeamMethods
+   interfaceMethods
 };
 
 PyMODINIT_FUNC

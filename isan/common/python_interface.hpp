@@ -160,6 +160,11 @@ set_raw(PyObject *self, PyObject *arg)
     Interface* interface;
     PyObject *new_raw;
     PyArg_ParseTuple(arg, "LO", &interface,&new_raw);
+    if(!PyUnicode_Check(new_raw)){
+        Py_INCREF(Py_None);
+        return Py_None;
+        
+    };
     long raw_size=PySequence_Size(new_raw);
     
     Chinese raw(raw_size);
@@ -207,5 +212,61 @@ search(PyObject *self, PyObject *arg)
     return rtn_list;
 };
 
+static PyObject *
+get_states(PyObject *self, PyObject *arg)
+{
+    Interface* interface;
+    PyArg_ParseTuple(arg, "L", &interface);
+    interface->push_down->cal_betas();
 
+    std::vector<State_Type > states;
+    std::vector<Score> scores;
+
+    interface->push_down->get_states(states,scores);
+
+    PyObject * list=PyList_New(states.size());
+    for(int i=0;i<states.size();i++){
+        PyList_SetItem(list,i,
+                    PyTuple_Pack(2,states[i].pack(),PyLong_FromLong(scores[i]))
+                );
+    };
+    return list;
+};
+static PyObject *
+module_new(PyObject *self, PyObject *arg)
+{
+    PyObject * py_early_stop_callback;
+    PyObject * py_shift_callback;
+    PyObject * py_reduce_callback;
+    PyObject * py_feature_cb;
+    int beam_width;
+    PyArg_ParseTuple(arg, "iOOOO", &beam_width,
+            &py_early_stop_callback,
+            &py_shift_callback,
+            &py_reduce_callback,
+            &py_feature_cb);
+
+    Interface* interface=new Interface(beam_width,
+            py_early_stop_callback,
+            py_shift_callback,
+            py_reduce_callback,
+            py_feature_cb);
+    return PyLong_FromLong((long)interface);
+};
+
+/** stuffs about the module def */
+static PyMethodDef interfaceMethods[] = {
+    {"new",  module_new, METH_VARARGS,""},
+    {"delete",  interface_delete, METH_O,""},
+    {"set_raw",  set_raw, METH_VARARGS,""},
+    {"search",  search, METH_VARARGS,""},
+    {"set_action",  set_weights, METH_VARARGS,""},
+    {"update_action",  update_weights, METH_VARARGS,""},
+    {"export_weights",  export_weights, METH_VARARGS,""},
+    {"make_dat",  make_dat, METH_VARARGS,""},
+    {"average_weights", average_weights , METH_VARARGS,""},
+    {"un_average_weights", un_average_weights , METH_VARARGS,""},
+    {"get_states",  get_states, METH_VARARGS,""},
+    {NULL, NULL, 0, NULL}        /* Sentinel */
+};
 };//end of isan

@@ -50,6 +50,7 @@ class DFA(Searcher):
                 beam_width,
                 schema.early_stop if hasattr(schema,'early_stop') else None,
                 schema.gen_actions_and_stats,
+                None,
                 schema.gen_features,
                 )
     def search(self):
