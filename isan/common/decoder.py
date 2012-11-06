@@ -34,6 +34,7 @@ class Searcher:
 
     def search(self):
         rst=self.searcher.search(self.handler,self.raw_to_steps(self.raw))
+        rst=[list(x) for x in rst]
         return rst
     def __del__(self):
         self.searcher.delete(self.handler)
@@ -70,4 +71,5 @@ class Push_Down(Searcher):
                 )
     def search(self):
         rst=self.searcher.search(self.handler,self.get_init_states())
+        rst=[list(x) for x in rst]
         return rst

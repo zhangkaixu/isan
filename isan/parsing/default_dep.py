@@ -14,6 +14,18 @@ class Dep:
     #init=(0,(0,0),(None,None,None))
 
     def check(self,std_moves,rst_moves):
+        inds,states,actions=zip(*rst_moves)
+        new_states=self.actions_to_stats(self.raw,actions)
+        for s,m in zip(new_states,rst_moves):
+            m[1]=s
+        for s,ns in zip(states,new_states):
+            s=pickle.loads(s)
+            ns=pickle.loads(ns)
+            if s!=ns:
+
+                print('x')
+        
+
         return all(
                 std_move[2]==rst_move[2]
                 for std_move,rst_move in zip(std_moves,rst_moves)
