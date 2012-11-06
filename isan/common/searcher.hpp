@@ -110,6 +110,8 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
     STATE state2;
     int ind2;
     Alpha_s(){
+        this->ind1=-1;
+        this->ind2=-1;
         this->score=0;
     };
     Alpha_s(SCORE score,SCORE inc,ACTION la,int,STATE lk){
@@ -604,15 +606,80 @@ public:
         
         Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
 
+        SCORE ms=item->score;
+        SCORE ls=0;
+        SCORE hs=0;
+
+
+        //std::cout<<"step "<<step<<"\n";
+        
+        result_alphas.clear();
+        make_result(item,0,result_alphas);
+        std::reverse(result_alphas.begin(),result_alphas.end());
+        return;
+        //std::cout<<"hl "<<result_alphas.size()<<"\n";
+        for(auto it=result_alphas.begin();it!=result_alphas.end();++it){
+            hs+=(*it)->inc;
+        };
+        
+
+
+
+
         result_alphas.clear();
         int ind=item->ind1;
         while(ind>=0){
+            ls+=item->inc;
             result_alphas.push_back(item);
             item=&((*this->sequence[ind])[item->state1].alphas[0]);
             ind=item->ind1;
         };
+        
         std::reverse(result_alphas.begin(),result_alphas.end());
+        //std::cout<<result_alphas.size()<<"\n";
+        if(ms!=ls){
+            std::cout<<"wrong"<<"\n";
+            std::cout<<ms<<" "<<ls<<" "<<hs<<"\n";
+            
+        };
     };
+
+    void make_result(
+            Alpha* item,
+            int begin_step,
+            std::vector<Alpha*>& result_alphas){
+        //std::cout<<"start make "<<begin_step<<"\n";
+        
+        
+        result_alphas.push_back(item);
+        if(item->is_shift){//shift
+            //std::cout<<begin_step<<" shift "<<item->ind1<<"\n";
+            
+            if( item->ind1 > begin_step){
+                make_result(
+                        &(*this->sequence[item->ind1])[item->state1].alphas[0],
+                        begin_step,
+                        result_alphas);
+            };
+        }else{//reduce
+            //std::cout<<begin_step<<" reduce "<<item->ind2<<" "<<item->ind1<<"\n";
+            if( item->ind1>=0 && item->ind1 > item->ind2){
+                make_result(
+                        &(*this->sequence[item->ind1])[item->state1].alphas[0],
+                        item->ind2,
+                        result_alphas);
+            };
+            if( item->ind2 > begin_step){
+                make_result(
+                        &(*this->sequence[item->ind2])[item->state2].alphas[0],
+                        begin_step,
+                        result_alphas);
+            };
+
+        };
+
+    };
+
     /*
      * beta
      * */
