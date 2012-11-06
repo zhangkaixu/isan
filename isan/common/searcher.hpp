@@ -2,6 +2,7 @@
 #include <ext/hash_map>
 #include <map>
 #include <algorithm>
+#include <iostream>
 #include <vector>
 namespace isan{
 

@@ -1,4 +1,6 @@
 #pragma once
+#include <Python.h>
+#include "isan/common/searcher.hpp"
 #include "isan/common/smart_string.hpp"
 namespace isan{
 typedef unsigned char Action_Type;

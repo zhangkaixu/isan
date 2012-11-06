@@ -1,11 +1,4 @@
 #include <Python.h>
-#include <iostream>
-#include <vector>
-#include <map>
-#include "isan/common/searcher.hpp"
-#include "isan/common/general_types.hpp"
-#include "isan/common/weights.hpp"
-#include "isan/common/decoder.hpp"
 #include "isan/common/python_interface.hpp"
 using namespace isan;
 
