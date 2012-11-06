@@ -14,3 +14,9 @@ test_dep:
 basic_test:
 	./cws.sh model.bin --train ~/data/seg/ctb5.test.seg --dev ~/data/seg/ctb5.test.seg --iteration=1
 	./parsing.sh model.bin --train test/ctb5.test.txt --dev test/ctb5.test.txt --iteration=1
+
+test_msr:
+	./cws.sh model.bin --train ~/data/seg/msr.training.seg --dev ~/data/seg/msr.test.seg --iteration=30
+
+test_ctb5_parsing:
+	./parsing.sh model.bin --train test/ctb5.training.txt --dev test/ctb5.test.txt --iteration=30
