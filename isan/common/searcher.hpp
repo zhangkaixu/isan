@@ -524,7 +524,6 @@ public:
                         (*next_map)[next_state]=State_Info();
                         got=next_map->find(next_state);
                     };
-                    got->second.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
                     got->second.alphas.push_back(Alpha(
                                 last_score+shift_scores[j],//prefix score
                                 0,//inner score
@@ -534,6 +533,7 @@ public:
                                 step,
                                 last_state
                                 ));
+                    got->second.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
 
                 };
                 for(auto p=predictors.begin();p!=predictors.end();++p){
@@ -609,10 +609,7 @@ public:
 
         SCORE ms=item->score;
         SCORE hs=0;
-
-
         //std::cout<<"step "<<step<<"\n";
-        
         result_alphas.clear();
         make_result(item,0,result_alphas);
         std::reverse(result_alphas.begin(),result_alphas.end());
@@ -621,7 +618,6 @@ public:
         for(auto it=result_alphas.begin();it!=result_alphas.end();++it){
             hs+=(*it)->inc;
         };
-
         if(ms!=hs){
             std::cout<<"wrong"<<"\n";
             std::cout<<ms<<" "<<hs<<"\n";
@@ -629,17 +625,15 @@ public:
         };
     };
 
+
     void make_result(
             Alpha* item,
             int begin_step,
             std::vector<Alpha*>& result_alphas){
         //std::cout<<"start make "<<begin_step<<"\n";
-        
-        
         result_alphas.push_back(item);
         if(item->is_shift){//shift
             //std::cout<<begin_step<<" shift "<<item->ind1<<"\n";
-            
             if( item->ind1 > begin_step){
                 make_result(
                         &(*this->sequence[item->ind1])[item->state1].alphas[0],
@@ -660,9 +654,7 @@ public:
                         begin_step,
                         result_alphas);
             };
-
         };
-
     };
 
     /*
@@ -695,30 +687,6 @@ public:
                 iter->second.max_top_beta();
             };
         };
-    };
-    void set_result(
-            Alpha* alpha,
-            int begin,
-            int end, 
-            std::vector<Alpha*>& result_alphas
-            )
-    {
-        result_alphas[end-1]=alpha;
-        while(((begin+1)!=end)&&(alpha->is_shift)){
-            
-            end--;
-            alpha=&(*this->sequence[alpha->ind1])[alpha->state1].alphas[0];
-            result_alphas[end-1]=alpha;
-        };
-        if(begin==end)return;
-        if(alpha->is_shift)return;
-        int last_ind=alpha->ind1;
-        const STATE& last_state=alpha->state1;
-        int p_ind=alpha->ind2;
-        const STATE& p_state=alpha->state2;
-        set_result(&(*this->sequence[p_ind])[p_state].alphas[0],begin,p_ind,result_alphas);
-        set_result(&(*this->sequence[last_ind])[last_state].alphas[0],p_ind,end-1,result_alphas);
-        alpha++;
     };
 };
 };//isan

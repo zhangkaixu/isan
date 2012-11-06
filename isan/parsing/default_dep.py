@@ -18,13 +18,13 @@ class Dep:
         new_states=self.actions_to_stats(self.raw,actions)
         for s,m in zip(new_states,rst_moves):
             m[1]=s
+        ind=0
         for s,ns in zip(states,new_states):
             s=pickle.loads(s)
             ns=pickle.loads(ns)
             if s!=ns:
-
-                print('x')
-        
+                print(chr(rst_moves[ind][2]))
+            ind+=1
 
         return all(
                 std_move[2]==rst_move[2]
