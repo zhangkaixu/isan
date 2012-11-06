@@ -65,9 +65,11 @@ struct Alpha_t{
     ACTION action;//last action
     int ind1;//index of last state
     STATE state1;//last state
+    bool is_shift;
     Alpha_t(){
         this->ind1=-1;
         this->score=0;
+        is_shift=false;
     };
     Alpha_t(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
         this->score=score;
@@ -75,6 +77,7 @@ struct Alpha_t{
         this->action=la;
         this->ind1=ind1;
         this->state1=lk;
+        is_shift=false;
     };
     virtual inline bool operator > (const Alpha_t& right){
         if( this->score > right.score) return true;
@@ -106,7 +109,6 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
     typedef STATE State;
     typedef SCORE Score;
     SCORE sub_score;
-    bool is_shift;
     STATE state2;
     Alpha_s* p_alpha;
     int ind2;
@@ -174,6 +176,7 @@ struct State_Info{
     typedef typename Alpha::Action ACTION;
     typedef typename Alpha::State STATE;
     typedef typename Alpha::Score SCORE;
+    Alpha* best_alpha;
     std::vector<Alpha> alphas;
     std::vector<Alpha> betas;
     inline void max_top(){
@@ -185,8 +188,7 @@ struct State_Info{
         for(int ind=1;ind<alphas.size();ind++)
             if (alphas[ind]>alphas[max_ind])
                 max_ind=ind;
-        if(max_ind)
-            std::swap(alphas[max_ind],alphas[0]);
+        best_alpha=&alphas[max_ind];
     };
     inline void max_top_beta(){
         if(betas.size()==0)
@@ -258,15 +260,15 @@ public:
         for (it=map->begin() ; it != map->end(); ++it ){
             it->second.max_top();
             if ((beam_width==0) || (top_n.size()<this->beam_width)){//if top_n is not full
-                top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
+                top_n.push_back(std::pair<STATE,Alpha*>((*it).first,(*it).second.best_alpha));
                 if(top_n.size()==this->beam_width){//full, make this a (min)heap
                     make_heap(top_n.begin(),top_n.end(),Alpha::state_comp_greater);
                 }
             }else{
-                if(top_n.front().second->score<(*it).second.alphas[0].score){//greater than the top of the heap
+                if(top_n.front().second->score<(*it).second.best_alpha->score){//greater than the top of the heap
                     pop_heap(top_n.begin(),top_n.end(),Alpha::state_comp_greater);
                     top_n.pop_back();
-                    top_n.push_back(std::pair<STATE,Alpha*>((*it).first,&(*it).second.alphas[0]));
+                    top_n.push_back(std::pair<STATE,Alpha*>((*it).first,(*it).second.best_alpha));
                     push_heap(top_n.begin(),top_n.end(),Alpha::state_comp_greater);
                 }
             }
@@ -284,7 +286,7 @@ public:
             for(auto iter=map->begin();iter!=map->end();++iter){
                 if(iter->second.alphas.size() && iter->second.betas.size()){
                     states.push_back(iter->first);
-                    scores.push_back(iter->second.alphas[0].score+iter->second.betas[0].score);
+                    scores.push_back(iter->second.best_alpha->score+iter->second.betas[0].score);
                 };
             };
         };
@@ -419,13 +421,13 @@ public:
         this->thrink(end_map,beam);//thrink, get beam
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         
-        Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
+        Alpha* item=((*end_map)[beam.back().first].best_alpha);
 
         result_alphas.clear();
         int ind=item->ind1;
         while(ind>=0){
             result_alphas.push_back(item);
-            item=&((*this->sequence[ind])[item->state1].alphas[0]);
+            item=((*this->sequence[ind])[item->state1].best_alpha);
             ind=item->ind1;
         };
         std::reverse(result_alphas.begin(),result_alphas.end());
@@ -548,8 +550,8 @@ public:
                     //auto& p_step=p->second.first;
                     //auto& p_inc=p->second.second;
                     auto& p_state_info=(*this->sequence[p_step])[p_state];
-                    auto& p_score=p_state_info.alphas[0].score;
-                    auto& p_sub_score=p_state_info.alphas[0].sub_score;
+                    auto& p_score=p_state_info.best_alpha->score;
+                    auto& p_sub_score=p_state_info.best_alpha->sub_score;
                     
                     this->data->reduce(
                             step,
@@ -613,7 +615,7 @@ public:
         this->thrink(end_map,beam);//thrink, get beam
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         
-        Alpha* item=&((*end_map)[beam.back().first].alphas[0]);
+        Alpha* item=((*end_map)[beam.back().first].best_alpha);
 
         SCORE ms=item->score;
         SCORE hs=0;
@@ -644,7 +646,7 @@ public:
             //std::cout<<begin_step<<" shift "<<item->ind1<<"\n";
             if( item->ind1 > begin_step){
                 make_result(
-                        &(*this->sequence[item->ind1])[item->state1].alphas[0],
+                        (*this->sequence[item->ind1])[item->state1].best_alpha,
                         begin_step,
                         result_alphas);
             };
@@ -652,7 +654,7 @@ public:
             //std::cout<<begin_step<<" reduce "<<item->ind2<<" "<<item->ind1<<"\n";
             if( item->ind1>=0 && item->ind1 > item->ind2){
                 make_result(
-                        &(*this->sequence[item->ind1])[item->state1].alphas[0],
+                        (*this->sequence[item->ind1])[item->state1].best_alpha,
                         item->ind2,
                         result_alphas);
             };
@@ -664,7 +666,7 @@ public:
             
             if( item->ind2 > begin_step){
                 make_result(
-                        &(*this->sequence[item->ind2])[item->state2].alphas[0],
+                        (*this->sequence[item->ind2])[item->state2].best_alpha,
                         begin_step,
                         result_alphas);
             };
