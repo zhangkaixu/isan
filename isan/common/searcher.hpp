@@ -69,7 +69,7 @@ struct Alpha_t{
     Alpha_t(){
         this->ind1=-1;
         this->score=0;
-        is_shift=false;
+        this->is_shift=false;
     };
     Alpha_t(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
         this->score=score;
@@ -77,7 +77,7 @@ struct Alpha_t{
         this->action=la;
         this->ind1=ind1;
         this->state1=lk;
-        is_shift=false;
+        this->is_shift=false;
     };
     virtual inline bool operator > (const Alpha_t& right){
         if( this->score > right.score) return true;
@@ -116,12 +116,15 @@ struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
         this->ind1=-1;
         this->ind2=-1;
         this->score=0;
+        this->is_shift=false;
     };
-    Alpha_s(SCORE score,SCORE inc,ACTION la,int,STATE lk){
+    Alpha_s(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
         this->score=score;
         this->inc=inc;
         this->action=la;
+        this->ind1=ind1;
         this->state1=lk;
+        this->is_shift=false;
     };
     Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat)
         {
@@ -368,6 +371,7 @@ public:
         My_Map* end_map=&final;
         int step=0;
         while(true){
+            
             if(step>=sequence.size()) break;
             this->thrink(sequence[step],beam);//thrink, get beam
             if(early_stop(step,beam)){
@@ -425,11 +429,14 @@ public:
 
         result_alphas.clear();
         int ind=item->ind1;
+        
         while(ind>=0){
             result_alphas.push_back(item);
             item=((*this->sequence[ind])[item->state1].best_alpha);
             ind=item->ind1;
         };
+        //result_alphas.clear();
+        //make_result(item,0,result_alphas);
         std::reverse(result_alphas.begin(),result_alphas.end());
         
         //cal_betas();
@@ -617,22 +624,10 @@ public:
         
         Alpha* item=((*end_map)[beam.back().first].best_alpha);
 
-        SCORE ms=item->score;
-        SCORE hs=0;
         //std::cout<<"step "<<step<<"\n";
         result_alphas.clear();
         make_result(item,0,result_alphas);
         std::reverse(result_alphas.begin(),result_alphas.end());
-        
-        //std::cout<<"hl "<<result_alphas.size()<<"\n";
-        for(auto it=result_alphas.begin();it!=result_alphas.end();++it){
-            hs+=(*it)->inc;
-        };
-        if(ms!=hs){
-            std::cout<<"wrong"<<"\n";
-            std::cout<<ms<<" "<<hs<<"\n";
-            
-        };
     };
 
 

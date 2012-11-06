@@ -5,7 +5,7 @@
 #include "isan/common/searcher.hpp"
 #include "isan/common/general_types.hpp"
 namespace isan{
-typedef Alpha_t<Action_Type,State_Type,Score_Type> Alpha_Type;
+typedef Alpha_s<Action_Type,State_Type,Score_Type> Alpha_Type;
 typedef State_Info_t<Alpha_Type> State_Info_Type;
 };
 #include "isan/common/weights.hpp"
