@@ -27,25 +27,13 @@ public:
     General_Searcher_Data(
             Early_Stop_Checker * early_stop_checker,
             State_Generator *shifted_state_generator,
-            Feature_Generator * feature_generator){
-        this->early_stop_checker=early_stop_checker;
-        this->feature_generator=feature_generator;
-        this->shifted_state_generator=shifted_state_generator;
-        this->reduced_state_generator=NULL;
-        this->use_early_stop=false;
-        if(this->early_stop_checker)this->use_early_stop=true;
-        cached_state=State_Type();
-    };
-    General_Searcher_Data(
-            Early_Stop_Checker * early_stop_checker,
-            State_Generator *shifted_state_generator,
             Reduced_State_Generator *reduced_state_generator,
             Feature_Generator* feature_generator){
-        this->use_early_stop=true;
         this->early_stop_checker=early_stop_checker;
+        if(this->early_stop_checker)this->use_early_stop=true;
+        this->feature_generator=feature_generator;
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=reduced_state_generator;
-        this->feature_generator=feature_generator;
         cached_state=State_Type();
     };
     ~General_Searcher_Data(){
@@ -79,7 +67,6 @@ public:
         next_inds.clear();
         if(!(cached_state==state)){
             (*feature_generator)(state,fv);
-            //std::cout<<fv.size()<<"\n";
             cached_state=state;
             cached_scores.clear();
         }
@@ -94,17 +81,6 @@ public:
             scores[i]=(*actions[action])(fv);
         };
 
-        if (next_states.size()==next_inds.size()) return;
-        std::cout<<"oh no!"<<"\n";
-        
-        next_inds.resize(actions.size());
-        for(int i=0;i<actions.size();++i){
-            if ( ind+1 ==max_step){
-                next_inds[i]=-1;
-            }else{
-                next_inds[i]=ind+1;
-            }
-        }
     };
     void reduce(
             const int state_ind,
@@ -168,49 +144,34 @@ public:
             PyObject * py_reduce_callback,
             PyObject * py_feature_cb
             ){
-        shifted_state_generator=new Python_State_Generator(py_shift_callback);
-        reduced_state_generator=new Python_Reduced_State_Generator(py_reduce_callback);
-        feature_generator=new Python_Feature_Generator(py_feature_cb);
-        early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
+        if(PyLong_Check(py_shift_callback)){
+            shifted_state_generator=(State_Generator *) PyLong_AsUnsignedLong(py_shift_callback);
+        }else{
+            shifted_state_generator=new Python_State_Generator(py_shift_callback);
+        };
 
+        reduced_state_generator=NULL;
+        if(py_reduce_callback){
+            reduced_state_generator=new Python_Reduced_State_Generator(py_reduce_callback);
+        };
+
+        if(PyLong_Check( py_feature_cb)){
+            feature_generator=(Feature_Generator*) PyLong_AsUnsignedLong( py_feature_cb);
+        }else{
+            feature_generator=new Python_Feature_Generator( py_feature_cb);
+        };
+        early_stop_checker=NULL;
+        if(py_early_stop_callback!=Py_None){
+            early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
+        }
+
+        raw=NULL;
         this->beam_width=beam_width;
         this->data=new General_Searcher_Data(
                 early_stop_checker,
                 shifted_state_generator,
                 reduced_state_generator,
                 feature_generator);
-        this->push_down=new My_Searcher(this->data,beam_width);
-
-    };
-    Interface(int beam_width,
-            PyObject * py_early_stop_callback,
-            PyObject * py_shift_callback,
-            PyObject * py_feature_cb
-            ){
-        if(PyLong_Check(py_shift_callback)){
-            shifted_state_generator=(State_Generator *) PyLong_AsUnsignedLong(py_shift_callback);
-        }else{
-            shifted_state_generator=new Python_State_Generator(py_shift_callback);
-        };
-        if(PyLong_Check( py_feature_cb)){
-            feature_generator=(Feature_Generator*) PyLong_AsUnsignedLong( py_feature_cb);
-        }else{
-            feature_generator=new Python_Feature_Generator( py_feature_cb);
-        };
-        
-
-        early_stop_checker=NULL;
-        if(py_early_stop_callback!=Py_None){
-            early_stop_checker=new Python_Early_Stop_Checker(py_early_stop_callback);
-        }
-        reduced_state_generator=NULL;
-        raw=NULL;
-        this->data=new General_Searcher_Data(
-                early_stop_checker,
-                shifted_state_generator,
-                feature_generator);
-
-        this->beam_width=beam_width;
         this->push_down=new My_Searcher(this->data,beam_width);
 
     };

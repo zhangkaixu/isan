@@ -182,6 +182,30 @@ do_nothing(PyObject *self, PyObject *arg)
 
 
 
+static PyObject *
+search(PyObject *self, PyObject *arg)
+{
+
+    Interface* interface;
+    PyObject *py_init_states;
+    PyArg_ParseTuple(arg, "LO", &interface,&py_init_states);
+
+    std::vector<State_Type> init_states;
+    for(int i=0;i<PyList_GET_SIZE(py_init_states);i++){
+        init_states.push_back(State_Type(PyList_GET_ITEM(py_init_states,i)));
+    };
+
+    std::vector<Alpha_Type* > result_alphas;
+
+    (*interface->push_down)(
+            init_states,
+            result_alphas);
+    PyObject * rtn_list=PyList_New(result_alphas.size());
+    for(int i=0;i<result_alphas.size();i++){
+        PyList_SetItem(rtn_list,i,pack_alpha(result_alphas[i]));
+    }
+    return rtn_list;
+};
 
 
 };//end of isan
