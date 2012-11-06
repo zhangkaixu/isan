@@ -2,12 +2,9 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#define NO_REDUCE
 #include "isan/common/searcher.hpp"
 #include "isan/common/general_types.hpp"
-namespace isan{
-typedef Alpha_s<Action_Type,State_Type,Score_Type> Alpha_Type;
-typedef State_Info_t<Alpha_Type> State_Info_Type;
-};
 #include "isan/common/weights.hpp"
 #include "isan/common/decoder.hpp"
 #include "isan/common/python_interface.hpp"
@@ -28,7 +25,7 @@ search(PyObject *self, PyObject *arg)
 
     std::vector<Alpha_Type* > result_alphas;
     
-    interface->push_down->call(
+    (*interface->push_down).call(
             init_states,
             result_alphas);
 

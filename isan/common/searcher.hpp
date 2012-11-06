@@ -51,63 +51,17 @@ public:
 };
 
 
-/*
- * 线性搜索的alpha
- * */
 template<class ACTION,class STATE,class SCORE>
-struct Alpha_t{
+struct Alpha_s{
     typedef ACTION Action;
     typedef STATE State;
     typedef SCORE Score;
-
     SCORE score;// score now
     SCORE inc;// score of last action
     ACTION action;//last action
     int ind1;//index of last state
     STATE state1;//last state
     bool is_shift;
-    Alpha_t(){
-        this->ind1=-1;
-        this->score=0;
-        this->is_shift=true;
-    };
-    Alpha_t(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
-        this->score=score;
-        this->inc=inc;
-        this->action=la;
-        this->ind1=ind1;
-        this->state1=lk;
-        this->is_shift=true;
-    };
-    virtual inline bool operator > (const Alpha_t& right){
-        if( this->score > right.score) return true;
-        if( this->score < right.score) return false;
-        return false;
-    };
-    static class CompareFoo{
-    public:
-        inline bool operator()(const std::pair<STATE,Alpha_t*>& first, const std::pair<STATE,Alpha_t*>& second) const{
-            if( first.second->score > second.second->score) return true;
-            if( first.second->score < second.second->score) return false;
-            return false;
-        }
-    } state_comp_greater;
-
-    static class CompareFoo2{
-    public:
-        inline bool operator()(const std::pair<STATE,Alpha_t*>& first, const std::pair<STATE,Alpha_t*>& second) const{
-            if( first.second->score < second.second->score) return true;
-            if( first.second->score > second.second->score) return false;
-            return false;
-        }
-    } state_comp_less;
-};
-
-template<class ACTION,class STATE,class SCORE>
-struct Alpha_s : public Alpha_t<ACTION,STATE,SCORE>{
-    typedef ACTION Action;
-    typedef STATE State;
-    typedef SCORE Score;
     SCORE sub_score;
     STATE state2;
     Alpha_s* p_alpha;
@@ -205,13 +159,6 @@ struct State_Info{
     };
 };
 
-template<class ALPHA>
-struct State_Info_t : public State_Info<ALPHA > {
-    typedef typename ALPHA::Action Action;
-    typedef typename ALPHA::State State;
-    typedef typename ALPHA::Score Score;
-    typedef ALPHA Alpha;
-};
 
 template<class ALPHA>
 struct State_Info_s : public State_Info<ALPHA > {
@@ -219,8 +166,9 @@ struct State_Info_s : public State_Info<ALPHA > {
     typedef typename ALPHA::State State;
     typedef typename ALPHA::Score Score;
     typedef ALPHA Alpha;
+#ifndef NO_REDUCE
     __gnu_cxx::hash_map< State, Alpha, typename State::HASH> predictors;
-    //__gnu_cxx::hash_map< State, std::pair<int, Score>, typename State::HASH> predictors;
+#endif
 };
 
 

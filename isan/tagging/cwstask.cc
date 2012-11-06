@@ -4,9 +4,6 @@
 #include <map>
 #include "isan/common/searcher.hpp"
 #include "isan/common/general_types.hpp"
-namespace isan{
-typedef Alpha_t<Action_Type,State_Type,Score_Type> Alpha_Type;
-};
 #include "isan/common/weights.hpp"
 using namespace isan;
 
