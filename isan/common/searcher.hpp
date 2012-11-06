@@ -52,7 +52,7 @@ public:
 
 
 template<class ACTION,class STATE,class SCORE>
-struct Alpha_s{
+struct Alpha{
     typedef ACTION Action;
     typedef STATE State;
     typedef SCORE Score;
@@ -63,18 +63,17 @@ struct Alpha_s{
     STATE state1;//last state
     bool is_shift;
     SCORE sub_score;
-    STATE state2;
 #ifdef REDUCE
-    Alpha_s* p_alpha;
-#endif
+    STATE state2;
+    Alpha* p_alpha;
     int ind2;
-    Alpha_s(){
+#endif
+    Alpha(){
         this->ind1=-1;
-        this->ind2=-1;
         this->score=0;
         this->is_shift=true;
     };
-    Alpha_s(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
+    Alpha(SCORE score,SCORE inc,ACTION la,int ind1,STATE lk){
         this->score=score;
         this->inc=inc;
         this->action=la;
@@ -82,7 +81,7 @@ struct Alpha_s{
         this->state1=lk;
         this->is_shift=true;
     };
-    Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat)
+    Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,int last_ind, STATE last_stat)
         {
         this->score=(s);
         this->sub_score=(sub_s);
@@ -93,9 +92,9 @@ struct Alpha_s{
         this->ind1=(last_ind);
     };
 #ifdef REDUCE
-    Alpha_s(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
+    Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
             int last_ind, STATE last_stat,
-            int p_ind,STATE p_stat,Alpha_s* p_alpha)
+            int p_ind,STATE p_stat,Alpha* p_alpha)
         {
         this->score=(s);
         this->sub_score=(sub_s);
@@ -109,7 +108,7 @@ struct Alpha_s{
         this->p_alpha=(p_alpha);
     };
 #endif
-    inline bool operator > (const Alpha_s& right){
+    inline bool operator > (const Alpha& right){
         if( this->score > right.score) return true;
         if( this->score < right.score) return false;
         if( this->sub_score > right.sub_score) return true;
@@ -118,14 +117,14 @@ struct Alpha_s{
     };
     static class CompareFoo{
     public:
-        inline bool operator()(const std::pair<STATE,Alpha_s*>& first, const std::pair<STATE,Alpha_s*>& second) const{
+        inline bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
             return (*first.second) > *(second.second);
         }
     } state_comp_greater;
 
     static class CompareFoo2{
     public:
-        inline bool operator()(const std::pair<STATE,Alpha_s*>& first, const std::pair<STATE,Alpha_s*>& second) const{
+        inline bool operator()(const std::pair<STATE,Alpha*>& first, const std::pair<STATE,Alpha*>& second) const{
             return (*second.second) > *(first.second);
         }
     } state_comp_less;
