@@ -166,7 +166,7 @@ struct State_Info_s : public State_Info<ALPHA > {
     typedef typename ALPHA::State State;
     typedef typename ALPHA::Score Score;
     typedef ALPHA Alpha;
-#ifndef NO_REDUCE
+#ifdef REDUCE
     __gnu_cxx::hash_map< State, Alpha, typename State::HASH> predictors;
 #endif
 };
@@ -287,100 +287,6 @@ public:
             };
         };
     };
-
-    /*
-     * 线性搜索
-     * */
-    void call(
-            const std::vector<STATE>& init_keys,
-            std::vector<Alpha*>& result_alphas
-            )
-    {
-        std::vector<std::pair<STATE,Alpha*> > beam;
-        std::vector<ACTION> next_actions;
-        std::vector<int> next_inds;
-        std::vector<STATE> next_keys;
-        std::vector<SCORE> scores;
-        typename My_Map::iterator got;
-        
-        //初始化sequence
-        if(this->sequence.size()){
-            for(int i=0;i<this->sequence.size();i++)
-                delete this->sequence[i];
-        }
-        this->sequence.clear();
-        this->sequence.push_back(new My_Map());
-        for(auto it=init_keys.begin();it!=init_keys.end();++it){
-            (*this->sequence.back())[(*it)]=State_Info();
-            (*this->sequence.back())[(*it)].alphas.push_back(Alpha());
-        };
-        final.clear();
-        //
-        My_Map* end_map=&final;
-        int step=0;
-        while(true){
-            
-            if(step>=sequence.size()) break;
-            this->thrink(sequence[step],beam);//thrink, get beam
-            if(early_stop(step,beam)){
-                end_map=sequence[step];
-                break;
-            };
-            //gen_next
-            for(int i=0;i<beam.size();i++){
-                STATE& last_key=beam[i].first;
-                SCORE& last_score=beam[i].second->score;
-
-                this->data->shift(
-                        step,
-                        last_key,
-                        next_actions,
-                        next_inds,
-                        next_keys,
-                        scores);
-                
-                for(int j=0;j<next_actions.size();j++){
-                    int next_ind=next_inds[j];
-                    My_Map* this_map;
-                    if (next_ind >= 0 ){
-                        while(next_ind>=sequence.size())
-                            this->sequence.push_back(new My_Map());
-                        this_map=this->sequence[next_ind];
-                    }else{
-                        this_map=&final;
-                    }
-
-                    STATE& key=next_keys[j];
-                    got=this_map->find(key);
-                    if(got==this_map->end()){
-                        (*this_map)[key]=State_Info();
-                        got=this_map->find(key);
-                    };
-                    //std::cout<<scores[j]<<"\n";
-                    got->second.alphas.push_back(Alpha(
-                                last_score+scores[j],
-                                scores[j],
-                                next_actions[j],
-                                step,
-                                last_key
-                                ));
-                };
-            };
-            step++;
-        };
-
-        //make result
-        this->thrink(end_map,beam);//thrink, get beam
-        sort(beam.begin(),beam.end(),Alpha::state_comp_less);
-        
-        Alpha* item=((*end_map)[beam.back().first].best_alpha);
-
-        result_alphas.clear();
-        make_result(item,0,result_alphas);
-        std::reverse(result_alphas.begin(),result_alphas.end());
-        //cal_betas();
-    };
-
     inline bool early_stop(int& step,std::vector<std::pair<STATE,Alpha*> >& top_n){
         if(!(data->use_early_stop))return false;
         //return false;
@@ -447,9 +353,9 @@ public:
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
                 SCORE& last_sub_score=beam[i].second->sub_score;
-
+#ifdef REDUCE
                 auto& predictors=(*this->sequence[step])[last_state].predictors;
-                
+#endif
                 this->data->shift(
                         step,
                         last_state,
@@ -484,10 +390,13 @@ public:
                                 step,
                                 last_state
                                 ));
+#ifdef REDUCE
                     got->second.predictors[last_state]=(got->second.alphas.back());
                     //got->second.predictors[last_state]=std::pair<int, SCORE>(step,shift_scores[j]);
+#endif
 
                 };
+#ifdef REDUCE
                 for(auto p=predictors.begin();p!=predictors.end();++p){
                     auto& p_state=p->first;
                     auto& p_step=p->second.ind1;
@@ -554,6 +463,7 @@ public:
                                     ));
                     };
                 };
+#endif
             };
             step++;
         };

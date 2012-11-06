@@ -2,7 +2,6 @@
 #include <iostream>
 #include <vector>
 #include <map>
-#define NO_REDUCE
 #include "isan/common/searcher.hpp"
 #include "isan/common/general_types.hpp"
 #include "isan/common/weights.hpp"
@@ -25,7 +24,7 @@ search(PyObject *self, PyObject *arg)
 
     std::vector<Alpha_Type* > result_alphas;
     
-    (*interface->push_down).call(
+    (*interface->push_down)(
             init_states,
             result_alphas);
 

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#define REDUCE
 #include "isan/common/searcher.hpp"
 #include "isan/common/general_types.hpp"
 #include "isan/common/decoder.hpp"
