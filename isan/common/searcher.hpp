@@ -138,6 +138,16 @@ struct State_Info{
 #ifdef REDUCE
     __gnu_cxx::hash_map< STATE, Alpha, typename STATE::HASH> predictors;
 #endif
+    inline void max_top_beta(){
+        if(betas.size()==0)
+            return;
+        int max_ind=0;
+        for(int ind=1;ind<betas.size();ind++)
+            if (betas[max_ind].score < betas[ind].score)
+                max_ind=ind;
+        if(max_ind)
+            std::swap(betas[max_ind],betas[0]);
+    };
     inline void max_top(){
         if(alphas.size()==0){
             std::cout<<"zero alphas!!!\n";
@@ -148,16 +158,6 @@ struct State_Info{
             if (alphas[ind]>alphas[max_ind])
                 max_ind=ind;
         best_alpha=&alphas[max_ind];
-    };
-    inline void max_top_beta(){
-        if(betas.size()==0)
-            return;
-        int max_ind=0;
-        for(int ind=1;ind<betas.size();ind++)
-            if (betas[max_ind].score < betas[ind].score)
-                max_ind=ind;
-        if(max_ind)
-            std::swap(betas[max_ind],betas[0]);
     };
 };
 
@@ -176,7 +176,6 @@ public:
 
     int beam_width;
     Searcher_Data<Alpha>* data;
-
     std::vector< My_Map* > sequence;
     My_Map final;
 
@@ -187,9 +186,7 @@ public:
         this->data=data;
     };
 
-
     inline void thrink(
-            //int step,
             My_Map* map,
             std::vector<std::pair<STATE,Alpha*> >& top_n)
     {
@@ -212,7 +209,7 @@ public:
                 }
             }
         };
-        sort(top_n.begin(),top_n.end(),Alpha::state_comp_less);
+        //sort(top_n.begin(),top_n.end(),Alpha::state_comp_less);
     };
 
 

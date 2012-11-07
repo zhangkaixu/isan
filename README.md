@@ -3,7 +3,7 @@ isan
 
 > “举一隅不以三隅反，则不复也” ——《论语·述而》
 
-一个数据驱动的中文处理**实验环境**，可进行 *中文分词* 和 *依存句法分析* 等任务。作者[张开旭](http://weibo.com/zhangkaixu)。
+一个数据驱动的中文处理 **实验环境** ，可进行 **中文分词** 和 **依存句法分析** 等任务。作者[张开旭](http://weibo.com/zhangkaixu)。
 
 特点
 
@@ -15,7 +15,7 @@ isan
 
 ## Getting started
 
-在此以Ubuntu操作系统为例，介绍如何安装和使用**isan**。
+在此以Ubuntu操作系统为例，介绍如何安装和使用 **isan** 。
 
 首先，需要安装必要的软件包，包括gcc，make，Python3，Python3-dev和git，在命令行下安装：
 
