@@ -8,17 +8,34 @@ def make_color(s,color='36'):
 
 def command_line(Model,Task,Decoder):
 
-    parser=argparse.ArgumentParser(description="")
-    parser.add_argument('model_file',help='模型文件')
-    parser.add_argument('--train',help='训练文件',action='append')
-    parser.add_argument('-i','--iteration',help='模型迭代次数',dest='iteration',default='5')
-    parser.add_argument('-M','--model',help='模型',dest='model_module',default=None)
-    parser.add_argument('-D','--decoder',help='搜索算法',dest='decoder',default=None)
-    parser.add_argument('-T','--task',help='任务',dest='task',default=None)
-    parser.add_argument('--test',help='测试用文件',dest='test_file')
-    parser.add_argument('--dev',help='开发用文件',dest='dev_file',default=None)
-    parser.add_argument('--beam_width',help='搜索宽度',dest='beam_width',default='8')
-    parser.add_argument('--threshold',help='阈值',dest='threshold',type=int,default=0)
+    parser=argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description=r"""用于中文自然语言理解的统计机器学习工具包  作者：张开旭""",
+            epilog="""不指定任何语料库，从标准输入流中读入，输出到标准输出流
+指定了训练集，则使用训练集进行训练，将模型参数写入文件
+指定了测试集，则读入测试集进行测试
+“举一隅不以三隅反，则不复也” ——《论语·述而》""")
+    parser.add_argument('model_file',
+            help='模型参数文件',metavar=('模型文件'))
+    meta_group=parser.add_argument_group('meta')
+    meta_group.add_argument('--model',dest='model_module',default=None,
+            help='相应的.sh文件中已设置好（如平均感知器模型）',metavar='机器学习模型')
+    meta_group.add_argument('--decoder',dest='decoder',default=None,
+            help='相应的.sh文件中已设置好（如有向图解码、Shift-Reduce解码）',metavar='解码算法')
+    meta_group.add_argument('--task',dest='task',default=None,
+            help='相应的.sh文件中已设置好（如分词、句法分析）',metavar='任务')
+    parser.add_argument('--train',action='append',
+            help='训练语料库',metavar=('训练集'))
+    parser.add_argument('--test',dest='test_file',
+            help='测试用语料库',metavar=('测试集'))
+    parser.add_argument('--iteration',dest='iteration',default=5,type=int,
+            help='学习迭代次数(default: %(default)s)',metavar='迭代次数')
+    parser.add_argument('--beam_width',dest='beam_width',default=8,type=int,
+            help='为0时，柱搜索算法变为动态规划算法(default: %(default)s)',metavar="柱宽度")
+    parser.add_argument('--dev',dest='dev_file',default=None,
+            help='开发用语料库',metavar=('开发集'))
+    parser.add_argument('--threshold',dest='threshold',type=int,default=0,
+            help='',metavar='阈值')
     args=parser.parse_args()
     """如果指定了训练集，就训练模型"""
     info_color='34'

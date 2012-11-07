@@ -209,7 +209,7 @@ public:
                 }
             }
         };
-        //sort(top_n.begin(),top_n.end(),Alpha::state_comp_less);
+        sort(top_n.begin(),top_n.end(),Alpha::state_comp_less);
     };
 
 
