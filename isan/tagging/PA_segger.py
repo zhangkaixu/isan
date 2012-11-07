@@ -41,8 +41,8 @@ class Segger(cws.Task):
                     }
 
     def set_oracle(self,raw,y,Y) :
-        std_actions=self.result_to_actions(y)#得到标准动作
-        return std_actions
+        std_moves=self.result_to_moves(y)#得到标准动作
+        return std_moves
 
     def is_belong(self,raw,moves,Y):
         actions=moves[1]
@@ -66,7 +66,7 @@ class Segger(cws.Task):
                     return False
             return True
 
-    def gen_actions_and_stats(self,last_ind,stat):
+    def shift(self,last_ind,stat):
         """
         根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
         """
