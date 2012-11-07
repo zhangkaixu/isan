@@ -139,8 +139,9 @@ struct State_Info{
     __gnu_cxx::hash_map< STATE, Alpha, typename STATE::HASH> predictors;
 #endif
     inline void max_top_beta(){
-        if(betas.size()==0)
+        if(betas.size()==0){
             return;
+        }
         int max_ind=0;
         for(int ind=1;ind<betas.size();ind++)
             if (betas[max_ind].score < betas[ind].score)
@@ -226,17 +227,25 @@ public:
                 };
             };
         };
+        My_Map* map=&final;
+        for(auto iter=map->begin();iter!=map->end();++iter){
+            if(iter->second.alphas.size() && iter->second.betas.size()){
+                states.push_back(iter->first);
+                scores.push_back(iter->second.best_alpha->score+iter->second.betas[0].score);
+            };
+        };
     };
 
     /*
      * beta
      * */
     void cal_betas(){
-        int ind=this->sequence.size()-1;
+        
         for(auto iter=final.begin();iter!=final.end();++iter){
             iter->second.betas.push_back(Alpha());
             auto alphas=iter->second.alphas;
             auto beta=iter->second.betas[0];
+            
             for(auto alpha=alphas.begin();alpha!=alphas.end();++alpha){
                 (*this->sequence[alpha->ind1])[alpha->state1].betas.push_back(Alpha(
                             beta.score+alpha->inc,
@@ -249,12 +258,17 @@ public:
         };
 
         My_Map* map;
+        int ind=this->sequence.size()-1;
         while(ind){
             map=(this->sequence[ind]);
+            for(auto iter=map->begin();iter!=map->end();++iter){
+                iter->second.max_top_beta();
+            };
             for(auto iter=map->begin();iter!=map->end();++iter){
                 if(!iter->second.betas.size())continue;
                 auto alphas=iter->second.alphas;
                 auto beta=iter->second.betas[0];
+                
                 for(auto alpha=alphas.begin();alpha!=alphas.end();++alpha){
                     (*this->sequence[alpha->ind1])[alpha->state1].betas.push_back(Alpha(
                                 beta.score+alpha->inc,

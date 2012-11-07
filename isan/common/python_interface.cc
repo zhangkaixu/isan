@@ -229,9 +229,13 @@ get_states(PyObject *self, PyObject *arg)
 
     PyObject * list=PyList_New(states.size());
     for(int i=0;i<states.size();i++){
+        PyObject * py_state=states[i].pack();
+        PyObject * py_score=PyLong_FromLong(scores[i]);
         PyList_SetItem(list,i,
-                    PyTuple_Pack(2,states[i].pack(),PyLong_FromLong(scores[i]))
+                    PyTuple_Pack(2,py_state,py_score)
                 );
+        Py_DECREF(py_state);
+        Py_DECREF(py_score);
     };
     return list;
 };
