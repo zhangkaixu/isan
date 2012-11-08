@@ -1,6 +1,6 @@
 all: common/pushdown.so common/dfabeam.so tagging/cwstask.so
 
-gcc= g++ -I /usr/include/python3.2mu -shared -fPIC -O3 -std=c++0x -I .. -Wno-deprecated
+gcc= g++ -I /usr/include/python3.2mu -shared -fPIC -O3 -std=c++0x -I .. -Wno-deprecated -g
 
 headers=common/*.hpp utls/*.hpp
 
