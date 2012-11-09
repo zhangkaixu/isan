@@ -41,7 +41,7 @@ class Path_Finding :
         for move in rst_moves :
             yield move, -1
         for move in std_moves :
-            if self.stop_step>=0 and move[0]>=self.stop_step : return
+            #if self.stop_step>=0 and move[0]>=self.stop_step : return
             yield move, 1
     def set_raw(self,raw,Y):
         self.raw=raw
@@ -65,7 +65,12 @@ class Path_Finding :
         inds=[x[2] for x in states[:]]
         result=[self.raw[ind][0] for ind in inds]
         return result
-    def gen_actions_and_stats(self,ind,state):
+    stat_fmt=Struct('hhh')
+    def get_init_states(self):
+        init_states=[Struct.pack(self.stat_fmt,*(-1,-1,ind)) for ind in self.begins[0]]
+        return init_states
+        pass
+    def shift(self,ind,state):
         state=Struct.unpack(self.stat_fmt,state)
         ind1,ind2,ind3=state
         #print(*(self.raw[i][0] if i>=0 else (None,None,None) for i in state))
@@ -84,6 +89,7 @@ class Path_Finding :
         #print(nexts)
         return nexts
         pass
+    reduce=None
     def check(self,std_moves,rst_moves):
         return all(
                 std_move[1]==rst_move[1]
@@ -111,11 +117,6 @@ class Path_Finding :
 
         return fv
 
-    stat_fmt=Struct('hhh')
-    def get_init_states(self):
-        init_states=[Struct.pack(self.stat_fmt,*(-1,-1,ind)) for ind in self.begins[0]]
-        return init_states
-        pass
 
     def set_oracle(self,raw,y):
         words=list(reversed(y[:]))
@@ -142,15 +143,15 @@ class Path_Finding :
             step=raw[ind3][0][0]
             moves.append((step,state,action))
         return moves
-    def early_stop(self,step,next_states,last_steps,last_states,actions):
-        if not hasattr(self,'oracle') or self.oracle==None : return False
-        self.stop_step=-1
-        
-        if step in self.oracle :
-            if not (self.oracle[step]in next_states) :
-                self.stop_step=step
-                return True
-        return False
+    #def early_stop(self,step,next_states,last_steps,last_states,actions):
+    #    if not hasattr(self,'oracle') or self.oracle==None : return False
+    #    self.stop_step=-1
+    #    
+    #    if step in self.oracle :
+    #        if not (self.oracle[step]in next_states) :
+    #            self.stop_step=step
+    #            return True
+    #    return False
     def remove_oracle(self):
         self.oracle=None
         pass
