@@ -48,7 +48,7 @@ class Model(object):
     def develop(self,dev_file):
         self.searcher.average_weights(self.step)
         #print(self.searcher.export_weights())
-        #self.searcher.set_action(1,{b'1':100})
+        #self.searcher.set_action({b'a0~0':100})
         #print(self.searcher.export_weights())
         eval=self.schema.Eval()
         for line in open(dev_file):

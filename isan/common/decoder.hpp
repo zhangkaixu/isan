@@ -17,7 +17,12 @@ public:
     Reduced_State_Generator * reduced_state_generator;
     Early_Stop_Checker * early_stop_checker;
 
-    Default_Weights weights;
+    Default_Weights* weights;
+    void set_weights(PyObject * py_dict){
+        delete weights;
+        weights=new Default_Weights(py_dict);
+
+    };
 
     //cache for FV
     Feature_Vector fv;
@@ -32,8 +37,10 @@ public:
         this->feature_generator=feature_generator;
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=reduced_state_generator;
+        weights=new Default_Weights();
     };
     ~General_Searcher_Data(){
+        delete weights;
     };
 
     virtual bool early_stop(
@@ -62,7 +69,7 @@ public:
         for(int i=0;i<next_actions.size();i++){
             auto action=next_actions[i];
             (*feature_generator)(state,action,fv);
-            scores[i]=weights(fv);
+            scores[i]=(*weights)(fv);
             //std::cout<<action<<" "<<scores[i]<<"\n";
             
         };
@@ -90,7 +97,7 @@ public:
         for(int i=0;i<next_actions.size();i++){
             auto action=next_actions[i];
             (*feature_generator)(state,action,fv);
-            scores[i]=weights(fv);
+            scores[i]=(*weights)(fv);
         };
     };
 };

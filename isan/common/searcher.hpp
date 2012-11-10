@@ -344,11 +344,7 @@ public:
             if(step>=sequence.size()){
                 break;
             };
-            if(step){
-                this->thrink(sequence[step],beam,this->beam_width);//thrink, get beam
-            }else{
-                this->thrink(sequence[step],beam,0);//thrink, get beam
-            };
+            this->thrink(sequence[step],beam,this->beam_width);//thrink, get beam
             if(early_stop(step,beam)){
                 end_map=sequence[step];
                 break;
@@ -472,6 +468,8 @@ public:
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         
         Alpha* item=((*end_map)[beam.back().first].best_alpha);
+        //std::cout<<item->score<<"\n";
+        
 
         result_alphas.clear();
         make_result(item,0,result_alphas);

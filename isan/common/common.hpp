@@ -186,14 +186,9 @@ public:
         next_states.clear();
         for(int i=0;i<size;i++){
             tri=PyList_GET_ITEM(result,i);
-            if(PyTuple_GET_SIZE(tri)==2){
-                next_actions[i]=(PyLong_AsLong(PyTuple_GET_ITEM(tri,0)));
-                next_states.push_back(State_Type(PyTuple_GET_ITEM(tri,1)));
-            }else{
-                next_actions[i]=(PyLong_AsLong(PyTuple_GET_ITEM(tri,0)));
-                next_inds.push_back(PyLong_AsLong(PyTuple_GET_ITEM(tri,1)));
-                next_states.push_back(State_Type(PyTuple_GET_ITEM(tri,2)));
-            };
+            next_actions[i]=(PyLong_AsLong(PyTuple_GET_ITEM(tri,0)));
+            next_inds.push_back(PyLong_AsLong(PyTuple_GET_ITEM(tri,1)));
+            next_states.push_back(State_Type(PyTuple_GET_ITEM(tri,2)));
         };
         Py_DECREF(result);
     };
