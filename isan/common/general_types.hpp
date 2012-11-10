@@ -3,7 +3,7 @@
 #include "isan/common/searcher.hpp"
 #include "isan/common/smart_string.hpp"
 namespace isan{
-typedef unsigned char Action_Type;
+typedef long Action_Type;
 class Smart_Chars: public Smart_String<unsigned char>{
 public:
     PyObject* pack() const{

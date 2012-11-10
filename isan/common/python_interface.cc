@@ -59,7 +59,7 @@ update_weights(PyObject *self, PyObject *arg)
     long step=0;
     Action_Type action;
     //std::cout<<"in update\n";
-    PyArg_ParseTuple(arg, "LOBii", &interface,&py_state,&action,&delta,&step);
+    PyArg_ParseTuple(arg, "LOlii", &interface,&py_state,&action,&delta,&step);
     State_Type state(py_state);
     
     Feature_Vector fv;
