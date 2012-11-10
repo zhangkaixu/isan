@@ -65,26 +65,25 @@ class Path_Finding :
         inds=[x[2] for x in states[:]]
         result=[self.raw[ind][0] for ind in inds]
         return result
-    stat_fmt=Struct('hhh')
+    stat_fmt=Struct('hh')
     def get_init_states(self):
-        init_states=[Struct.pack(self.stat_fmt,*(-1,-1,ind)) for ind in self.begins[0]]
-        #print(init_states)
+        init_states=[Struct.pack(self.stat_fmt,*(-1,-1))]
         return init_states
         pass
     def shift(self,ind,state):
         state=Struct.unpack(self.stat_fmt,state)
-        ind1,ind2,ind3=state
+        ind1,ind2=state
         #print(*(self.raw[i][0] if i>=0 else (None,None,None) for i in state))
         
-        next_ind=ind+len(self.raw[ind3][0][1])
+        next_ind=ind+len(self.raw[ind2][0][1])
 
         #print(ind,next_ind)
         
         if next_ind not in self.begins : 
-            return [(1,-1,Struct.pack(self.stat_fmt,ind2,ind3,-1))]
+            return [(1,-1,Struct.pack(self.stat_fmt,ind2,-1))]
         nexts=[]
-        for ind4 in self.begins[next_ind] :
-            n=(1,next_ind,Struct.pack(self.stat_fmt,ind2,ind3,ind4))
+        for ind3 in self.begins[next_ind] :
+            n=(1,next_ind,Struct.pack(self.stat_fmt,ind2,ind3))
             #print(n)
             nexts.append(n)
         #print(nexts)
@@ -99,13 +98,14 @@ class Path_Finding :
     def gen_features(self,state,action):
         state=Struct.unpack(self.stat_fmt,state)
         action=chr(action).encode()
-        ind1,ind2,ind3=state
+        ind1,ind2=state
         raw1=self.raw[ind1] if ind1 != -1 else [(-1,'~','~'),[]]
         raw2=self.raw[ind2] if ind2 != -1 else [(-1,'~','~'),[]]
-        raw3=self.raw[ind3] if ind3 != -1 else [(-1,'~','~'),[]]
         fv=[]
-        fv+=[b'a0~'+str(x).encode() for x in raw3[1]]
+        fv+=[b'a0~'+str(x).encode() for x in raw2[1]]
         #print(raw1,raw2,raw3,fv)
+        fv=[action+x for x in fv]
+        return fv
 
         fv+=[
                 b'3w~'+raw3[0][1].encode(),
@@ -118,8 +118,6 @@ class Path_Finding :
                 b't3t2t1~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode()+b'~'+raw1[0][2].encode(),
                 ]
 
-        fv=[action+x for x in fv]
-        return fv
 
 
     def set_oracle(self,raw,y):
@@ -134,18 +132,23 @@ class Path_Finding :
                 inds.append(ind)
                 offset+=len(word[1])
                 offsets.append(offset)
+        inds.append(-1)
                 
 
-        inds.append(-1)
         states=[inds[i:i+3] for i in range(len(inds)-2)]
-        states=[Struct.pack(self.stat_fmt,*state) for state in states]
-        actions=[1 for x in range(len(states)-1)]
-        self.oracle={o:s for o,s in zip(offsets,states)}
         moves=[]
-        for state,action in zip(states,actions) :
-            _,_,ind3=Struct.unpack(self.stat_fmt,state)
-            step=raw[ind3][0][0]
+        for a,b,c in states:
+            if b>=0 :
+                step=raw[b][0][0]+len(raw[b][0][1])
+            else :
+                step=0
+            state=Struct.pack(self.stat_fmt,a,b)
+            action=c
             moves.append((step,state,action))
+
+
+        print(moves)
+        input()
         return moves
     #def early_stop(self,step,next_states,last_steps,last_states,actions):
     #    if not hasattr(self,'oracle') or self.oracle==None : return False
