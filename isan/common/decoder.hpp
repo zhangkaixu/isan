@@ -18,6 +18,7 @@ public:
     Early_Stop_Checker * early_stop_checker;
 
     std::map<Action_Type, Default_Weights* > actions;
+    Default_Weights weights;
 
     //cache for FV
     Feature_Vector fv;
@@ -70,8 +71,9 @@ public:
             if(got==actions.end()){
                 actions[action]=new Default_Weights();
             };
-            (*feature_generator)(state,fv);
+            (*feature_generator)(state,action,fv);
             scores[i]=(*actions[action])(fv);
+            weights(fv);
         };
 
     };
@@ -85,7 +87,6 @@ public:
             std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores
             ){
-        (*feature_generator)(state,fv);
         (*reduced_state_generator)(
                 state_ind,
                 state,
@@ -101,7 +102,9 @@ public:
             if(got==actions.end()){
                 actions[action]=new Default_Weights();
             };
+            (*feature_generator)(state,action,fv);
             scores[i]=(*actions[action])(fv);
+            weights(fv);
         };
     };
 };

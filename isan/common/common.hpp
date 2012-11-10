@@ -14,7 +14,7 @@ public:
     virtual void set_raw(const Chinese* raw){
         this->raw=raw;
     };
-    virtual void operator()(const State_Type& key,Feature_Vector& fv)=0;
+    virtual void operator()(const State_Type& key,const Action_Type& action,Feature_Vector& fv)=0;
 };
 
 class State_Generator{
@@ -135,11 +135,13 @@ public:
     ~Python_Feature_Generator(){
         Py_DECREF(callback);
     };
-    void operator()(const State_Type& state, Feature_Vector& fv){
+    void operator()(const State_Type& state, const Action_Type& action,Feature_Vector& fv){
         PyObject * pkey=state.pack();
-        PyObject * arglist=PyTuple_Pack(1,pkey);
+        PyObject * py_action=PyLong_FromLong(action);
+        PyObject * arglist=PyTuple_Pack(2,pkey,py_action);
         PyObject * pfv= PyObject_CallObject(this->callback, arglist);
         Py_DECREF(pkey);
+        Py_DECREF( py_action);
         Py_DECREF(arglist);
         
         fv.clear();

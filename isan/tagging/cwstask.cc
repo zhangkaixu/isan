@@ -122,7 +122,7 @@ public:
 
 
     
-    void operator()(const State_Type& super_state, Feature_Vector& fv){
+    void operator()(const State_Type& super_state, const Action_Type& action,Feature_Vector& fv){
         Default_State_Type& state=(Default_State_Type&)super_state;
         int ind=*(unsigned short*)state.pt;
         const Action_Type& left_action=*state.last_action();

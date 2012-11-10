@@ -46,7 +46,7 @@ sum_weights(PyObject *self, PyObject *arg)
     State_Type state(py_state);
     
     Feature_Vector fv;
-    (*(interface->feature_generator))(state,fv);
+    (*(interface->feature_generator))(state,0,fv);
 
     auto& actions=interface->data->actions;
     auto got=actions.find(action);
@@ -69,7 +69,7 @@ update_weights(PyObject *self, PyObject *arg)
     State_Type state(py_state);
     
     Feature_Vector fv;
-    (*(interface->feature_generator))(state,fv);
+    (*(interface->feature_generator))(state,action,fv);
     //std::cout<<fv.size()<<" in update\n";
 
     auto& actions=interface->data->actions;

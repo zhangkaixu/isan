@@ -159,10 +159,11 @@ class Task:
                 ])
 
 
-    def gen_features(self,span):
+    def gen_features(self,span,action):
         """
         告诉isan，一个状态能生成哪些特征向量，每个特征也是一个bytes类型，且其中不能有0
         """
+        action=chr(action).encode()
         span=self.stat_fmt.unpack(span)
         ind,ws_current,ws_left,sep_ind,sep_ind2=span
 
@@ -199,6 +200,7 @@ class Task:
                 b"w2l"+w_last.encode()+w_c_len,
                 ]
                 )
+        fv=[x+action for x in fv]
         return fv
     """
     最后告诉isan，如何评价模型的输出和标准答案的输出的好坏。具体可以看这个class
