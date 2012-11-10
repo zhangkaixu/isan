@@ -45,7 +45,7 @@ class Path_Finding :
         for move in rst_moves :
             yield move, -1
         for move in std_moves :
-            #if self.stop_step>=0 and move[0]>=self.stop_step : return
+            if self.stop_step>=0 and move[0]>=self.stop_step : return
             yield move, 1
     def set_raw(self,raw,Y):
         self.raw=raw
@@ -98,15 +98,66 @@ class Path_Finding :
         state=Struct.unpack(self.stat_fmt,state)
         ind1,ind2=state
         ind3=action
-        raw1=self.raw[ind1] if ind1 != -1 else [(-1,'',''),[]]
-        raw2=self.raw[ind2] if ind2 != -1 else [(-1,'',''),[]]
-        raw3=self.raw[ind3] if ind3 != -1 else [(-1,'',''),[]]
-        fv=[]
-        #fv=[b'a0~'+str(x).encode() for x in raw3[1]]
+        raw=self.raw
+        if ind1==-1 :
+            w1,t1=b'~',b'~'
+            len1=b'0'
+            f1,b1=b'~',b'~'
+            m1=b''
+        else :
+            r=raw[ind1]
+            w1,t1=r[0][1].encode(),r[0][2].encode()
+            len1=str(len(r[0][1])).encode()
+            f1,b1=r[0][1][0].encode(),r[0][1][-1].encode()
+            m1=b'' if not r[1] else str(r[1][0]).encode()
+        if ind2==-1 :
+            w2,t2=b'~',b'~'
+            len2=b'0'
+            f2,b2=b'~',b'~'
+            m2=b''
+        else :
+            r=raw[ind2]
+            w2,t2=r[0][1].encode(),r[0][2].encode()
+            len2=str(len(r[0][1])).encode()
+            f2,b2=r[0][1][0].encode(),r[0][1][-1].encode()
+            m2=b'' if not r[1] else str(r[1][0]).encode()
+        if ind3==-1 :
+            w3,t3=b'~',b'~'
+            len3=b'0'
+            f3,b3=b'~',b'~'
+            m3=b''
+        else :
+            r=raw[ind3]
+            w3,t3=r[0][1].encode(),r[0][2].encode()
+            len3=str(len(r[0][1])).encode()
+            f3,b3=r[0][1][0].encode(),r[0][1][-1].encode()
+            m3=b'' if not r[1] else str(r[1][0]).encode()
+
+        fv=[
+                b'm3~'+m3,
+                b'm3m2~'+m3+b'~'+m2,
+                b'w3~'+w3,
+                b't3~'+t3,
+                b'w3t3~'+w3+t3,
+                b'l3~'+len3,
+                b'l3t3~'+len3+t3,
+                b'l3w2~'+len3+w2,
+                b'l3t2~'+len3+t2,
+                b'w3w2~'+w3+b"-"+w2,
+                b'w3t3w2~'+w3+t3+w2,
+                b'w3w2t2~'+w3+t2+w2,
+                b't3w2~'+t3+w2,
+                b'w3t2~'+w3+t2,
+                b'w3t3~'+w3+t3,
+                b't3t2~'+t3+t2,
+                b't3t1~'+t3+t1,
+                b't3t2t1~'+t3+t2+t1,
+                
+                ]
+        return fv
+        fv=[b'a0~'+str(x).encode() for x in raw3[1]]
         #fv+=[b'a0w3~'+str(x).encode()+b'~'+raw3[0][1].encode() for x in raw3[1]]
         #fv+=[b'a0t3~'+str(x).encode()+b'~'+raw3[0][2].encode() for x in raw3[1]]
-
-
         fv+=[
                 b'3w~'+raw3[0][1].encode(),
                 b'3t~'+raw3[0][2].encode(),
@@ -135,6 +186,9 @@ class Path_Finding :
                 offsets.append(offset)
         inds.append(-1)
                 
+        self.oracle={}
+        for i in range(len(offsets)) :
+            self.oracle[offsets[i]]=Struct.pack(self.stat_fmt,*inds[i:i+2])
 
         states=[inds[i:i+3] for i in range(len(inds)-2)]
         moves=[]
@@ -147,18 +201,19 @@ class Path_Finding :
             action=c
             moves.append((step,state,action))
         return moves
-    #def early_stop(self,step,next_states,last_steps,last_states,actions):
-    #    if not hasattr(self,'oracle') or self.oracle==None : return False
-    #    self.stop_step=-1
-    #    
-    #    if step in self.oracle :
-    #        if not (self.oracle[step]in next_states) :
-    #            self.stop_step=step
-    #            return True
-    #    return False
     def remove_oracle(self):
         self.oracle=None
         pass
+    def early_stop(self,step,next_states,moves):
+        if not moves : return False
+        last_steps,last_states,actions=zip(*moves)
+        if not hasattr(self,'oracle') or self.oracle==None : return False
+        self.stop_step=-1
+        if step in self.oracle :
+            if not (self.oracle[step]in next_states) :
+                self.stop_step=step
+                return True
+        return False
 
     class Eval :
         def __init__(self):
