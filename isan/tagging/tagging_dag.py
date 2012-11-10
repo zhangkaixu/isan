@@ -24,7 +24,7 @@ class Path_Finding :
             y=[]
             for offset,word,tag,weight,oracle in seq :
                 offset=int(offset)
-                weight=[math.floor(math.log(int(weight)/1000+1)/log2)] if weight else []
+                weight=[math.floor(math.log(int(weight)+1)/log2)] if weight else []
                 item=[(offset,word,tag),weight]
                 if oracle!='-1': raw.append(item)
                 if oracle!='0' : y.append(item[0])
@@ -68,6 +68,7 @@ class Path_Finding :
     stat_fmt=Struct('hhh')
     def get_init_states(self):
         init_states=[Struct.pack(self.stat_fmt,*(-1,-1,ind)) for ind in self.begins[0]]
+        #print(init_states)
         return init_states
         pass
     def shift(self,ind,state):
@@ -103,6 +104,7 @@ class Path_Finding :
         raw3=self.raw[ind3] if ind3 != -1 else [(-1,'~','~'),[]]
         fv=[]
         fv+=[b'a0~'+str(x).encode() for x in raw3[1]]
+        #print(raw1,raw2,raw3,fv)
 
         fv+=[
                 b'3w~'+raw3[0][1].encode(),

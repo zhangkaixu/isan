@@ -20,8 +20,6 @@ public:
     std::map<Action_Type, Default_Weights* > actions;
 
     //cache for FV
-    State_Type cached_state;
-    std::map<Action_Type, Score_Type> cached_scores;
     Feature_Vector fv;
 
     General_Searcher_Data(
@@ -34,7 +32,6 @@ public:
         this->feature_generator=feature_generator;
         this->shifted_state_generator=shifted_state_generator;
         this->reduced_state_generator=reduced_state_generator;
-        cached_state=State_Type();
     };
     ~General_Searcher_Data(){
         for(auto iter=actions.begin();
@@ -65,11 +62,6 @@ public:
             ){
 
         next_inds.clear();
-        if(!(cached_state==state)){
-            (*feature_generator)(state,fv);
-            cached_state=state;
-            cached_scores.clear();
-        }
         (*shifted_state_generator)(ind,state,next_actions,next_inds,next_states);
         scores.resize(next_actions.size());
         for(int i=0;i<next_actions.size();i++){
@@ -78,6 +70,7 @@ public:
             if(got==actions.end()){
                 actions[action]=new Default_Weights();
             };
+            (*feature_generator)(state,fv);
             scores[i]=(*actions[action])(fv);
         };
 
@@ -92,11 +85,7 @@ public:
             std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores
             ){
-        if(!(cached_state==state)){
-            (*feature_generator)(state,fv);
-            cached_state=state;
-            cached_scores.clear();
-        };
+        (*feature_generator)(state,fv);
         (*reduced_state_generator)(
                 state_ind,
                 state,
@@ -112,12 +101,7 @@ public:
             if(got==actions.end()){
                 actions[action]=new Default_Weights();
             };
-            auto got2=cached_scores.find(action);
-            if(got2!=cached_scores.end()){
-                scores[i]=got2->second;
-            }else{
-                cached_scores[action]=scores[i]=(*actions[action])(fv);
-            }
+            scores[i]=(*actions[action])(fv);
         };
     };
 };

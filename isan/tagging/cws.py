@@ -118,7 +118,7 @@ class Task:
         """
         分词搜索时的初始状态
         """
-        self.init_stat,self.shift,self.gen_features=cwstask.new()
+        #self.init_stat,self.shift,self.gen_features=cwstask.new()
         #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
         pass
 

@@ -189,16 +189,17 @@ public:
 
     inline void thrink(
             My_Map* map,
-            std::vector<std::pair<STATE,Alpha*> >& top_n)
+            std::vector<std::pair<STATE,Alpha*> >& top_n,
+            int beam_width)
     {
         top_n.clear();
         
         typename My_Map::iterator it;
         for (it=map->begin() ; it != map->end(); ++it ){
             it->second.max_top();
-            if ((beam_width==0) || (top_n.size()<this->beam_width)){//if top_n is not full
+            if ((beam_width==0) || (top_n.size()<beam_width)){//if top_n is not full
                 top_n.push_back(std::pair<STATE,Alpha*>((*it).first,(*it).second.best_alpha));
-                if(top_n.size()==this->beam_width){//full, make this a (min)heap
+                if(top_n.size()==beam_width){//full, make this a (min)heap
                     make_heap(top_n.begin(),top_n.end(),Alpha::state_comp_greater);
                 }
             }else{
@@ -343,7 +344,11 @@ public:
             if(step>=sequence.size()){
                 break;
             };
-            this->thrink(sequence[step],beam);//thrink, get beam
+            if(step){
+                this->thrink(sequence[step],beam,this->beam_width);//thrink, get beam
+            }else{
+                this->thrink(sequence[step],beam,0);//thrink, get beam
+            };
             if(early_stop(step,beam)){
                 end_map=sequence[step];
                 break;
@@ -463,7 +468,7 @@ public:
             step++;
         };
         //make result
-        this->thrink(end_map,beam);//thrink, get beam
+        this->thrink(end_map,beam,this->beam_width);//thrink, get beam
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
         
         Alpha* item=((*end_map)[beam.back().first].best_alpha);
