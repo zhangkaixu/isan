@@ -24,8 +24,7 @@ class Model(object):
         if hasattr(self.schema,'init'):
             self.schema.init()
         self.searcher=Searcher(self.schema,beam_width)
-        for k,v in self.schema.weights.items():
-            self.searcher.set_action(k,v)
+        self.searcher.set_action(self.schema.weights)
         self.step=0
 
     def __del__(self):
@@ -70,8 +69,9 @@ class Model(object):
         保存模型
         """
         self.searcher.average_weights(self.step)
-        for k,v in self.searcher.export_weights():
-            self.schema.weights.setdefault(k,{}).update(v)
+        #for k,v in self.searcher.export_weights():
+        #    self.schema.weights.setdefault(k,{}).update(v)
+        self.schema.weights=self.searcher.export_weights()
         file=open(self.model_file,'wb')
         pickle.dump(self.schema,file)
         file.close()

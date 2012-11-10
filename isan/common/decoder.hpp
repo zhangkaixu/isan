@@ -17,7 +17,6 @@ public:
     Reduced_State_Generator * reduced_state_generator;
     Early_Stop_Checker * early_stop_checker;
 
-    std::map<Action_Type, Default_Weights* > actions;
     Default_Weights weights;
 
     //cache for FV
@@ -35,11 +34,6 @@ public:
         this->reduced_state_generator=reduced_state_generator;
     };
     ~General_Searcher_Data(){
-        for(auto iter=actions.begin();
-            iter!=actions.end();
-            ++iter){
-            delete iter->second;
-        }
     };
 
     virtual bool early_stop(
@@ -67,12 +61,7 @@ public:
         scores.resize(next_actions.size());
         for(int i=0;i<next_actions.size();i++){
             auto action=next_actions[i];
-            auto got=actions.find(action);
-            if(got==actions.end()){
-                actions[action]=new Default_Weights();
-            };
             (*feature_generator)(state,action,fv);
-            scores[i]=(*actions[action])(fv);
             scores[i]=weights(fv);
         };
 
@@ -98,12 +87,7 @@ public:
         scores.resize(next_actions.size());
         for(int i=0;i<next_actions.size();i++){
             auto action=next_actions[i];
-            auto got=actions.find(action);
-            if(got==actions.end()){
-                actions[action]=new Default_Weights();
-            };
             (*feature_generator)(state,action,fv);
-            scores[i]=(*actions[action])(fv);
             scores[i]=weights(fv);
         };
     };

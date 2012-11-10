@@ -3,8 +3,8 @@ import isan.common.dfabeam as dfabeam
 
 
 class Searcher:
-    def set_action(self,action,d):
-        self.searcher.set_action(self.handler,action,d)
+    def set_action(self,d):
+        self.searcher.set_action(self.handler,d)
     def export_weights(self):
         return self.searcher.export_weights(self.handler)
     def average_weights(self,step):

@@ -22,12 +22,11 @@ set_weights(PyObject *self, PyObject *arg)
 {
     Interface* interface;
     int step;
-    PyObject * py_action;
     PyObject * py_dict;
     Action_Type action;
-    PyArg_ParseTuple(arg, "LBO", &interface,&action,&py_dict);
+    PyArg_ParseTuple(arg, "LO", &interface,&py_dict);
     
-    interface->data->actions[action]=new Default_Weights(py_dict);
+    //interface->data->actions[action]=new Default_Weights(py_dict);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -48,12 +47,7 @@ sum_weights(PyObject *self, PyObject *arg)
     Feature_Vector fv;
     (*(interface->feature_generator))(state,0,fv);
 
-    auto& actions=interface->data->actions;
-    auto got=actions.find(action);
     long value=0;
-    if(got!=actions.end()){
-        value=(*(interface->data->actions[action]))(fv);
-    };
     return PyLong_FromLong(value);
 };
 static PyObject *
@@ -72,14 +66,6 @@ update_weights(PyObject *self, PyObject *arg)
     (*(interface->feature_generator))(state,action,fv);
     //std::cout<<fv.size()<<" in update\n";
 
-    auto& actions=interface->data->actions;
-    auto got=actions.find(action);
-    if(got==actions.end()){
-        actions[action]=new Default_Weights();
-    };
-    //long value=(*(interface->data->actions[action]))(fv);
-    //std::cout<<"  "<<value<<"\n";
-    (*(interface->data->actions[action])).update(fv,delta,step);
     interface->data->weights.update(fv,delta,step);
 
     
@@ -94,11 +80,6 @@ average_weights(PyObject *self, PyObject *arg)
     int step;
     PyArg_ParseTuple(arg, "Li", &interface,&step);
     
-    for(auto iter=interface->data->actions.begin();
-            iter!=interface->data->actions.end();
-            ++iter){
-        iter->second->average(step);
-    };
     interface->data->weights.average(step);
     Py_INCREF(Py_None);
     return Py_None;
@@ -110,11 +91,8 @@ make_dat(PyObject *self, PyObject *arg)
     Interface* interface;
     PyArg_ParseTuple(arg, "L", &interface);
     
-    for(auto iter=interface->data->actions.begin();
-            iter!=interface->data->actions.end();
-            ++iter){
-        //iter->second->make_dat();
-    };
+    //interface->data->weights.make_dat();
+    
     Py_INCREF(Py_None);
     return Py_None;
 };
@@ -125,11 +103,12 @@ un_average_weights(PyObject *self, PyObject *arg)
     Interface* interface;
     PyArg_ParseTuple(arg, "L", &interface);
     
-    for(auto iter=interface->data->actions.begin();
-            iter!=interface->data->actions.end();
-            ++iter){
-        iter->second->un_average();
-    };
+    //for(auto iter=interface->data->actions.begin();
+    //        iter!=interface->data->actions.end();
+    //        ++iter){
+    //    iter->second->un_average();
+    //};
+    interface->data->weights.un_average();
     Py_INCREF(Py_None);
     return Py_None;
 };
@@ -142,22 +121,23 @@ export_weights(PyObject *self, PyObject *arg)
     
     
     PyObject * list=PyList_New(0);
-    for(auto iter=interface->data->actions.begin();
-            iter!=interface->data->actions.end();
-            ++iter){
-        //iter->second->average(step);
-        PyObject * k=PyLong_FromLong(iter->first);
-        PyObject * v=iter->second->to_py_dict();
-        PyList_Append(
-                list,
-                PyTuple_Pack(2,
-                    k,
-                    v
-                    )
-                );
-        Py_DECREF(k);
-        Py_DECREF(v);
-    };
+    //for(auto iter=interface->data->actions.begin();
+    //        iter!=interface->data->actions.end();
+    //        ++iter){
+    //    //iter->second->average(step);
+    //    PyObject * k=PyLong_FromLong(iter->first);
+    //    PyObject * v=iter->second->to_py_dict();
+    //    PyList_Append(
+    //            list,
+    //            PyTuple_Pack(2,
+    //                k,
+    //                v
+    //                )
+    //            );
+    //    Py_DECREF(k);
+    //    Py_DECREF(v);
+    //};
+    return interface->data->weights.to_py_dict();
     return list;
 };
 static PyObject *
