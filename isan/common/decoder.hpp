@@ -73,7 +73,7 @@ public:
             };
             (*feature_generator)(state,action,fv);
             scores[i]=(*actions[action])(fv);
-            weights(fv);
+            scores[i]=weights(fv);
         };
 
     };
@@ -104,7 +104,7 @@ public:
             };
             (*feature_generator)(state,action,fv);
             scores[i]=(*actions[action])(fv);
-            weights(fv);
+            scores[i]=weights(fv);
         };
     };
 };

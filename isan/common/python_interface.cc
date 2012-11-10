@@ -80,6 +80,8 @@ update_weights(PyObject *self, PyObject *arg)
     //long value=(*(interface->data->actions[action]))(fv);
     //std::cout<<"  "<<value<<"\n";
     (*(interface->data->actions[action])).update(fv,delta,step);
+    interface->data->weights.update(fv,delta,step);
+
     
     Py_INCREF(Py_None);
     return Py_None;
@@ -97,6 +99,7 @@ average_weights(PyObject *self, PyObject *arg)
             ++iter){
         iter->second->average(step);
     };
+    interface->data->weights.average(step);
     Py_INCREF(Py_None);
     return Py_None;
 };
