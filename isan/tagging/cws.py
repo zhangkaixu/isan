@@ -200,7 +200,7 @@ class Task:
                 b"w2l"+w_last.encode()+w_c_len,
                 ]
                 )
-        fv=[x+action for x in fv]
+        fv=[action+x for x in fv]
         return fv
     """
     最后告诉isan，如何评价模型的输出和标准答案的输出的好坏。具体可以看这个class

@@ -63,6 +63,8 @@ public:
             auto action=next_actions[i];
             (*feature_generator)(state,action,fv);
             scores[i]=weights(fv);
+            //std::cout<<action<<" "<<scores[i]<<"\n";
+            
         };
 
     };

@@ -96,8 +96,9 @@ class Path_Finding :
                 std_move[1]==rst_move[1]
                 for std_move,rst_move in zip(std_moves,rst_moves)
                 )
-    def gen_features(self,state):
+    def gen_features(self,state,action):
         state=Struct.unpack(self.stat_fmt,state)
+        action=chr(action).encode()
         ind1,ind2,ind3=state
         raw1=self.raw[ind1] if ind1 != -1 else [(-1,'~','~'),[]]
         raw2=self.raw[ind2] if ind2 != -1 else [(-1,'~','~'),[]]
@@ -117,6 +118,7 @@ class Path_Finding :
                 b't3t2t1~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode()+b'~'+raw1[0][2].encode(),
                 ]
 
+        fv=[action+x for x in fv]
         return fv
 
 
