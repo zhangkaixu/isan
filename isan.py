@@ -52,6 +52,8 @@ def command_line(Model,Task,Decoder):
         mod,_,cls=args.decoder.rpartition('.')
         Decoder=getattr(__import__(mod,globals(),locals(),[cls],0),cls)
 
+
+
     name_model=Model.name if hasattr(Model,'name') else '给定学习算法'
     name_decoder=Decoder.name if hasattr(Decoder,'name') else '给定解码算法'
     name_task=Task.name if hasattr(Task,'name') else '给定任务算法'
@@ -101,8 +103,6 @@ def command_line(Model,Task,Decoder):
             line=model.schema.codec.decode(line)
             raw=line.get('raw','')
             Y=line.get('Y_a',None)
-            #print(line)
-            #input('x')
             if threshold :
                 print(model.schema.codec.candidates_encode(model(raw,Y,threshold=threshold)))
             else :
