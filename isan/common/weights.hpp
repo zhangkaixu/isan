@@ -89,7 +89,7 @@ public:
             VALUE value=(*it).second;
             (*map)[key]=(VALUE)
                     (
-                        ((double)((*backup)[key]-value/step))*1000
+                        (((double)(*backup)[key]-(double)value/step))*1000
                         +0.5
                     );
         };

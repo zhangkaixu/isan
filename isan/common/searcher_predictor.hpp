@@ -137,8 +137,7 @@ struct State_Info{
     std::vector<Alpha> alphas;
     std::vector<Alpha> betas;
 #ifdef REDUCE
-    std::vector<STATE> p_states;
-    std::vector<Alpha> p_alphas;
+    __gnu_cxx::hash_map< STATE, Alpha, typename STATE::HASH> predictors;
 #endif
     inline void max_top_beta(){
         if(betas.size()==0){
@@ -354,6 +353,10 @@ public:
             for(int i=0;i<beam.size();i++){
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
+#ifdef REDUCE
+                SCORE& last_sub_score=beam[i].second->sub_score;
+                auto& predictors=(*this->sequence[step])[last_state].predictors;
+#endif
                 this->data->shift(
                         step,
                         last_state,
@@ -387,22 +390,16 @@ public:
                                 last_state
                                 ));
 #ifdef REDUCE
-                    got->second.p_states.push_back(last_state);
-                    got->second.p_alphas.push_back(got->second.alphas.back());
+                    got->second.predictors[last_state]=(got->second.alphas.back());
 #endif
                 };
 #ifdef REDUCE
-                SCORE& last_sub_score=beam[i].second->sub_score;
-                auto& p_states=(*this->sequence[step])[last_state].p_states;
-                auto& p_alphas=(*this->sequence[step])[last_state].p_alphas;
-
-                for(int i=0;i<p_states.size();i++){
-                    auto& p_state=p_states[i];
-                    auto& pp_alpha=p_alphas[i];
-                    auto& p_step=pp_alpha.ind1;
-                    auto& p_inc=pp_alpha.inc;
-                    auto& p_action=pp_alpha.action;
-
+                for(auto p=predictors.begin();p!=predictors.end();++p){
+                    auto& p_state=p->first;
+                    auto& p_alpha=p->second.p_alpha;
+                    auto& p_step=p->second.ind1;
+                    auto& p_inc=p->second.inc;
+                    auto& p_action=p->second.action;
                     auto& p_state_info=(*this->sequence[p_step])[p_state];
                     auto& p_score=p_state_info.best_alpha->score;
                     auto& p_sub_score=p_state_info.best_alpha->sub_score;
@@ -428,7 +425,7 @@ public:
                         }else{
                             next_map=&final;
                         }
-                        
+                        //std::cout<<step<<" "<<steps<<" "<<next_reduce_inds[j]<<"\n";
                         auto& next_state=reduced_states[j];
                         auto& next_action=reduce_actions[j];
 
@@ -436,15 +433,17 @@ public:
                         if(got==next_map->end()){
                             (*next_map)[next_state]=State_Info();
                             got=next_map->find(next_state);
-
                         };
                         auto& next_state_info=got->second;
-                        if(next_state_info.p_states.size()==0){
-                            next_state_info.p_states.insert(next_state_info.p_states.end(),p_state_info.p_states.begin(),
-                                    p_state_info.p_states.end());
-                            next_state_info.p_alphas.insert(next_state_info.p_alphas.end(),p_state_info.p_alphas.begin(),
-                                    p_state_info.p_alphas.end());
-
+                        for(auto it=p_state_info.predictors.begin();
+                                it!=p_state_info.predictors.end();
+                                ++it){
+                            //auto ggt=next_state_info.predictors.find(it->first);
+                            //if(ggt != next_state_info.predictors.end()){
+                            //    assert(next_state_info.predictors[it->first].second == it->second.second);
+                            //    std::cout<<next_state_info.predictors[it->first].second<< " "<<it->second.second<<"\n";
+                            //};
+                            next_state_info.predictors[it->first]=it->second;
                         };
                         next_state_info.alphas.push_back(Alpha(
                                     p_score+last_sub_score+reduce_scores[j]+p_inc,
@@ -456,7 +455,7 @@ public:
                                     last_state,
                                     p_step,
                                     p_state,
-                                    &pp_alpha
+                                    &(p->second)
                                     ));
                     };
                 };

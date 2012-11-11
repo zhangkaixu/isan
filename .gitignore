@@ -14,3 +14,4 @@ datasets/*
 __pycache__
 README.html
 *tags
+*.tmp
