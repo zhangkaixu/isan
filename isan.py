@@ -97,7 +97,7 @@ def command_line(Model,Task,Decoder):
         threshold=args.threshold
         print("以 %s 作为输入，以 %s 作为输出"%(make_color('标准输入流'),make_color('标准输出流')),file=sys.stderr)
         if threshold :
-            print("输出分数差距在 %s 之内的候选词"%(make_color(threshold*1000)))
+            print("输出分数差距在 %s 之内的候选词"%(make_color(threshold*1000)),file=sys.stderr)
         for line in sys.stdin:
             line=line.strip()
             line=model.schema.codec.decode(line)

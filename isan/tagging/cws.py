@@ -1,5 +1,6 @@
 from struct import Struct
 import json
+import sys
 import isan.tagging.eval as tagging_eval
 import isan.tagging.cwstask as cwstask
 
@@ -133,6 +134,8 @@ class Task:
 
     def update_moves(self,std_moves,rst_moves) :
         for move in std_moves :
+            if self.early_stop and move[0]>=self.early_stop :
+                break
             yield move, 1
         for move in rst_moves :
             yield move, -1
@@ -151,10 +154,32 @@ class Task:
     stuffs about the early update
     """
     def set_oracle(self,raw,y) :
-        return self.result_to_moves(y)
+        self.early_stop=None
+        moves=self.result_to_moves(y)
+        self.oracle={}
+        self.max_ind=0
+        for ind,state,action in moves:
+            self.oracle[ind]=state
+            if ind > self.max_ind : self. max_ind = ind;
 
+        return moves
     def remove_oracle(self):
-        pass
+        self.oracle=None
+    
+    #def early_stop(self,step,next_states,moves):
+    #    if (not hasattr(self,"oracle")) or (not self.oracle) : return False
+    #    if step>0 and step in self.oracle :
+    #        state=self.oracle[step]
+    #        for s,m in zip(next_states,moves) :
+    #            if s==state :
+    #                if m[0] not in self.oracle or self.oracle[m[0]]!=m[1]: 
+    #                    self.early_stop=step
+    #                    return True
+    #                else :
+    #                    return False
+    #        self.early_stop=step
+    #        return True
+    #    return False
 
     """
     stuffs about the feature generation
