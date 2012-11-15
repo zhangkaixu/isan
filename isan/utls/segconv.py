@@ -37,8 +37,11 @@ def wiki_reader(line):
 
 def seg_reader(line) :
     y=line.split()
-    return {'seg' : y, 'span' : None}
+    return {'seg' : y, 'Y' : None}
 
+def raw_reader(data) :
+    data=data.strip()
+    return {'raw' : data,'Y': None}
 def raw_writer(data) :
     if 'raw' in data : return data['raw']
     if 'seg' in data : return ''.join(data['seg'])
@@ -54,13 +57,36 @@ def raw_with_Ya_writer(data) :
         Y=data['Y']
     return json.dumps({'raw' : raw,'y': seg_writer(data),
         'Y_a' : Y},ensure_ascii=False)
+def raw_with_Ya_reader(data) :
+    data=json.loads(data)
+    raw=data.get('raw')
+    Ya=data.get('Y_a',None)
+    return {'raw':raw,'Y':Ya}
+
+def raw_with_Yb_writer(data) :
+    raw=raw_writer(data)
+    Y=None
+    if 'Y' in data :
+        Y=data['Y']
+    return json.dumps({'raw' : raw,'y': seg_writer(data),
+        'Y_b' : Y},ensure_ascii=False)
+def raw_with_Yb_reader(data) :
+    data=json.loads(data)
+    raw=data.get('raw')
+    Ya=data.get('Y_b',None)
+    return {'raw':raw,'Y':Ya}
 
 if __name__ == '__main__':
-    readers={'seg':seg_reader,
+    readers={'raw':raw_reader,
+            'seg':seg_reader,
             'wiki':wiki_reader,
+            'Ya': raw_with_Ya_reader,
+            'Yb': raw_with_Yb_reader,
             }
     writers={'raw':raw_writer,
-            'Ya':raw_with_Ya_writer}
+            'Ya': raw_with_Ya_writer,
+            'Yb':raw_with_Yb_writer,
+            }
 
     parser=argparse.ArgumentParser(description="分词相关的格式转换")
     parser.add_argument('-f','--from',dest='reader',

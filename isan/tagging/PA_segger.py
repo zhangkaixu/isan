@@ -41,11 +41,13 @@ class Segger(cws.Task):
                     }
 
     def set_oracle(self,raw,y,Y) :
+        self.early_stop=None
         std_moves=self.result_to_moves(y)#得到标准动作
         return std_moves
 
     def is_belong(self,raw,moves,Y):
         actions=moves[1]
+        if not Y : return True
         seq,intervals=Y
         
         if intervals :
