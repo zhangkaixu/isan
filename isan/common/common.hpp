@@ -54,7 +54,7 @@ public:
     virtual void operator()(
             const int,
             const STATE& key,
-            const std::vector<Alpha_Type*>,
+            const std::vector<Alpha_Type*>&,
             std::vector<ACTION>&,
             std::vector<int>& next_inds,
             std::vector<STATE > & nexts)=0;
@@ -208,24 +208,37 @@ public:
     void operator()(
             const int ind1,
             const State_Type& key, 
-            const std::vector<Alpha_Type*> pred_alphas,
+            const std::vector<Alpha_Type*>& pred_alphas,
             std::vector<Action_Type>&next_actions,
             std::vector<int>& next_inds,
-            std::vector<State_Type> & next_states){
+            std::vector<State_Type> & next_states//,
+            //std::vector<Alpha_Type*>& reduce_pred_alphas,
+            ){
         PyObject * state=key.pack();
-        PyObject * second_state=pred_alphas.front()->state1.pack();
 
+        PyObject * pred_ind_list=PyList_New(pred_alphas.size());
+        for(int i=0;i<pred_alphas.size();i++){
+            PyList_SetItem(pred_ind_list,i,
+                    PyLong_FromLong(pred_alphas[i]->ind1));
+        }
+        PyObject * pred_state_list=PyList_New(pred_alphas.size());
+        for(int i=0;i<pred_alphas.size();i++){
+            PyList_SetItem(pred_state_list,i,
+                    pred_alphas[i]->state1.pack());
+        }
+        
         PyObject * arglist=Py_BuildValue(
-                "(iOiO)",
+                "(iOOO)",
                 ind1,
                 state,
-                pred_alphas.front()->ind1,
-                second_state
+                pred_ind_list,
+                pred_state_list
                 );
         PyObject * result= PyObject_CallObject(this->callback, arglist);
         Py_CLEAR(state);
-        Py_CLEAR(second_state);
         Py_CLEAR(arglist);
+        Py_CLEAR(pred_ind_list);
+        Py_CLEAR(pred_state_list);
         
         long size=PySequence_Size(result);
         PyObject * tri;
