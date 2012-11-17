@@ -64,8 +64,13 @@ class Dep:
 
         return rtn
 
-    def reduce(self,last_ind,stat,pred_inds,predictor):
-        predictor=predictor[0]
+    def reduce(self,last_ind,stat,pred_inds,predictors):
+        rtn=[]
+        for ind,predictor in zip(pred_inds, predictors) :
+            rtn+=self.reduce_one(last_ind,stat,ind,predictor)
+        return rtn
+
+    def reduce_one(self,last_ind,stat,pred_inds,predictor):
         stat=pickle.loads(stat)
         next_ind=last_ind+1 if last_ind+1 <= (2*len(self.raw)-2) else -1
 
