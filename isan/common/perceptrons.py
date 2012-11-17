@@ -160,6 +160,7 @@ class Model_PA(Model) :
         y=arg.get('y',None)
         Y_a=arg.get('Y_a',None)
         Y_b=arg.get('Y_b',None)
+        #print(arg)
         
         #学习步数加一
         self.step+=1
@@ -177,9 +178,16 @@ class Model_PA(Model) :
 
         if not self.schema.is_belong(raw,rst_moves,Y_b): #不一致，则更新
             if y and not Y_b :
+                #print('y',y)
                 std_moves=self.schema.result_to_moves(y)#得到标准动作
             else :
+                #print('yb',Y_b)
                 std_moves=self.search(raw,Y_b)
             self.update(std_moves,rst_moves)
         hat_y=self.schema.moves_to_result(rst_moves,raw)#得到解码后结果
+        #print(hat_y)
+        #print(self.schema.moves_to_result(std_moves,raw))
+        #input()
+        
+
         return y,hat_y
