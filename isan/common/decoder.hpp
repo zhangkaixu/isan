@@ -78,6 +78,7 @@ public:
     void reduce(
             const int state_ind,
             const State_Type& state, 
+            const Alpha_Type* pred_alpha,
             const int predictor_ind,
             const State_Type& predictor,
             std::vector<Action_Type>& next_actions,

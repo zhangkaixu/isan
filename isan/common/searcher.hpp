@@ -42,6 +42,7 @@ public:
     virtual void reduce(
             const int state_ind,
             const STATE& state, 
+            const ALPHA* pred_alpha,
             const int predictor_ind,
             const STATE& predictor,
             std::vector<ACTION>& actions,
@@ -88,7 +89,8 @@ struct Alpha{
 #ifdef REDUCE
     Alpha(SCORE s,SCORE sub_s,SCORE i,bool is_sh, ACTION act,
             int last_ind, STATE last_stat,
-            int p_ind,STATE p_stat,Alpha* p_alpha)
+            Alpha* p_alpha
+            )
         {
         this->score=(s);
         this->sub_score=(sub_s);
@@ -97,8 +99,8 @@ struct Alpha{
         this->state1=(last_stat);
         this->is_shift=(is_sh);
         this->ind1=(last_ind);
-        this->ind2=(p_ind);
-        this->state2=(p_stat);
+        this->ind2=p_alpha->ind1;
+        this->state2=p_alpha->state1;
         this->p_alpha=(p_alpha);
     };
 #endif
@@ -317,6 +319,7 @@ public:
         std::vector<STATE> shifted_states;
         std::vector<int> next_inds;
 #ifdef REDUCE
+        std::vector<Alpha*> pred_alphas;
         std::vector<ACTION> reduce_actions;
         std::vector<SCORE> reduce_scores;
         std::vector<STATE> reduced_states;
@@ -395,24 +398,22 @@ public:
                 };
 #ifdef REDUCE
                 for(auto p=predictors.begin();p!=predictors.end();++p){
-                    auto& p_state=p->first;
-                    auto& p_alpha=p->second.p_alpha;
-                    auto& p_step=p->second.ind1;
-                    auto& p_inc=p->second.inc;
-                    auto& p_action=p->second.action;
-                    auto& p_state_info=(*this->sequence[p_step])[p_state];
+                    auto& pred_alpha=p->second;
+
+                    auto& p_state_info=(*this->sequence[pred_alpha.ind1])[pred_alpha.state1];
                     auto& p_score=p_state_info.best_alpha->score;
                     auto& p_sub_score=p_state_info.best_alpha->sub_score;
                     
                     this->data->reduce(
-                            step,
-                            last_state,
-                            p_step,
-                            p_state,
-                            reduce_actions,
-                            next_reduce_inds,
-                            reduced_states,
-                            reduce_scores
+                            step,//步骤
+                            last_state,//状态
+                            &pred_alpha,
+                            pred_alpha.ind1,//上一个步骤
+                            pred_alpha.state1,//上一个状态
+                            reduce_actions,//动作
+                            next_reduce_inds,//下一个步骤
+                            reduced_states,//下一个状态
+                            reduce_scores//分数
                             );
                     for(int j=0;j<reduce_actions.size();j++){
                         int next_ind=next_reduce_inds[j];
@@ -425,7 +426,6 @@ public:
                         }else{
                             next_map=&final;
                         }
-                        //std::cout<<step<<" "<<steps<<" "<<next_reduce_inds[j]<<"\n";
                         auto& next_state=reduced_states[j];
                         auto& next_action=reduce_actions[j];
 
@@ -438,24 +438,17 @@ public:
                         for(auto it=p_state_info.predictors.begin();
                                 it!=p_state_info.predictors.end();
                                 ++it){
-                            //auto ggt=next_state_info.predictors.find(it->first);
-                            //if(ggt != next_state_info.predictors.end()){
-                            //    assert(next_state_info.predictors[it->first].second == it->second.second);
-                            //    std::cout<<next_state_info.predictors[it->first].second<< " "<<it->second.second<<"\n";
-                            //};
                             next_state_info.predictors[it->first]=it->second;
                         };
                         next_state_info.alphas.push_back(Alpha(
-                                    p_score+last_sub_score+reduce_scores[j]+p_inc,
-                                    p_sub_score+last_sub_score+reduce_scores[j]+p_inc,
+                                    p_score+last_sub_score+reduce_scores[j]+pred_alpha.inc,
+                                    p_sub_score+last_sub_score+reduce_scores[j]+pred_alpha.inc,
                                     reduce_scores[j],
                                     false,
                                     next_action,
                                     step,
                                     last_state,
-                                    p_step,
-                                    p_state,
-                                    &(p->second)
+                                    &pred_alpha
                                     ));
                     };
                 };
