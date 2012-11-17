@@ -49,6 +49,18 @@ public:
             std::vector<int>& reduce_pred_alphas,
             std::vector<SCORE>& scores
             )=0;
+
+    virtual void get_weights(
+            const STATE& state,
+            const std::vector<ACTION>& shift_action,
+#ifdef REDUCE
+            const std::vector<ACTION>& reduce_action,
+#endif
+            std::vector<SCORE>& shift_scores
+#ifdef REDUCE
+            ,std::vector<SCORE>& reduce_scores
+#endif
+            );
 };
 
 
@@ -354,12 +366,20 @@ public:
             };
             /*gen next step*/
             for(int i=0;i<beam.size();i++){
+                //some initializations
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
 #ifdef REDUCE
                 SCORE& last_sub_score=beam[i].second->sub_score;
                 auto& predictors=(*this->sequence[step])[last_state].predictors;
+
+                pred_alphas.clear();
+                for(auto p=predictors.begin();p!=predictors.end();++p){
+                    pred_alphas.push_back(&(p->second));
+                };
 #endif
+
+                //shift and reduce
                 this->data->shift(
                         step,
                         last_state,
@@ -367,6 +387,21 @@ public:
                         next_inds,
                         shifted_states,
                         shift_scores);
+
+#ifdef REDUCE
+                this->data->reduce(
+                        step,//步骤
+                        last_state,//状态
+                        pred_alphas,//上一个步骤和状态
+                        reduce_actions,//动作
+                        next_reduce_inds,//下一个步骤
+                        reduced_states,//下一个状态
+                        reduce_pred_alphas,
+                        reduce_scores//分数
+                        );
+#endif
+                //call scores
+
 
                 for(int j=0;j<shift_actions.size();j++){
                     int next_ind=next_inds[j];
@@ -397,21 +432,6 @@ public:
 #endif
                 };
 #ifdef REDUCE
-
-                pred_alphas.clear();
-                for(auto p=predictors.begin();p!=predictors.end();++p){
-                    pred_alphas.push_back(&(p->second));
-                };
-                this->data->reduce(
-                        step,//步骤
-                        last_state,//状态
-                        pred_alphas,//上一个步骤和状态
-                        reduce_actions,//动作
-                        next_reduce_inds,//下一个步骤
-                        reduced_states,//下一个状态
-                        reduce_pred_alphas,
-                        reduce_scores//分数
-                        );
                 
                 for(int j=0;j<reduce_actions.size();j++){
                     auto& pred_alpha=*pred_alphas[reduce_pred_alphas[j]];
