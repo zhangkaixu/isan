@@ -62,16 +62,9 @@ public:
             std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores
             ){
-
         next_inds.clear();
         (*shifted_state_generator)(ind,state,next_actions,next_inds,next_states);
-        scores.resize(next_actions.size());
-        for(int i=0;i<next_actions.size();i++){
-            auto action=next_actions[i];
-            (*feature_generator)(state,action,fv);
-            scores[i]=(*weights)(fv);
-        };
-
+        cal_weights(state,next_actions,scores);
     };
     void reduce(
             const int state_ind,
@@ -92,6 +85,13 @@ public:
                 next_states,
                 reduce_pred_alphas
                 );
+        cal_weights(state,next_actions,scores);
+    };
+    inline void cal_weights(
+            const STATE& state,
+            const std::vector<ACTION>& next_actions,
+            std::vector<SCORE>& scores
+            ){
         scores.resize(next_actions.size());
         for(int i=0;i<next_actions.size();i++){
             auto action=next_actions[i];

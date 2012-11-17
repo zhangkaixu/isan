@@ -14,7 +14,11 @@ public:
     virtual void set_raw(const Chinese* raw){
         this->raw=raw;
     };
-    virtual void operator()(const State_Type& key,const Action_Type& action,Feature_Vector& fv)=0;
+    virtual void operator()(
+            const State_Type& key,
+            const Action_Type& action,
+            Feature_Vector& fv)
+        =0;
 };
 
 class State_Generator{

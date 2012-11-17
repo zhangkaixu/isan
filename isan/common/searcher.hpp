@@ -50,17 +50,6 @@ public:
             std::vector<SCORE>& scores
             )=0;
 
-    virtual void get_weights(
-            const STATE& state,
-            const std::vector<ACTION>& shift_action,
-#ifdef REDUCE
-            const std::vector<ACTION>& reduce_action,
-#endif
-            std::vector<SCORE>& shift_scores
-#ifdef REDUCE
-            ,std::vector<SCORE>& reduce_scores
-#endif
-            );
 };
 
 
