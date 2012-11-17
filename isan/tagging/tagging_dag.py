@@ -94,81 +94,85 @@ class Path_Finding :
                 std_move[1]==rst_move[1]
                 for std_move,rst_move in zip(std_moves,rst_moves)
                 )
-    def gen_features(self,state,action):
+    def gen_features(self,state,actions):
+        fvs=[]
         state=Struct.unpack(self.stat_fmt,state)
-        ind1,ind2=state
-        ind3=action
-        raw=self.raw
-        if ind1==-1 :
-            w1,t1=b'~',b'~'
-            len1=b'0'
-            f1,b1=b'~',b'~'
-            m1=b''
-        else :
-            r=raw[ind1]
-            w1,t1=r[0][1].encode(),r[0][2].encode()
-            len1=str(len(r[0][1])).encode()
-            f1,b1=r[0][1][0].encode(),r[0][1][-1].encode()
-            m1=b'' if not r[1] else str(r[1][0]).encode()
-        if ind2==-1 :
-            w2,t2=b'~',b'~'
-            len2=b'0'
-            f2,b2=b'~',b'~'
-            m2=b''
-        else :
-            r=raw[ind2]
-            w2,t2=r[0][1].encode(),r[0][2].encode()
-            len2=str(len(r[0][1])).encode()
-            f2,b2=r[0][1][0].encode(),r[0][1][-1].encode()
-            m2=b'' if not r[1] else str(r[1][0]).encode()
-        if ind3==-1 :
-            w3,t3=b'~',b'~'
-            len3=b'0'
-            f3,b3=b'~',b'~'
-            m3=b''
-        else :
-            r=raw[ind3]
-            w3,t3=r[0][1].encode(),r[0][2].encode()
-            len3=str(len(r[0][1])).encode()
-            f3,b3=r[0][1][0].encode(),r[0][1][-1].encode()
-            m3=b'' if not r[1] else str(r[1][0]).encode()
+        for action in actions :
+            ind1,ind2=state
+            ind3=action
+            raw=self.raw
+            if ind1==-1 :
+                w1,t1=b'~',b'~'
+                len1=b'0'
+                f1,b1=b'~',b'~'
+                m1=b''
+            else :
+                r=raw[ind1]
+                w1,t1=r[0][1].encode(),r[0][2].encode()
+                len1=str(len(r[0][1])).encode()
+                f1,b1=r[0][1][0].encode(),r[0][1][-1].encode()
+                m1=b'' if not r[1] else str(r[1][0]).encode()
+            if ind2==-1 :
+                w2,t2=b'~',b'~'
+                len2=b'0'
+                f2,b2=b'~',b'~'
+                m2=b''
+            else :
+                r=raw[ind2]
+                w2,t2=r[0][1].encode(),r[0][2].encode()
+                len2=str(len(r[0][1])).encode()
+                f2,b2=r[0][1][0].encode(),r[0][1][-1].encode()
+                m2=b'' if not r[1] else str(r[1][0]).encode()
+            if ind3==-1 :
+                w3,t3=b'~',b'~'
+                len3=b'0'
+                f3,b3=b'~',b'~'
+                m3=b''
+            else :
+                r=raw[ind3]
+                w3,t3=r[0][1].encode(),r[0][2].encode()
+                len3=str(len(r[0][1])).encode()
+                f3,b3=r[0][1][0].encode(),r[0][1][-1].encode()
+                m3=b'' if not r[1] else str(r[1][0]).encode()
 
-        fv=[
-                b'm3~'+m3,
-                b'm3m2~'+m3+b'~'+m2,
-                b'w3~'+w3,
-                b't3~'+t3,
-                b'w3t3~'+w3+t3,
-                b'l3~'+len3,
-                b'l3t3~'+len3+t3,
-                b'l3w2~'+len3+w2,
-                b'l3t2~'+len3+t2,
-                b'w3w2~'+w3+b"-"+w2,
-                b'w3t3w2~'+w3+t3+w2,
-                b'w3w2t2~'+w3+t2+w2,
-                b't3w2~'+t3+w2,
-                b'w3t2~'+w3+t2,
-                b'w3t3~'+w3+t3,
-                b't3t2~'+t3+t2,
-                b't3t1~'+t3+t1,
-                b't3t2t1~'+t3+t2+t1,
-                
-                ]
-        return fv
-        fv=[b'a0~'+str(x).encode() for x in raw3[1]]
-        #fv+=[b'a0w3~'+str(x).encode()+b'~'+raw3[0][1].encode() for x in raw3[1]]
-        #fv+=[b'a0t3~'+str(x).encode()+b'~'+raw3[0][2].encode() for x in raw3[1]]
-        fv+=[
-                b'3w~'+raw3[0][1].encode(),
-                b'3t~'+raw3[0][2].encode(),
-                b'l3~'+str(len(raw3[0][1])).encode(),
-                b't3t2~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode(),
-                b'w3w2~'+raw3[0][1].encode()+b'~'+raw2[0][1].encode(),
-                b'w3t2~'+raw3[0][1].encode()+b'~'+raw2[0][2].encode(),
-                b't3w2~'+raw3[0][2].encode()+b'~'+raw2[0][1].encode(),
-                b't3t2t1~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode()+b'~'+raw1[0][2].encode(),
-                ]
-        return fv
+            fv=[
+                    b'm3~'+m3,
+                    b'm3m2~'+m3+b'~'+m2,
+                    b'w3~'+w3,
+                    b't3~'+t3,
+                    b'w3t3~'+w3+t3,
+                    b'l3~'+len3,
+                    b'l3t3~'+len3+t3,
+                    b'l3w2~'+len3+w2,
+                    b'l3t2~'+len3+t2,
+                    b'w3w2~'+w3+b"-"+w2,
+                    b'w3t3w2~'+w3+t3+w2,
+                    b'w3w2t2~'+w3+t2+w2,
+                    b't3w2~'+t3+w2,
+                    b'w3t2~'+w3+t2,
+                    b'w3t3~'+w3+t3,
+                    b't3t2~'+t3+t2,
+                    b't3t1~'+t3+t1,
+                    b't3t2t1~'+t3+t2+t1,
+                    
+                    ]
+            fvs.append(fv)
+            continue
+            fv=[b'a0~'+str(x).encode() for x in raw3[1]]
+            #fv+=[b'a0w3~'+str(x).encode()+b'~'+raw3[0][1].encode() for x in raw3[1]]
+            #fv+=[b'a0t3~'+str(x).encode()+b'~'+raw3[0][2].encode() for x in raw3[1]]
+            fv+=[
+                    b'3w~'+raw3[0][1].encode(),
+                    b'3t~'+raw3[0][2].encode(),
+                    b'l3~'+str(len(raw3[0][1])).encode(),
+                    b't3t2~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode(),
+                    b'w3w2~'+raw3[0][1].encode()+b'~'+raw2[0][1].encode(),
+                    b'w3t2~'+raw3[0][1].encode()+b'~'+raw2[0][2].encode(),
+                    b't3w2~'+raw3[0][2].encode()+b'~'+raw2[0][1].encode(),
+                    b't3t2t1~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode()+b'~'+raw1[0][2].encode(),
+                    ]
+            return fv
+        return fvs
 
 
 

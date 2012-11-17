@@ -147,6 +147,7 @@ public:
 
         PyObject * p_action_list=PyList_New(actions.size());
         for(int i=0;i<actions.size();i++){
+            
             PyList_SetItem(p_action_list,i,
                     PyLong_FromLong(actions[i]));
         }

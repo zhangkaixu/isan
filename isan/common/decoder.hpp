@@ -94,6 +94,7 @@ public:
             ){
         scores.resize(next_actions.size());
         std::vector<Feature_Vector> fvs;
+        
         (*feature_generator)(state,next_actions,fvs);
 
         for(int i=0;i<next_actions.size();i++){

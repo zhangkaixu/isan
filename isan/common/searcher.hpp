@@ -353,6 +353,7 @@ public:
                 end_map=sequence[step];
                 break;
             };
+            
             /*gen next step*/
             for(int i=0;i<beam.size();i++){
                 //some initializations
