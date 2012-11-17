@@ -16,8 +16,8 @@ public:
     };
     virtual void operator()(
             const State_Type& key,
-            const Action_Type& action,
-            Feature_Vector& fv)
+            const std::vector<Action_Type>& action,
+            std::vector<Feature_Vector>& fv)
         =0;
 };
 
@@ -140,24 +140,39 @@ public:
     ~Python_Feature_Generator(){
         Py_DECREF(callback);
     };
-    void operator()(const State_Type& state, const Action_Type& action,Feature_Vector& fv){
+    void operator()(
+            const State_Type& state, 
+            const std::vector<Action_Type>& actions,
+            std::vector<Feature_Vector>& fvs){
+
+        PyObject * p_action_list=PyList_New(actions.size());
+        for(int i=0;i<actions.size();i++){
+            PyList_SetItem(p_action_list,i,
+                    PyLong_FromLong(actions[i]));
+        }
+
         PyObject * pkey=state.pack();
-        PyObject * py_action=PyLong_FromLong(action);
-        PyObject * arglist=PyTuple_Pack(2,pkey,py_action);
-        PyObject * pfv= PyObject_CallObject(this->callback, arglist);
+        PyObject * arglist=PyTuple_Pack(2,pkey, p_action_list);
+        PyObject * pfvs= PyObject_CallObject(this->callback, arglist);
         Py_DECREF(pkey);
-        Py_DECREF( py_action);
         Py_DECREF(arglist);
+        Py_DECREF( p_action_list);
         
-        fv.clear();
+        fvs.clear();
         char* buffer;
         size_t length;
-        long size=PySequence_Size(pfv);
+        long size=PySequence_Size(pfvs);
         for(int i=0;i<size;i++){
-            PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,i),&buffer,(Py_ssize_t*)&(length));
-            fv.push_back(Feature_String((unsigned char*)buffer,length));
+            PyObject * pfv=PyList_GET_ITEM(pfvs,i);
+            long fv_size=PySequence_Size(pfv);
+            fvs.push_back(Feature_Vector());
+            auto& fv=fvs.back();
+            for(int j=0;j<fv_size;j++){
+                PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,j),&buffer,(Py_ssize_t*)&(length));
+                fv.push_back(Feature_String((unsigned char*)buffer,length));
+            }
         };
-        Py_DECREF(pfv);
+        Py_DECREF(pfvs);
     };
 };
 

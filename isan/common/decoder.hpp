@@ -93,10 +93,11 @@ public:
             std::vector<SCORE>& scores
             ){
         scores.resize(next_actions.size());
+        std::vector<Feature_Vector> fvs;
+        (*feature_generator)(state,next_actions,fvs);
+
         for(int i=0;i<next_actions.size();i++){
-            auto action=next_actions[i];
-            (*feature_generator)(state,action,fv);
-            scores[i]=(*weights)(fv);
+            scores[i]=(*weights)(fvs[i]);
         };
     };
 };

@@ -150,8 +150,16 @@ class Dep:
             self.reduce_rules=None
             self.shift_rules=None
         self.f_raw=[[w.encode()if w else b'',t.encode()if t else b''] for w,t in raw]
-    def gen_features(self,stat,action):
-        action=chr(action).encode()
+
+    def gen_features(self,span,actions):
+        fvs=[]
+        fv=self.gen_features_one(span)
+        for action in actions:
+            action=chr(action).encode()
+            fvs.append([action+x for x in fv])
+        return fvs
+
+    def gen_features_one(self,stat):
         stat=pickle.loads(stat)
         ind,_,stack_top=stat
         s0,s1,s2_t=stack_top
@@ -216,7 +224,6 @@ class Dep:
                 ]
         #print(*[x.decode() for x in fv])
         #input()
-        fv=[x+action for x in fv]
         return fv
     def moves_to_result(self,moves,raw):
         #actions=moves[1]

@@ -38,21 +38,21 @@ set_weights(PyObject *self, PyObject *arg)
 
 
 
-static PyObject *
-sum_weights(PyObject *self, PyObject *arg)
-{
-    Interface* interface;
-    PyObject * py_state;
-    Action_Type action;
-    PyArg_ParseTuple(arg, "LOB", &interface,&py_state,&action);
-    State_Type state(py_state);
-    
-    Feature_Vector fv;
-    (*(interface->feature_generator))(state,0,fv);
-
-    long value=0;
-    return PyLong_FromLong(value);
-};
+//static PyObject *
+//sum_weights(PyObject *self, PyObject *arg)
+//{
+//    Interface* interface;
+//    PyObject * py_state;
+//    Action_Type action;
+//    PyArg_ParseTuple(arg, "LOB", &interface,&py_state,&action);
+//    State_Type state(py_state);
+//    
+//    Feature_Vector fv;
+//    (*(interface->feature_generator))(state,0,fv);
+//
+//    long value=0;
+//    return PyLong_FromLong(value);
+//};
 static PyObject *
 update_weights(PyObject *self, PyObject *arg)
 {
@@ -65,9 +65,12 @@ update_weights(PyObject *self, PyObject *arg)
     PyArg_ParseTuple(arg, "LOlii", &interface,&py_state,&action,&delta,&step);
     State_Type state(py_state);
     
-    Feature_Vector fv;
-    (*(interface->feature_generator))(state,action,fv);
+    std::vector<Action_Type> actions;
+    actions.push_back(action);
+    std::vector<Feature_Vector> fvs;
+    (*(interface->feature_generator))(state,actions,fvs);
     //std::cout<<fv.size()<<" in update\n";
+    auto& fv=fvs.front();
 
     interface->data->weights->update(fv,delta,step);
 
