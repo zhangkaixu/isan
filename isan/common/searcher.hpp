@@ -42,9 +42,7 @@ public:
     virtual void reduce(
             const int state_ind,
             const STATE& state, 
-            const ALPHA* pred_alpha,
-            const int predictor_ind,
-            const STATE& predictor,
+            const std::vector<ALPHA*>& pred_alphas,
             std::vector<ACTION>& actions,
             std::vector<int>& next_inds,
             std::vector<STATE>& next_states,
@@ -320,6 +318,7 @@ public:
         std::vector<int> next_inds;
 #ifdef REDUCE
         std::vector<Alpha*> pred_alphas;
+        std::vector<Alpha*> reduce_pred_alphas;
         std::vector<ACTION> reduce_actions;
         std::vector<SCORE> reduce_scores;
         std::vector<STATE> reduced_states;
@@ -403,16 +402,18 @@ public:
                     auto& p_state_info=(*this->sequence[pred_alpha.ind1])[pred_alpha.state1];
                     auto& p_score=p_state_info.best_alpha->score;
                     auto& p_sub_score=p_state_info.best_alpha->sub_score;
+
+                    pred_alphas.clear();
+                    pred_alphas.push_back(&pred_alpha);
                     
                     this->data->reduce(
                             step,//步骤
                             last_state,//状态
-                            &pred_alpha,
-                            pred_alpha.ind1,//上一个步骤
-                            pred_alpha.state1,//上一个状态
+                            pred_alphas,//上一个步骤和状态
                             reduce_actions,//动作
                             next_reduce_inds,//下一个步骤
                             reduced_states,//下一个状态
+                            //reduce_pred_alphas,
                             reduce_scores//分数
                             );
                     for(int j=0;j<reduce_actions.size();j++){

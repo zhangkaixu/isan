@@ -78,9 +78,7 @@ public:
     void reduce(
             const int state_ind,
             const State_Type& state, 
-            const Alpha_Type* pred_alpha,
-            const int predictor_ind,
-            const State_Type& predictor,
+            const std::vector<Alpha_Type*>& pred_alphas,
             std::vector<Action_Type>& next_actions,
             std::vector<int>& next_inds,
             std::vector<State_Type>& next_states,
@@ -89,8 +87,7 @@ public:
         (*reduced_state_generator)(
                 state_ind,
                 state,
-                predictor_ind,
-                predictor,
+                pred_alphas,
                 next_actions,
                 next_inds,
                 next_states);

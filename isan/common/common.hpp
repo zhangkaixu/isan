@@ -54,8 +54,7 @@ public:
     virtual void operator()(
             const int,
             const STATE& key,
-            const int,
-            const STATE& key2, 
+            const std::vector<Alpha_Type*>,
             std::vector<ACTION>&,
             std::vector<int>& next_inds,
             std::vector<STATE > & nexts)=0;
@@ -209,19 +208,18 @@ public:
     void operator()(
             const int ind1,
             const State_Type& key, 
-            const int ind2,
-            const State_Type& second_key,
+            const std::vector<Alpha_Type*> pred_alphas,
             std::vector<Action_Type>&next_actions,
             std::vector<int>& next_inds,
             std::vector<State_Type> & next_states){
         PyObject * state=key.pack();
-        PyObject * second_state=second_key.pack();
+        PyObject * second_state=pred_alphas.front()->state1.pack();
 
         PyObject * arglist=Py_BuildValue(
                 "(iOiO)",
                 ind1,
                 state,
-                ind2,
+                pred_alphas.front()->ind1,
                 second_state
                 );
         PyObject * result= PyObject_CallObject(this->callback, arglist);
