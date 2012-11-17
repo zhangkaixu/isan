@@ -397,63 +397,63 @@ public:
 #endif
                 };
 #ifdef REDUCE
+
+                pred_alphas.clear();
                 for(auto p=predictors.begin();p!=predictors.end();++p){
-                    pred_alphas.clear();
                     pred_alphas.push_back(&(p->second));
+                };
+                this->data->reduce(
+                        step,//步骤
+                        last_state,//状态
+                        pred_alphas,//上一个步骤和状态
+                        reduce_actions,//动作
+                        next_reduce_inds,//下一个步骤
+                        reduced_states,//下一个状态
+                        reduce_pred_alphas,
+                        reduce_scores//分数
+                        );
+                
+                for(int j=0;j<reduce_actions.size();j++){
+                    auto& pred_alpha=*pred_alphas[reduce_pred_alphas[j]];
+
+                    auto& p_state_info=(*this->sequence[pred_alpha.ind1])[pred_alpha.state1];
+                    auto& p_score=p_state_info.best_alpha->score;
+                    auto& p_sub_score=p_state_info.best_alpha->sub_score;
+
+                    int next_ind=next_reduce_inds[j];
                     
-                    this->data->reduce(
-                            step,//步骤
-                            last_state,//状态
-                            pred_alphas,//上一个步骤和状态
-                            reduce_actions,//动作
-                            next_reduce_inds,//下一个步骤
-                            reduced_states,//下一个状态
-                            reduce_pred_alphas,
-                            reduce_scores//分数
-                            );
+                    My_Map* next_map;
+                    if (next_ind >= 0 ){
+                        while(next_ind>=sequence.size())
+                            this->sequence.push_back(new My_Map());
+                        next_map=this->sequence[next_ind];
+                    }else{
+                        next_map=&final;
+                    }
+                    auto& next_state=reduced_states[j];
+                    auto& next_action=reduce_actions[j];
 
-                    for(int j=0;j<reduce_actions.size();j++){
-                        auto& pred_alpha=*pred_alphas[reduce_pred_alphas[j]];
-
-                        auto& p_state_info=(*this->sequence[pred_alpha.ind1])[pred_alpha.state1];
-                        auto& p_score=p_state_info.best_alpha->score;
-                        auto& p_sub_score=p_state_info.best_alpha->sub_score;
-
-                        int next_ind=next_reduce_inds[j];
-                        
-                        My_Map* next_map;
-                        if (next_ind >= 0 ){
-                            while(next_ind>=sequence.size())
-                                this->sequence.push_back(new My_Map());
-                            next_map=this->sequence[next_ind];
-                        }else{
-                            next_map=&final;
-                        }
-                        auto& next_state=reduced_states[j];
-                        auto& next_action=reduce_actions[j];
-
+                    got=next_map->find(next_state);
+                    if(got==next_map->end()){
+                        (*next_map)[next_state]=State_Info();
                         got=next_map->find(next_state);
-                        if(got==next_map->end()){
-                            (*next_map)[next_state]=State_Info();
-                            got=next_map->find(next_state);
-                        };
-                        auto& next_state_info=got->second;
-                        for(auto it=p_state_info.predictors.begin();
-                                it!=p_state_info.predictors.end();
-                                ++it){
-                            next_state_info.predictors[it->first]=it->second;
-                        };
-                        next_state_info.alphas.push_back(Alpha(
-                                    p_score+last_sub_score+reduce_scores[j]+pred_alpha.inc,
-                                    p_sub_score+last_sub_score+reduce_scores[j]+pred_alpha.inc,
-                                    reduce_scores[j],
-                                    false,
-                                    next_action,
-                                    step,
-                                    last_state,
-                                    &pred_alpha
-                                    ));
                     };
+                    auto& next_state_info=got->second;
+                    for(auto it=p_state_info.predictors.begin();
+                            it!=p_state_info.predictors.end();
+                            ++it){
+                        next_state_info.predictors[it->first]=it->second;
+                    };
+                    next_state_info.alphas.push_back(Alpha(
+                                p_score+last_sub_score+reduce_scores[j]+pred_alpha.inc,
+                                p_sub_score+last_sub_score+reduce_scores[j]+pred_alpha.inc,
+                                reduce_scores[j],
+                                false,
+                                next_action,
+                                step,
+                                last_state,
+                                &pred_alpha
+                                ));
                 };
 #endif
             };

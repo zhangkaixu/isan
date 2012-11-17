@@ -66,11 +66,14 @@ class Dep:
 
     def reduce(self,last_ind,stat,pred_inds,predictors):
         rtn=[]
+        i=0
         for ind,predictor in zip(pred_inds, predictors) :
-            rtn+=self.reduce_one(last_ind,stat,ind,predictor)
+            s=self.reduce_one(last_ind,stat,ind,predictor,i)
+            rtn+=s
+            i+=1
         return rtn
 
-    def reduce_one(self,last_ind,stat,pred_inds,predictor):
+    def reduce_one(self,last_ind,stat,pred_inds,predictor,alpha_ind):
         stat=pickle.loads(stat)
         next_ind=last_ind+1 if last_ind+1 <= (2*len(self.raw)-2) else -1
 
@@ -85,11 +88,11 @@ class Dep:
                  (self.left_reduce,next_ind,pickle.dumps((ind,
                     (p_span[0],span[1]),
                     ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2]))),
-                    0),
+                    alpha_ind),
                  (self.right_reduce,next_ind,pickle.dumps((ind,
                     (p_span[0],span[1]),
                     ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2]))),
-                    0),
+                    alpha_ind),
                  ]
             return rtn
         rtn=[]
@@ -99,7 +102,7 @@ class Dep:
                  (self.left_reduce,next_ind,pickle.dumps((ind,
                     (p_span[0],span[1]),
                     ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2]))),
-                    0),
+                    alpha_ind),
                     )
         h=self.reduce_rules.get(p_span,-1)
         if h>=span[0] and h<span[1]:
@@ -107,7 +110,7 @@ class Dep:
                  (self.right_reduce,next_ind,pickle.dumps((ind,
                     (p_span[0],span[1]),
                     ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2]))),
-                    0),
+                    alpha_ind),
                     )
         return rtn
     def set_raw(self,raw,Y):
