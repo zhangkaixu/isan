@@ -57,7 +57,9 @@ public:
             const std::vector<Alpha_Type*>&,
             std::vector<ACTION>&,
             std::vector<int>& next_inds,
-            std::vector<STATE > & nexts)=0;
+            std::vector<STATE > & nexts,
+            std::vector<int>& reduce_pred_alphas
+            )=0;
 };
 
 class Early_Stop_Checker{
@@ -211,8 +213,8 @@ public:
             const std::vector<Alpha_Type*>& pred_alphas,
             std::vector<Action_Type>&next_actions,
             std::vector<int>& next_inds,
-            std::vector<State_Type> & next_states//,
-            //std::vector<Alpha_Type*>& reduce_pred_alphas,
+            std::vector<State_Type> & next_states,
+            std::vector<int>& reduce_pred_alphas
             ){
         PyObject * state=key.pack();
 
@@ -245,11 +247,13 @@ public:
         next_actions.resize(size);
         next_states.clear();
         next_inds.clear();
+        reduce_pred_alphas.clear();
         for(int i=0;i<size;i++){
             tri=PyList_GET_ITEM(result,i);
             next_actions[i]=(PyLong_AsLong(PyTuple_GET_ITEM(tri,0)));
             next_inds.push_back(PyLong_AsLong(PyTuple_GET_ITEM(tri,1)));
             next_states.push_back(State_Type(PyTuple_GET_ITEM(tri,2)));
+            reduce_pred_alphas.push_back(PyLong_AsLong(PyTuple_GET_ITEM(tri,3)));
         };
         Py_DECREF(result);
     };

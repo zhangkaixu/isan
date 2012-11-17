@@ -46,6 +46,7 @@ public:
             std::vector<ACTION>& actions,
             std::vector<int>& next_inds,
             std::vector<STATE>& next_states,
+            std::vector<int>& reduce_pred_alphas,
             std::vector<SCORE>& scores
             )=0;
 };
@@ -318,7 +319,7 @@ public:
         std::vector<int> next_inds;
 #ifdef REDUCE
         std::vector<Alpha*> pred_alphas;
-        std::vector<Alpha*> reduce_pred_alphas;
+        std::vector<int> reduce_pred_alphas;
         std::vector<ACTION> reduce_actions;
         std::vector<SCORE> reduce_scores;
         std::vector<STATE> reduced_states;
@@ -397,14 +398,8 @@ public:
                 };
 #ifdef REDUCE
                 for(auto p=predictors.begin();p!=predictors.end();++p){
-                    auto& pred_alpha=p->second;
-
-                    auto& p_state_info=(*this->sequence[pred_alpha.ind1])[pred_alpha.state1];
-                    auto& p_score=p_state_info.best_alpha->score;
-                    auto& p_sub_score=p_state_info.best_alpha->sub_score;
-
                     pred_alphas.clear();
-                    pred_alphas.push_back(&pred_alpha);
+                    pred_alphas.push_back(&(p->second));
                     
                     this->data->reduce(
                             step,//步骤
@@ -413,10 +408,17 @@ public:
                             reduce_actions,//动作
                             next_reduce_inds,//下一个步骤
                             reduced_states,//下一个状态
-                            //reduce_pred_alphas,
+                            reduce_pred_alphas,
                             reduce_scores//分数
                             );
+
                     for(int j=0;j<reduce_actions.size();j++){
+                        auto& pred_alpha=*pred_alphas[reduce_pred_alphas[j]];
+
+                        auto& p_state_info=(*this->sequence[pred_alpha.ind1])[pred_alpha.state1];
+                        auto& p_score=p_state_info.best_alpha->score;
+                        auto& p_sub_score=p_state_info.best_alpha->sub_score;
+
                         int next_ind=next_reduce_inds[j];
                         
                         My_Map* next_map;

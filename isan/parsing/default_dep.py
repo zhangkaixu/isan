@@ -79,10 +79,12 @@ class Dep:
             rtn= [
                  (self.left_reduce,next_ind,pickle.dumps((ind,
                     (p_span[0],span[1]),
-                    ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2])))),
+                    ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2]))),
+                    0),
                  (self.right_reduce,next_ind,pickle.dumps((ind,
                     (p_span[0],span[1]),
-                    ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])))),
+                    ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2]))),
+                    0),
                  ]
             return rtn
         rtn=[]
@@ -91,14 +93,16 @@ class Dep:
             rtn.append(
                  (self.left_reduce,next_ind,pickle.dumps((ind,
                     (p_span[0],span[1]),
-                    ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2])))),
+                    ((s1[0],s1[1],s1[2],s0[1]),predictor[2][1],predictor[2][2]))),
+                    0),
                     )
         h=self.reduce_rules.get(p_span,-1)
         if h>=span[0] and h<span[1]:
             rtn.append(
                  (self.right_reduce,next_ind,pickle.dumps((ind,
                     (p_span[0],span[1]),
-                    ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2])))),
+                    ((s0[0],s0[1],s1[1],s0[3]),predictor[2][1],predictor[2][2]))),
+                    0),
                     )
         return rtn
     def set_raw(self,raw,Y):

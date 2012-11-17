@@ -82,6 +82,7 @@ public:
             std::vector<Action_Type>& next_actions,
             std::vector<int>& next_inds,
             std::vector<State_Type>& next_states,
+            std::vector<int>& reduce_pred_alphas,
             std::vector<Score_Type>& scores
             ){
         (*reduced_state_generator)(
@@ -90,7 +91,9 @@ public:
                 pred_alphas,
                 next_actions,
                 next_inds,
-                next_states);
+                next_states,
+                reduce_pred_alphas
+                );
         scores.resize(next_actions.size());
         for(int i=0;i<next_actions.size();i++){
             auto action=next_actions[i];
