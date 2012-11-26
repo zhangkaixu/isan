@@ -66,15 +66,48 @@ public:
         _ref_count=new SIZE_T();
         *_ref_count=1;
     };
+    inline void operator=(const Smart_Chars& other){
+        (*_ref_count)--;
+        if(!*_ref_count){
+            delete _ref_count;
+            if(pt)delete[] pt;
+        }
+        pt=other.pt;
+        length=other.length;
+        _ref_count=other._ref_count;
+        (*_ref_count)++;
+        str=other.str;
+    };
     void make_positive(){
-        for(int i=0;i<length;i++){
-            if(pt[i]==0){
+        for(int i=0;i<str.length();i++){
+            if(str[i]==0){
                 std::cout<<"zero\n";
             };
         };
     };
-    inline Char& operator[](const int i) const{
+    inline const Char operator[](const int i) const{
+        return (Char)str[i];
+        /*
+        if((Char)str[i]!=pt[i]){
+            std::cout<<(int)str[i]<<"\n";
+            std::cout<<(int)pt[i]<<"\n";
+            
+            
+            assert(false);
+        };
         return pt[i];
+        */
+    };
+    inline const size_t size() const{
+        return str.length();
+        /*
+        if(length != str.length()){
+            std::cout<<length<<"\n";
+            std::cout<<str.length()<<"\n";
+            assert(false);
+        };
+        return length;
+        */
     };
     class HASH{
     public:
@@ -86,10 +119,9 @@ public:
             return value;
         }
     };
-    inline const size_t& size() const{
-        return length;
-    };
     inline bool operator==(const Smart_Chars&next) const{
+        return this->str==next.str;
+        /*
         if(length!=next.length)
             return false;
         if(pt==next.pt)return true;
@@ -97,26 +129,16 @@ public:
             if(pt[i]!=next.pt[i])return false;
         }
         return true;
+        */
     };
     inline bool operator<(const Smart_Chars& next)const{
-        if(length<next.length)return 1;
-        if(length>next.length)return 0;
-        for(int i=0;i<length;i++){
-            if(pt[i]<next.pt[i])return 1;
-            if(pt[i]>next.pt[i])return 0;
+        if(str.length()<next.str.length())return 1;
+        if(str.length()>next.str.length())return 0;
+        for(int i=0;i<str.length();i++){
+            if((Char)str[i]<(Char)next.str[i])return 1;
+            if((Char)str[i]>(Char)next.str[i])return 0;
         }
         return 0;
-    };
-    inline void operator=(const Smart_Chars& other){
-        (*_ref_count)--;
-        if(!*_ref_count){
-            delete _ref_count;
-            if(pt)delete[] pt;
-        }
-        pt=other.pt;
-        length=other.length;
-        _ref_count=other._ref_count;
-        (*_ref_count)++;
     };
 };
 typedef int Score_Type;
