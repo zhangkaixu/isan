@@ -11,69 +11,31 @@ public:
     typedef size_t SIZE_T;
     typedef unsigned char Char;
 private:
-    SIZE_T* _ref_count;
-    SIZE_T length;
-    Char* pt;
 public:
     std::string str;
     PyObject* pack() const{
-        return PyBytes_FromStringAndSize((char*)pt,length);
+        return PyBytes_FromStringAndSize((char*)str.data(),str.length());
     };
     Smart_Chars(){
-        pt=NULL;
-        length=0;
-        _ref_count=new SIZE_T();
-        *_ref_count=1;
     };
     ~Smart_Chars(){
-        (*_ref_count)--;
-        if(!*_ref_count){
-            delete _ref_count;
-            if(pt)delete[] pt;
-        }
     };
     Smart_Chars(const Smart_Chars& other){
         str=other.str;
-        pt=other.pt;
-        length=other.length;
-        _ref_count=other._ref_count;
-        (*_ref_count)++;
     };
     Smart_Chars(PyObject* py_key){
         char* buffer;
         Py_ssize_t len;
         PyBytes_AsStringAndSize(py_key,&buffer,&len);
         str=std::string(buffer,len);
-        length=(size_t)len;
-        pt=new Char[length];
-        memcpy(pt,buffer,length*sizeof(Char));        
-        _ref_count=new SIZE_T();
-        *_ref_count=1;
     };
     Smart_Chars(Char* buffer, Smart_Chars::SIZE_T length){
-        pt=new Char[length];
-        this->length=length;
         str=std::string((char*)buffer,length);
-        _ref_count=new SIZE_T();
-        *_ref_count=1;
     };
     Smart_Chars(const Smart_Chars& other,int length){
-        pt=new Char[length];
-        this->length=length;
         str=std::string(other.str.data(),length);
-        _ref_count=new SIZE_T();
-        *_ref_count=1;
     };
     inline void operator=(const Smart_Chars& other){
-        (*_ref_count)--;
-        if(!*_ref_count){
-            delete _ref_count;
-            if(pt)delete[] pt;
-        }
-        pt=other.pt;
-        length=other.length;
-        _ref_count=other._ref_count;
-        (*_ref_count)++;
         str=other.str;
     };
     void make_positive(){
