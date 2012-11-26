@@ -5,25 +5,12 @@
 namespace isan{
 typedef long Action_Type;
 
-template<class ITEM>
-class Smart_String2{
+class Smart_Chars{
 public:
     typedef size_t SIZE_T;
-    ITEM* pt;
+    unsigned char* pt;
     SIZE_T length;
     SIZE_T* _ref_count;
-    Smart_String2(){
-        pt=NULL;
-        length=0;
-        _ref_count=new SIZE_T();
-        *_ref_count=1;
-    };
-
-
-};
-
-class Smart_Chars: public Smart_String2<unsigned char>{
-public:
     PyObject* pack() const{
         return PyBytes_FromStringAndSize((char*)pt,length);
     };
@@ -32,7 +19,6 @@ public:
         length=0;
         _ref_count=new SIZE_T();
         *_ref_count=1;
-        //std::cout<<*_ref_count<<"\n";
     };
     ~Smart_Chars(){
         (*_ref_count)--;
@@ -54,10 +40,14 @@ public:
         length=(size_t)len;
         pt=new unsigned char[length];
         memcpy(pt,buffer,length*sizeof(unsigned char));        
+        _ref_count=new SIZE_T();
+        *_ref_count=1;
     };
     Smart_Chars(unsigned long length){
         pt=new unsigned char[length];
         this->length=length;
+        _ref_count=new SIZE_T();
+        *_ref_count=1;
     };
     Smart_Chars(unsigned char* buffer, Smart_Chars::SIZE_T length){
         pt=new unsigned char[length];
@@ -66,6 +56,8 @@ public:
         //for(int i=0;i<length;i++){
         //    if(!pt[i])pt[i]=120;
         //};
+        _ref_count=new SIZE_T();
+        *_ref_count=1;
     };
     void make_positive(){
         for(int i=0;i<length;i++){
@@ -79,7 +71,7 @@ public:
     };
     class HASH{
     public:
-        inline SIZE_T operator()(const Smart_String2& cx) const{
+        inline SIZE_T operator()(const Smart_Chars& cx) const{
             SIZE_T value=0;
             for(int i=0;i<cx.length;i++){
                 value+=cx.pt[i]<<((i%8)*8);
