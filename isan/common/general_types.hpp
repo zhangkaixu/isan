@@ -47,58 +47,25 @@ public:
     };
     inline const Char operator[](const int i) const{
         return (Char)str[i];
-        /*
-        if((Char)str[i]!=pt[i]){
-            std::cout<<(int)str[i]<<"\n";
-            std::cout<<(int)pt[i]<<"\n";
-            
-            
-            assert(false);
-        };
-        return pt[i];
-        */
     };
     inline const size_t size() const{
         return str.length();
-        /*
-        if(length != str.length()){
-            std::cout<<length<<"\n";
-            std::cout<<str.length()<<"\n";
-            assert(false);
-        };
-        return length;
-        */
     };
     class HASH{
     public:
         inline SIZE_T operator()(const Smart_Chars& cx) const{
             SIZE_T value=0;
             for(int i=0;i<cx.str.length();i++){
-                value+=cx.str[i]<<((i%8)*8);
+                value+=(Char)cx.str[i]<<((i%8)*8);
             }
             return value;
         }
     };
     inline bool operator==(const Smart_Chars&next) const{
         return this->str==next.str;
-        /*
-        if(length!=next.length)
-            return false;
-        if(pt==next.pt)return true;
-        for(int i=0;i<length;i++){
-            if(pt[i]!=next.pt[i])return false;
-        }
-        return true;
-        */
     };
     inline bool operator<(const Smart_Chars& next)const{
-        if(str.length()<next.str.length())return 1;
-        if(str.length()>next.str.length())return 0;
-        for(int i=0;i<str.length();i++){
-            if((Char)str[i]<(Char)next.str[i])return 1;
-            if((Char)str[i]>(Char)next.str[i])return 0;
-        }
-        return 0;
+        return -this->str.compare(next.str);
     };
 };
 typedef int Score_Type;
