@@ -54,15 +54,13 @@ public:
         pt=new Char[length];
         this->length=length;
         str=std::string((char*)buffer,length);
-        memcpy(pt,buffer,length*sizeof(Char));
         _ref_count=new SIZE_T();
         *_ref_count=1;
     };
     Smart_Chars(const Smart_Chars& other,int length){
         pt=new Char[length];
         this->length=length;
-        str=std::string((char*)other.pt,length);
-        memcpy(pt,other.pt,length*sizeof(Char));
+        str=std::string(other.str.data(),length);
         _ref_count=new SIZE_T();
         *_ref_count=1;
     };
@@ -113,8 +111,8 @@ public:
     public:
         inline SIZE_T operator()(const Smart_Chars& cx) const{
             SIZE_T value=0;
-            for(int i=0;i<cx.length;i++){
-                value+=cx.pt[i]<<((i%8)*8);
+            for(int i=0;i<cx.str.length();i++){
+                value+=cx.str[i]<<((i%8)*8);
             }
             return value;
         }
