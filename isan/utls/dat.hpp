@@ -16,19 +16,6 @@ typedef int Score;
 typedef char Character;
 
 
-bool item_cmp(const std::pair<Dict_Item, Score>& i,
-                const std::pair<Dict_Item, Score>& j){
-    int ind=0;
-    while(true){
-        if(ind>=i.first.length)return 1;
-        if(ind>=j.first.length)return 0;
-        if((i.first.pt[ind])<(j.first.pt[ind]))return 1;
-        if((i.first.pt[ind])>(j.first.pt[ind]))return 0;
-        ind++;
-    };
-    return 0;
-};
-
 
 class DAT{
 public:
@@ -247,8 +234,9 @@ public:
             //};std::cout<<"\n";
             if(off<=0)off=(int)word.size();
             for(int offset=off;offset<=(int)word.size();offset++){
-                //for(int j=0;j<offset;j++)prefix.push_back(word[j]);
-                prefix=Word(word.pt,offset);
+                //prefix=Word(word.pt,offset);
+                prefix=Word(word,offset);
+
                 int p_base=-this->get_info(prefix);
                 //std::cout<<"p_base "<<p_base<<"\n";
                     

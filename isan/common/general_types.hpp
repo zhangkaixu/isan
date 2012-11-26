@@ -1,5 +1,6 @@
 #pragma once
 #include <Python.h>
+#include <string>
 #include "isan/common/searcher.hpp"
 #include "isan/common/smart_string.hpp"
 namespace isan{
@@ -8,9 +9,13 @@ typedef long Action_Type;
 class Smart_Chars{
 public:
     typedef size_t SIZE_T;
-    unsigned char* pt;
-    SIZE_T length;
+    typedef unsigned char Char;
+private:
     SIZE_T* _ref_count;
+    SIZE_T length;
+    Char* pt;
+public:
+    std::string str;
     PyObject* pack() const{
         return PyBytes_FromStringAndSize((char*)pt,length);
     };
@@ -28,6 +33,7 @@ public:
         }
     };
     Smart_Chars(const Smart_Chars& other){
+        str=other.str;
         pt=other.pt;
         length=other.length;
         _ref_count=other._ref_count;
@@ -37,25 +43,26 @@ public:
         char* buffer;
         Py_ssize_t len;
         PyBytes_AsStringAndSize(py_key,&buffer,&len);
+        str=std::string(buffer,len);
         length=(size_t)len;
-        pt=new unsigned char[length];
-        memcpy(pt,buffer,length*sizeof(unsigned char));        
+        pt=new Char[length];
+        memcpy(pt,buffer,length*sizeof(Char));        
         _ref_count=new SIZE_T();
         *_ref_count=1;
     };
-    Smart_Chars(unsigned long length){
-        pt=new unsigned char[length];
+    Smart_Chars(Char* buffer, Smart_Chars::SIZE_T length){
+        pt=new Char[length];
         this->length=length;
+        str=std::string((char*)buffer,length);
+        memcpy(pt,buffer,length*sizeof(Char));
         _ref_count=new SIZE_T();
         *_ref_count=1;
     };
-    Smart_Chars(unsigned char* buffer, Smart_Chars::SIZE_T length){
-        pt=new unsigned char[length];
+    Smart_Chars(const Smart_Chars& other,int length){
+        pt=new Char[length];
         this->length=length;
-        memcpy(pt,buffer,length*sizeof(unsigned char));
-        //for(int i=0;i<length;i++){
-        //    if(!pt[i])pt[i]=120;
-        //};
+        str=std::string((char*)other.pt,length);
+        memcpy(pt,other.pt,length*sizeof(Char));
         _ref_count=new SIZE_T();
         *_ref_count=1;
     };
@@ -66,7 +73,7 @@ public:
             };
         };
     };
-    inline unsigned char& operator[](const int i) const{
+    inline Char& operator[](const int i) const{
         return pt[i];
     };
     class HASH{

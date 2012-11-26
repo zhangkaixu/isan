@@ -108,7 +108,7 @@ public:
     PyObject * to_py_dict(){
         PyObject * dict=PyDict_New();
         for(auto it=map->begin();it!=map->end();++it){
-            PyObject * key=PyBytes_FromStringAndSize((char*)it->first.pt,it->first.length);
+            PyObject * key=it->first.pack();//PyBytes_FromStringAndSize((char*)it->first.pt,it->first.length);
             PyObject * value=PyLong_FromLong(it->second);
             PyDict_SetItem(dict,key,value);
             Py_DECREF(key);
@@ -128,7 +128,7 @@ public:
         size_t length;
         while (PyDict_Next(dict, &pos, &key, &value)) {
             PyBytes_AsStringAndSize(key,&buffer,(Py_ssize_t*)&(length));
-            (*map)[Feature_String((unsigned char*)buffer,length)]=PyLong_AsLong(value);
+            (*map)[Feature_String((Smart_Chars::Char*)buffer,length)]=PyLong_AsLong(value);
         };
     };
 };
