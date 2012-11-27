@@ -176,6 +176,7 @@ public:
 
     typedef STATE_INFO State_Info;
     typedef __gnu_cxx::hash_map<STATE, State_Info,typename STATE::HASH> My_Map;
+    //typedef std::map<STATE,State_Info> My_Map;
 
     int beam_width;
     Searcher_Data<Alpha>* data;

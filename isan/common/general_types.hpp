@@ -8,7 +8,6 @@ typedef long Action_Type;
 
 class Smart_Chars{
 public:
-    typedef size_t SIZE_T;
     typedef unsigned char Char;
 private:
 public:
@@ -17,8 +16,6 @@ public:
         return PyBytes_FromStringAndSize((char*)str.data(),str.length());
     };
     Smart_Chars(){
-    };
-    ~Smart_Chars(){
     };
     Smart_Chars(const Smart_Chars& other){
         str=other.str;
@@ -29,7 +26,7 @@ public:
         PyBytes_AsStringAndSize(py_key,&buffer,&len);
         str=std::string(buffer,len);
     };
-    Smart_Chars(Char* buffer, Smart_Chars::SIZE_T length){
+    Smart_Chars(Char* buffer, size_t length){
         str=std::string((char*)buffer,length);
     };
     Smart_Chars(const Smart_Chars& other,int length){
@@ -53,19 +50,27 @@ public:
     };
     class HASH{
     public:
-        inline SIZE_T operator()(const Smart_Chars& cx) const{
-            SIZE_T value=0;
+        inline size_t operator()(const Smart_Chars& cx) const{
+            size_t value=0;
             for(int i=0;i<cx.str.length();i++){
                 value+=(Char)cx.str[i]<<((i%8)*8);
+                //value=131*value+cx.str[i];
             }
             return value;
+            return value & 0x7FFFFFFF;
         }
     };
     inline bool operator==(const Smart_Chars&next) const{
         return this->str==next.str;
     };
     inline bool operator<(const Smart_Chars& next)const{
-        return -this->str.compare(next.str);
+        if(this->str.length()<next.str.length())return 1;
+        if(this->str.length()>next.str.length())return 0;
+        for(int i=0;i<this->str.length();i++){
+            if((Char)this->str[i]<(Char)next.str[i])return 1;
+            if((Char)this->str[i]>(Char)next.str[i])return 0;
+        }
+        return 0;
     };
 };
 typedef int Score_Type;
