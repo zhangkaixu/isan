@@ -10,6 +10,9 @@ test_dag:
 
 test_dep:
 	./parsing.sh model.bin --train test/ctb5.test.txt --dev test/ctb5.test.txt
+	
+test_lat_dep:
+	./lat_dep.sh model.bin --train test/ctb5.test.txt --dev test/ctb5.test.txt
 
 basic_test:
 	./cws.sh model.bin --train ~/data/seg/ctb5.test.seg --dev ~/data/seg/ctb5.test.seg --iteration=1
