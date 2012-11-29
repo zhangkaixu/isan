@@ -346,6 +346,10 @@ public:
         My_Map* end_map=&final;
         int step=0;
         while(true){
+            //std::cout<<"start step "<<step<<"\n";
+            //std::cout<<" ++ sequence size "<<sequence.size()<<"\n";
+            
+            
             if(step>=sequence.size()){
                 break;
             };
@@ -354,6 +358,8 @@ public:
                 end_map=sequence[step];
                 break;
             };
+            //std::cout<<"step "<<step<<"\n";
+            
             
             /*gen next step*/
             for(int i=0;i<beam.size();i++){
@@ -391,9 +397,6 @@ public:
                         reduce_scores//分数
                         );
 #endif
-                //call scores
-
-
                 for(int j=0;j<shift_actions.size();j++){
                     int next_ind=next_inds[j];
                     My_Map* next_map;
@@ -423,6 +426,7 @@ public:
 #endif
                 };
 #ifdef REDUCE
+                
                 
                 for(int j=0;j<reduce_actions.size();j++){
                     auto& pred_alpha=*pred_alphas[reduce_pred_alphas[j]];
@@ -471,8 +475,12 @@ public:
             step++;
         };
         //make result
+        
         this->thrink(end_map,beam,this->beam_width);//thrink, get beam
         sort(beam.begin(),beam.end(),Alpha::state_comp_less);
+        
+
+        //std::cout<<"make result"<<"\n";
         
         Alpha* item=((*end_map)[beam.back().first].best_alpha);
         //std::cout<<item->score<<"\n";
