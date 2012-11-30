@@ -37,9 +37,9 @@ class Dep:
                 k,v =lat[i]
                 k=tuple(k)
                 lat[i][0]=k
-                if not ('is_test' in v and v['is_test']) :
-                    raw.append([k,v.get('tag-weight',None)])
-                #raw.append([k,v.get('tag-weight',None)])
+                #if not ('is_test' in v and v['is_test']) :
+                #    raw.append([k,v.get('tag-weight',None)])
+                raw.append([k,v.get('tag-weight',None)])
                 
                 if 'dep' in v and v['dep'][1]!=None :
                     v['dep'][1]=tuple(v['dep'][1])
@@ -266,45 +266,32 @@ class Dep:
                     stack.pop()
                     stack[-1][2]-=1
                     actions.append(self.right_reduce)
-                    
                 else :
                     break
-
-
-            
         return actions
 
     def actions_to_stats(self,raw,actions):
-        #sn=sum(1 if a==self.shift_action else 0 for a in actions)
-        #assert(sn*2-1==len(actions))
-        stat=None
-        stack=[]# [ w,t,l_t,r_t , span[0],span[1]]
-        step=0
-        for action in actions:
-            stat=(step,(0,0)if not stack else (stack[-1][4],stack[-1][5]),(tuple(stack[-1][:4]) if len(stack)>0 else None,
-                tuple(stack[-2][:4]) if len(stack)>1 else None,
-                        stack[-3][1] if len(stack)>2 else None,
-                        ))
-            yield pickle.dumps(stat)
+        stack=[[0,self.init_stat]]
+        stats=[]
+        for action in actions :
+            stats.append(stack[-1])
             if action>=1000 :
                 sind=action-1000
-                k=raw[sind][0]
-                stack.append([k[2],k[3],None,None,k[0],k[1]])
-                step+=2*len(k[2])-1
+                nexts=self.shift(stack[-1][0],stack[-1][1])
+                n=[n for n in nexts if n[0]==action][0]
+                stack.append([n[1],n[2]])
             else :
-                step+=1
-                if action==self.left_reduce :
-                    stack[-2][3]=stack[-1][1]
-                    stack[-2][5]=stack[-1][5]
-                    stack.pop()
-                if action==self.right_reduce :
-                    stack[-1][2]=stack[-2][1]
-                    stack[-1][4]=stack[-2][4]
-                    stack[-2]=stack[-1]
-                    stack.pop()
+                nexts=self.reduce(stack[-1][0],stack[-1][1],[stack[-2][0]],[stack[-2][1]])
+                n=[n for n in nexts if n[0]==action][0]
+                stack.pop()
+                stack.pop()
+                stack.append([n[1],n[2]])
+        return [x[1] for x in stats]
+
 
     ## stuffs about the early update
     def set_oracle(self,raw,y) :
+        self.set_raw(raw,None)
         self.std_states=[]
         std_actions=self.result_to_actions(y)#得到标准动作
         for i,stat in enumerate(self.actions_to_stats(raw,std_actions)) :
