@@ -34,7 +34,9 @@ class Eval:
         #input()
         std=[(x[0][:3],x[0][3],x[1]['dep'][1]) for x in std_result if 'dep' in x[1]]
         std=set(std)
-        self.cal_src(std,rst,self.dep_src)
+        self.cal_src({(w,d[:3] if d else None) for w,t,d in std},
+                {(w,d[:3] if d else None) for w,t,d in rst},
+                self.dep_src)
         std=set(x[:2] for x in std)
         rst=set(x[:2] for x in rst)
         self.cal_src(std,rst,self.tag_src)
@@ -57,12 +59,19 @@ class Eval:
                 self.root_std+=1
                 if s[2]==r : self.root_cor+=1
         pass
+    def print_src(self,src):
+        std,rst,cor=src
+        p=cor/rst
+        r=cor/std
+        f=2*p*r/(p+r)
+        print(std,rst,cor,p,r,f)
     def print_result(self):
         duration=time.time()-self.start_time
         print(duration)
-        print(self.dep_src)
-        print(self.tag_src)
-        print(self.seg_src)
+        self.print_src(self.dep_src)
+        self.print_src(self.tag_src)
+        self.print_src(self.seg_src)
+
         return
         print("std:%d non-root正确率:\033[32;01m%.4f\033[1;m root正确率:\033[32;01m%.4f\033[1;m 历时:%.2f 现时:%s"%(
                 self.std,
