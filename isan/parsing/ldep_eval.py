@@ -23,12 +23,15 @@ class Eval:
         src[2]+=len(s1&s2)
         return 
     def __call__(self,std_result,rst_result):
-        rst=set()
-        for s,d in rst_result :
-            s=std_result[s][0]
-            d=std_result[d][0]
-            r=(s[:3],s[3],d)
-            rst.add(r)
+        rst=rst_result
+        #rst=set()
+        #for s,d in rst_result :
+        #    s=std_result[s][0]
+        #    d=std_result[d][0]
+        #    r=(s[:3],s[3],d)
+        #    rst.add(r)
+        #print(rst)
+        #input()
         std=[(x[0][:3],x[0][3],x[1]['dep'][1]) for x in std_result if 'dep' in x[1]]
         std=set(std)
         self.cal_src(std,rst,self.dep_src)
@@ -56,6 +59,7 @@ class Eval:
         pass
     def print_result(self):
         duration=time.time()-self.start_time
+        print(duration)
         print(self.dep_src)
         print(self.tag_src)
         print(self.seg_src)

@@ -31,12 +31,16 @@ class Dep:
         @staticmethod
         def decode(line):
             lat=json.loads(line)
+            #print(lat)
             raw=[]
             for i in range(len(lat)):
                 k,v =lat[i]
                 k=tuple(k)
                 lat[i][0]=k
-                raw.append([k,v.get('tag-weight',None)])
+                if not ('is_test' in v and v['is_test']) :
+                    raw.append([k,v.get('tag-weight',None)])
+                #raw.append([k,v.get('tag-weight',None)])
+                
                 if 'dep' in v and v['dep'][1]!=None :
                     v['dep'][1]=tuple(v['dep'][1])
             return {'raw':raw,'y':lat}
@@ -57,6 +61,7 @@ class Dep:
         for shift_ind in shift_inds :
             shift_key,weight=raw[shift_ind]
             next_ind=last_ind+2*len(shift_key[2])-1
+            if next_ind==self.stop_step : next_ind = -1
             state=(
                     (next_ind,
                     (shift_key[0],shift_key[1]),
@@ -168,6 +173,7 @@ class Dep:
 
         
         fv=[
+                b'len'+str(len(s0_w)).encode(),
                 #(1)
                 b'0'+s0_w,
                 b'1'+s0_t,
@@ -216,6 +222,18 @@ class Dep:
                 stack.pop()
         arcs.append((stack[-1],-1))
         arcs.sort()
+        rst=set()
+        #print(arcs)
+        rst_result=arcs
+        std_result=self.raw
+        for s,d in rst_result :
+            s=std_result[s][0]
+            d=std_result[d][0]
+            r=(s[:3],s[3],d)
+            rst.add(r)
+        #print(rst)
+        return rst
+        #input()
         return arcs
 
     def result_to_actions(self,result):
