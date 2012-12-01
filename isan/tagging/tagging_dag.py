@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 from struct import Struct
+import json
+
 import time
 import math
 import sys
@@ -19,7 +21,27 @@ class Path_Finding :
 
             if not line: return []
             log2=math.log(2)
+            ldep=json.loads(line)
+            raw=[]
+            y=[]
+            #print(ldep)
+            for k,v in ldep :
+                if 'tag-weight' in v or v.get('is_test',True)==False :
+                    weight=v.get('tag-weight',None)
+                    weight=[math.floor(math.log(int(weight)+1)/log2)] if weight else []
+                    raw.append([(k[0],k[2],k[3]),weight])
+                if 'dep' in v :
+                    y.append((k[0],k[2],k[3]))
+            #print(raw)
+            #print(y)
+            #input()
+            return {'raw':raw,
+                    'y':y,
+                    'Y_a' : None,
+                    'Y_b' : None,
+                    }
             seq=[word.split('_') for word in line.split()]
+
 
             raw=[]
             y=[]
@@ -32,6 +54,9 @@ class Path_Finding :
 
             global xx
             xx=[a for a,b in raw if b and b[0]==0]
+            print(raw)
+            print(y)
+            input()
 
             return {'raw':raw,
                     'y':y,

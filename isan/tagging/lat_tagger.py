@@ -37,7 +37,8 @@ class Dep:
                 k,v =lat[i]
                 k=tuple(k)
                 lat[i][0]=k
-                if not ('is_test' in v and v['is_test']) :
+                #if not ('is_test' in v and v['is_test']) :
+                if 'tag-weight' in v or v.get('is_test',True)==False :
                 #if True:
                 #if ('tag-weight' in v and v['tag-weight']==0) :
                     raw.append([k,v.get('tag-weight',None)])
