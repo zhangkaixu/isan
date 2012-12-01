@@ -42,7 +42,15 @@ class Eval:
         self.cal_src(std,rst,self.tag_src)
         std=set(x[:1] for x in std)
         rst=set(x[:1] for x in rst)
+        #print(self.seg_src)
         self.cal_src(std,rst,self.seg_src)
+        std=[x[0][2] for x in sorted(list(std))]
+        #print(*std)
+        rst=[x[0][2] for x in sorted(list(rst))]
+        #print(*rst)
+        #self.print_src(self.seg_src)
+        #print(self.seg_src)
+        #input()
 
 
 
@@ -63,7 +71,9 @@ class Eval:
         std,rst,cor=src
         p=cor/rst
         r=cor/std
-        f=2*p*r/(p+r)
+        if not p or not r : f=1
+        else :
+            f=2*p*r/(p+r)
         print(std,rst,cor,p,r,f)
     def print_result(self):
         duration=time.time()-self.start_time
