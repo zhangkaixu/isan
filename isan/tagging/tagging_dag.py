@@ -1,7 +1,6 @@
 #!/usr/bin/python3
-from struct import Struct
+import pickle
 import json
-
 import time
 import math
 import sys
@@ -67,6 +66,7 @@ class Path_Finding :
         def encode(y):
             return ' '.join(y)
     def update_moves(self,std_moves,rst_moves) :
+        #print('update')
         for move in rst_moves :
             yield move, -1
         for move in std_moves :
@@ -90,29 +90,27 @@ class Path_Finding :
         if not moves : return []
         actions=list(zip(*moves))[2]
         states=list(zip(*moves))[1]
-        states=[Struct.unpack(self.stat_fmt,x) for x in states]
+        states=[pickle.loads(x) for x in states]
         inds=[x[1] for x in states[:]]
         result=[self.raw[ind][0] for ind in inds[1:]]
 
         return result
-    stat_fmt=Struct('hh')
+    init_state=pickle.dumps((-1,-1))
     def get_init_states(self):
-        init_states=[Struct.pack(self.stat_fmt,*(-1,-1))]
+        init_states=[self.init_state]
         return init_states
-        pass
     def shift(self,ind,state):
-        state=Struct.unpack(self.stat_fmt,state)
+        state=pickle.loads(state)
         ind1,ind2=state
-        #print(*(self.raw[i][0] if i>=0 else (None,None,None) for i in state))
         if ind not in self.begins : 
-            return [(-1,-1,Struct.pack(self.stat_fmt,ind2,-1))]
+            return [(-1,-1,pickle.dumps((ind2,-1)))]
         nexts=[]
         for ind3 in self.begins[ind] :
-            n=(ind3,ind+len(self.raw[ind3][0][1]),Struct.pack(self.stat_fmt,ind2,ind3))
-            #print(n)
+            n=(ind3,ind+len(self.raw[ind3][0][1]),
+                pickle.dumps((ind2,ind3))
+                )
             nexts.append(n)
         return nexts
-        pass
     reduce=None
     def check(self,std_moves,rst_moves):
         return all(
@@ -121,7 +119,7 @@ class Path_Finding :
                 )
     def gen_features(self,state,actions):
         fvs=[]
-        state=Struct.unpack(self.stat_fmt,state)
+        state=pickle.loads(state)
         for action in actions :
             ind1,ind2=state
             ind3=action
@@ -182,26 +180,27 @@ class Path_Finding :
                     
                     ]
             fvs.append(fv)
-            continue
-            fv=[b'a0~'+str(x).encode() for x in raw3[1]]
-            #fv+=[b'a0w3~'+str(x).encode()+b'~'+raw3[0][1].encode() for x in raw3[1]]
-            #fv+=[b'a0t3~'+str(x).encode()+b'~'+raw3[0][2].encode() for x in raw3[1]]
-            fv+=[
-                    b'3w~'+raw3[0][1].encode(),
-                    b'3t~'+raw3[0][2].encode(),
-                    b'l3~'+str(len(raw3[0][1])).encode(),
-                    b't3t2~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode(),
-                    b'w3w2~'+raw3[0][1].encode()+b'~'+raw2[0][1].encode(),
-                    b'w3t2~'+raw3[0][1].encode()+b'~'+raw2[0][2].encode(),
-                    b't3w2~'+raw3[0][2].encode()+b'~'+raw2[0][1].encode(),
-                    b't3t2t1~'+raw3[0][2].encode()+b'~'+raw2[0][2].encode()+b'~'+raw1[0][2].encode(),
-                    ]
-            return fv
         return fvs
 
 
+    def actions_to_moves(self,actions):
+
+        state=self.init_state
+        step=0
+        moves=[]
+        for action in actions :
+            moves.append((step,state,action))
+            for a,n,s in self.shift(step,state) :
+                if a == action :
+                    step=n
+                    state=s
+        return moves
+
+        
+
 
     def set_oracle(self,raw,y):
+        self.set_raw(raw,None)
         words=list(reversed(y[:]))
         inds=[-1,-1]
         offset=0
@@ -217,19 +216,12 @@ class Path_Finding :
                 
         self.oracle={}
         for i in range(len(offsets)) :
-            self.oracle[offsets[i]]=Struct.pack(self.stat_fmt,*inds[i:i+2])
+            self.oracle[offsets[i]]=tuple(inds[i:i+2])
 
-        states=[inds[i:i+3] for i in range(len(inds)-2)]
-        moves=[]
-        for a,b,c in states:
-            if b>=0 :
-                step=raw[b][0][0]+len(raw[b][0][1])
-            else :
-                step=0
-            state=Struct.pack(self.stat_fmt,a,b)
-            action=c
-            moves.append((step,state,action))
-        return moves
+        actions=inds[2:]
+        moves2=self.actions_to_moves(actions)
+        
+        return moves2
     def remove_oracle(self):
         self.oracle=None
         pass
@@ -239,9 +231,14 @@ class Path_Finding :
         if not hasattr(self,'oracle') or self.oracle==None : return False
         self.stop_step=-1
         if step in self.oracle :
+            next_states=[pickle.loads(x) for x in next_states]
+            #print(next_states)
+            #print(self.oracle[step])
+            
             if not (self.oracle[step]in next_states) :
                 self.stop_step=step
                 return True
+        #print('false')
         return False
 
     class Eval :
