@@ -4,7 +4,6 @@ import json
 import time
 import math
 import sys
-xx='s'
 class Path_Finding :
     do_not_set_raw_for_searcher=None
     """
@@ -27,9 +26,10 @@ class Path_Finding :
             for k,v in ldep :
                 if 'tag-weight' in v or v.get('is_test',True)==False :
                     weight=v.get('tag-weight',None)
-                    weight=[math.floor(math.log(int(weight)+1)/log2)] if weight else []
+                    weight=[math.floor(math.log(int(weight)+1)/log2)] if weight!=None else []
                     raw.append([(k[0],k[2],k[3]),weight])
                 if 'dep' in v :
+                    #y.append((k[0],k[2],k[3],v['dep'][1],v['dep'][0]))
                     y.append((k[0],k[2],k[3]))
             #print(raw)
             #print(y)
@@ -51,8 +51,6 @@ class Path_Finding :
                 if oracle!='-1': raw.append(item)
                 if oracle!='0' : y.append(item[0])
 
-            global xx
-            xx=[a for a,b in raw if b and b[0]==0]
             print(raw)
             print(y)
             input()
@@ -90,24 +88,48 @@ class Path_Finding :
         if not moves : return []
         actions=list(zip(*moves))[2]
         states=list(zip(*moves))[1]
-        states=[pickle.loads(x) for x in states]
+        #states=[pickle.loads(x) for x in states]
+        states=[pickle.loads(x)[0] for x in states]
         inds=[x[1] for x in states[:]]
         result=[self.raw[ind][0] for ind in inds[1:]]
+        #print(result)
+        #input()
 
         return result
-    init_state=pickle.dumps((-1,-1))
+
+    init_state=pickle.dumps([(-1,-1),(0,0),(None,None,None)])
     def get_init_states(self):
         init_states=[self.init_state]
         return init_states
+
     def shift(self,ind,state):
         state=pickle.loads(state)
-        ind1,ind2=state
+        #print(state)
+        ind1,ind2=state[0]
+        span=state[1]
+        s0,s1,s2=state[2]
+        if s1 :
+            s1_tag=self.raw[s1[0]][0][2]
+        else :
+            s1_tag=None
         if ind not in self.begins : 
-            return [(-1,-1,pickle.dumps((ind2,-1)))]
+            return [(-1,-1,pickle.dumps([(ind2,-1)]))]
         nexts=[]
         for ind3 in self.begins[ind] :
+            sw=self.raw[ind3][0]
+            #print(sw)
+            next_span=(sw[0],sw[0]+len(sw[1]))
+            #print(next_span)
+            #input()
+        
             n=(ind3,ind+len(self.raw[ind3][0][1]),
-                pickle.dumps((ind2,ind3))
+                    pickle.dumps(
+                        [
+                            (ind2,ind3),
+                            next_span,
+                            ((ind3,None,None),s0,s1_tag),
+                        ]
+                        )
                 )
             nexts.append(n)
         return nexts
@@ -119,7 +141,7 @@ class Path_Finding :
                 )
     def gen_features(self,state,actions):
         fvs=[]
-        state=pickle.loads(state)
+        state=pickle.loads(state)[0]
         for action in actions :
             ind1,ind2=state
             ind3=action
@@ -214,12 +236,13 @@ class Path_Finding :
                 offsets.append(offset)
         inds.append(-1)
                 
-        self.oracle={}
-        for i in range(len(offsets)) :
-            self.oracle[offsets[i]]=tuple(inds[i:i+2])
 
         actions=inds[2:]
         moves2=self.actions_to_moves(actions)
+
+        self.oracle={}
+        for step,state,action in moves2 :
+            self.oracle[step]=pickle.loads(state)
         
         return moves2
     def remove_oracle(self):
@@ -232,13 +255,9 @@ class Path_Finding :
         self.stop_step=-1
         if step in self.oracle :
             next_states=[pickle.loads(x) for x in next_states]
-            #print(next_states)
-            #print(self.oracle[step])
-            
             if not (self.oracle[step]in next_states) :
                 self.stop_step=step
                 return True
-        #print('false')
         return False
 
     class Eval :
@@ -253,7 +272,10 @@ class Path_Finding :
             self.overlaps=0
             self.with_tags=True
         def __call__(self,std,rst):
-            global xx
+            std=[x[:3] for x in std]
+            #print(std)
+            #print(rst)
+
             std=set(std)
             rst=set(rst)
             self.std+=len(std)
