@@ -1,6 +1,6 @@
 from struct import Struct
 import isan.tagging.eval as tagging_eval
-import isan.tagging.cwstask as cwstask
+#import isan.tagging.cwstask as cwstask
 
 
 """

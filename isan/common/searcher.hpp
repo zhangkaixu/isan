@@ -1,4 +1,14 @@
 #pragma once
+/*!
+
+@author ZHANG Kaixu
+
+
+@file 这是搜索算法的核心
+
+参考Huang and Sagae的论文
+
+ */
 #include <ext/hash_map>
 #include <map>
 #include <algorithm>
@@ -7,6 +17,11 @@
 namespace isan{
 
 
+/*!
+ * @brief 搜索核心算法需要调用的数据接口
+ *
+ * 需要继承这个类，形成适合特定问题的搜索算法
+ * */
 template <class ALPHA>
 class Searcher_Data{
 public :
@@ -14,14 +29,14 @@ public :
     typedef typename ALPHA::State STATE;
     typedef typename ALPHA::Score SCORE;
     typedef ALPHA Alpha;
-    int max_step;
 public:
-    /* 搜索是否需要提前终止
-     * */
     Searcher_Data(){
         use_early_stop=false;
     };
-    bool use_early_stop;
+    bool use_early_stop;///< 是否要进行early stop 的判断
+    /*! @brief 用以判断搜索是否需要提前终止
+     * 这个在Collins的论文中有，在不精确搜索中，有时需要提前中止搜索，以保证算法很好收敛
+     * */
     virtual bool early_stop(
             int step,
             const std::vector<Alpha*>& last_alphas,
@@ -30,39 +45,51 @@ public:
         return false;
     };
     
+    /*!
+     * @brief 处理shift
+     * */
     virtual void shift(
-            const int& ind,
-            STATE& state, 
-            std::vector<ACTION>& actions,
-            std::vector<int>& next_inds,
-            std::vector<STATE>& next_states,
-            std::vector<SCORE>& scores
+            const int& ind, ///< step
+            STATE& state,  ///< state of this step
+            std::vector<ACTION>& actions, ///< return list of actions
+            std::vector<int>& next_inds, ///< steps of those actions
+            std::vector<STATE>& next_states, ///<states after those actions
+            std::vector<SCORE>& scores ///socres of those actions
             )=0;
 
+    /*!
+     * @brief 处理reduce
+     * */
     virtual void reduce(
-            const int state_ind,
-            const STATE& state, 
-            const std::vector<ALPHA*>& pred_alphas,
-            std::vector<ACTION>& actions,
-            std::vector<int>& next_inds,
-            std::vector<STATE>& next_states,
-            std::vector<int>& reduce_pred_alphas,
-            std::vector<SCORE>& scores
+            const int state_ind,///< 当前步骤
+            const STATE& state, ///< 当前状态
+            const std::vector<ALPHA*>& pred_alphas, ///<predictor的alpha
+            std::vector<ACTION>& actions,///<返回可能的 动作
+            std::vector<int>& next_inds,///<返回动作后的步骤
+            std::vector<STATE>& next_states,///<返回动作导致的状态
+            std::vector<int>& reduce_pred_alphas,///<？
+            std::vector<SCORE>& scores///<返回动作的分数
             )=0;
 
 };
 
 
+/*!
+ * @brief 搜索中主要的中间数据的数据结构
+ *
+ * 名字来自前向后向算法中的Alpha，当然还有Beta
+ *
+ * */
 template<class ACTION,class STATE,class SCORE>
 struct Alpha{
     typedef ACTION Action;
     typedef STATE State;
     typedef SCORE Score;
-    SCORE score;// score now
-    SCORE inc;// score of last action
-    ACTION action;//last action
-    int ind1;//index of last state
-    STATE state1;//last state
+    SCORE score;//< score now
+    SCORE inc;///< score of last action
+    ACTION action;///< last action
+    int ind1;///< index of last state
+    STATE state1;//< last state
 #ifdef REDUCE
     bool is_shift;
     SCORE sub_score;
@@ -166,30 +193,36 @@ struct State_Info{
 
 
 
+/*!
+ * @brief 最最核心的shift-reduce搜索算法
+ * */
 template <class STATE_INFO>
 class Searcher{
-public:
+private:
     typedef typename STATE_INFO::ACTION ACTION;
     typedef typename STATE_INFO::STATE STATE;
     typedef typename STATE_INFO::SCORE SCORE;
     typedef typename STATE_INFO::Alpha Alpha;
-
     typedef STATE_INFO State_Info;
+
     typedef __gnu_cxx::hash_map<STATE, State_Info,typename STATE::HASH> My_Map;
     //typedef std::map<STATE,State_Info> My_Map;
 
-    int beam_width;
-    Searcher_Data<Alpha>* data;
-    std::vector< My_Map* > sequence;
-    My_Map final;
+    My_Map final;///the final step
+    int beam_width;///< beam search的搜索宽度
+    Searcher_Data<Alpha>* data;///< all the data that this class needs
+    std::vector< My_Map* > sequence;///< action sequence
 
-    Searcher(){
-    };
-    Searcher(Searcher_Data<Alpha>* data,int beam_width){
+
+public:
+    Searcher(Searcher_Data<Alpha>* data,///< 搜索用数据接口
+            int beam_width ///< 搜索柱宽度
+            ){
         this->beam_width=beam_width;
         this->data=data;
     };
 
+private:
     inline void thrink(
             My_Map* map,
             std::vector<std::pair<STATE,Alpha*> >& top_n,
@@ -217,6 +250,7 @@ public:
         sort(top_n.begin(),top_n.end(),Alpha::state_comp_less);
     };
 
+public:
 
     void get_states(std::vector<STATE>& states,std::vector<SCORE>& scores){
         states.clear();
@@ -241,6 +275,7 @@ public:
     };
 
     /*
+     * @后向搜索，计算beta，可由此生成lattice或者森林
      * beta
      * */
     void cal_betas(){
@@ -290,6 +325,7 @@ public:
             };
         };
     };
+private:
     inline bool early_stop(int& step,std::vector<std::pair<STATE,Alpha*> >& top_n){
         if(!(data->use_early_stop))return false;
         //return false;
@@ -305,13 +341,14 @@ public:
                 last_alphas,
                 next_states);
     };
+public:
 
     /*
-     * 二叉树搜索
+     * @brief 二叉树搜索
      * */
     void operator()(
-            const std::vector<STATE>& init_keys,
-            std::vector<Alpha*>& result_alphas
+            const std::vector<STATE>& init_keys,///< 初始状态向量
+            std::vector<Alpha*>& result_alphas ///< 保存搜索到的最优序列
             )
     {
         std::vector<std::pair<STATE,Alpha*> > beam;
@@ -491,6 +528,7 @@ public:
         std::reverse(result_alphas.begin(),result_alphas.end());
     };
 
+private:
 
     void make_result(
             Alpha* item,
@@ -528,6 +566,8 @@ public:
         };
 #endif
     };
+
+public:
 
     /*
      * beta

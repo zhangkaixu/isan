@@ -1,4 +1,14 @@
 #!/usr/bin/python3
+"""!
+@mainpage
+
+Isan
+====
+一个中文处理的实验环境
+
+"""
+
+
 import sys
 import argparse
 

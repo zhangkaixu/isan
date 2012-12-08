@@ -15,3 +15,6 @@ __pycache__
 README.html
 *tags
 *.tmp
+
+doc/html*
+doc/latex*
