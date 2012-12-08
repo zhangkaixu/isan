@@ -34,11 +34,13 @@ public:
         use_early_stop=false;
     };
     bool use_early_stop;///< 是否要进行early stop 的判断
-    /*! @brief 用以判断搜索是否需要提前终止
+    /*! 
+     * @brief 用以判断搜索是否需要提前终止
+     *
      * 这个在Collins的论文中有，在不精确搜索中，有时需要提前中止搜索，以保证算法很好收敛
      * */
     virtual bool early_stop(
-            int step,
+            int step, ///< step
             const std::vector<Alpha*>& last_alphas,
             const std::vector<STATE>& states
             ){
@@ -251,6 +253,13 @@ private:
     };
 
 public:
+    /*!
+     * @brief 得到所有搜索过程中得到的较好的中间状态
+     *
+     * 可由此生成lattice 或 forests
+     *
+     * @see cal_betas
+     * */
 
     void get_states(std::vector<STATE>& states,std::vector<SCORE>& scores){
         states.clear();
@@ -274,9 +283,13 @@ public:
         };
     };
 
-    /*
-     * @后向搜索，计算beta，可由此生成lattice或者森林
-     * beta
+    /**
+     *
+     * @brief 后向搜索，计算beta
+     *
+     * 可由此生成lattice或者森林
+     * @see get_states
+     *
      * */
     void cal_betas(){
         

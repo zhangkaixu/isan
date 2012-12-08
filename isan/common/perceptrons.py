@@ -1,15 +1,21 @@
 #!/usr/bin/python3
+"""
+@author ZHANG Kaixu
+"""
 import sys
 import pickle
 import collections
 
 
+
 class Model(object):
-    name="平均感知器"
+    """@brief 平均感知器模型
+    """
+    name="平均感知器" 
     def __init__(self,model_file,schema=None,Searcher=None,beam_width=8,**conf):
         """
-        初始化
-        schema： 如果不设置，则读取已有模型。如果设置，就是学习新模型
+        @brief 初始化
+        如果不设置，则读取已有模型。如果设置，就是学习新模型
         """
         self.beam_width=beam_width;
         self.conf=conf
@@ -46,6 +52,9 @@ class Model(object):
         return eval
     
     def develop(self,dev_file):
+        """
+        @brief 预测开发集
+        """
         self.searcher.average_weights(self.step)
         #print(self.searcher.export_weights())
         #self.searcher.set_action({b'a0~0':100})

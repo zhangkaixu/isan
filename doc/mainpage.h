@@ -60,6 +60,10 @@ Isan
 
 ## Command line
 
+isan::tagging::cws::Task
+
+isan::tagging::cws::Task::codec
+
 以中文分词为例，命令行用法如下：
 
     ./cws.sh model_file [--train training_file] [--test test_file] [--dev dev_file]

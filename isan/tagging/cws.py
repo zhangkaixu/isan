@@ -3,13 +3,13 @@ import isan.tagging.eval as tagging_eval
 #import isan.tagging.cwstask as cwstask
 
 
-"""
-You do the best, we do the rest!
-
-来看看如何建造一个中文分词模型
-只需要编写最核心的代码，其它代码我都已经编好了
-"""
 class Task:
+    """ 介绍一下这个最基本的task--中文分词吧
+
+    来看看如何建造一个中文分词模型
+    只需要编写最核心的代码，其它代码我都已经编好了
+    isan::tagging::cws::Task::codec
+    """
     xa,xb=3,3
     """告诉isan，这是个什么task"""
     name='中文分词'
