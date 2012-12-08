@@ -1,10 +1,43 @@
 #!/usr/bin/python3
+from isan.utls.indexer import Indexer
+from struct import Struct
 import pickle
 import json
 import time
 import math
 import sys
+
+class Raw_Data :
+    def __init__(self,raw,indexer):
+        self.raw=raw
+        self.weights=[]
+        self.words=[]
+        self.tags=[]
+        self.tag_ids=[]
+        self.offsets=[]
+        for k,weight in raw :
+            self.weights.append(weight)
+            offset,word,tag=k
+            self.words.append(word)
+            self.tags.append(tag)
+            self.tag_ids.append(indexer(tag))
+            self.offsets.append(offset)
+        self.begins={}
+        self.ends={}
+        max_ind=0
+        for ind,item in enumerate(raw) :
+            b,word,tag=item[0]
+            e=b+len(word)
+            if max_ind<e : max_ind=e
+            if b not in self.begins : self.begins[b]=[]
+            if e not in self.ends : self.ends[e]=[]
+            self.begins[b].append(ind)
+            self.ends[e].append(ind)
+
 class Path_Finding :
+    def __init__(self):
+        self.indexer=Indexer()
+        pass
     do_not_set_raw_for_searcher=None
     """
     finding path in a DAG
@@ -70,19 +103,9 @@ class Path_Finding :
         for move in std_moves :
             if self.stop_step>=0 and move[0]>=self.stop_step : return
             yield move, 1
+
     def set_raw(self,raw,Y):
-        self.raw=raw
-        self.begins={}
-        self.ends={}
-        max_ind=0
-        for ind,item in enumerate(raw) :
-            b,word,tag=item[0]
-            e=b+len(word)
-            if max_ind<e : max_ind=e
-            if b not in self.begins : self.begins[b]=[]
-            if e not in self.ends : self.ends[e]=[]
-            self.begins[b].append(ind)
-            self.ends[e].append(ind)
+        self.raw_data=Raw_Data(raw,self.indexer)
 
     def moves_to_result(self,moves,raw):
         if not moves : return []
@@ -91,11 +114,51 @@ class Path_Finding :
         #states=[pickle.loads(x) for x in states]
         states=[pickle.loads(x)[0] for x in states]
         inds=[x[1] for x in states[:]]
-        result=[self.raw[ind][0] for ind in inds[1:]]
-        #print(result)
-        #input()
-
+        result=[
+                self.raw_data.raw[ind][0]
+                for ind in inds[1:]]
         return result
+
+    
+    def load_state(self,data):
+        state=pickle.loads(data)
+        d=object()
+        d.w0=state[0][1]
+        d.w1=state[0][0]
+        return d
+
+    class State :
+        def __init__(self,data=None):
+
+            #self.fmt=Struct("iiiiiiiiiii")
+            if data :
+                state=pickle.loads(data)
+                self.w0=state[0][1]
+                self.w1=state[0][0]
+                #data=self.fmt.unpack(data)
+                #self.w0=data[0]
+                #self.w1=-1
+                #self.span=(0,0)
+                #self.s0=(-1,-1,-1)
+                #self.s1=(-1,-1,-1)
+                #self.s2=-1
+            else :
+                self.w0=-1
+                self.w1=-1
+                self.span=(0,0)
+                self.s0=(-1,-1,-1)
+                self.s1=(-1,-1,-1)
+                self.s2=-1
+            pass
+        def dump(self):
+            return pickle.dumps([(self.w1,self.w0)])
+            #return self.fmt.pack(
+            #        self.w0,self.w1,
+            #        self.span[0],self.span[1],
+            #        self.s0[0],self.s0[1],self.s0[2],
+            #        self.s1[0],self.s1[1],self.s1[2],
+            #        self.s2
+            #        )
 
     init_state=pickle.dumps([(-1,-1),(0,0),(None,None,None)])
     def get_init_states(self):
@@ -103,31 +166,35 @@ class Path_Finding :
         return init_states
 
     def shift(self,ind,state):
+        #sdata=self.State(state)
+        #sdata=self.load_state(state)
         state=pickle.loads(state)
         #print(state)
         ind1,ind2=state[0]
-        span=state[1]
-        s0,s1,s2=state[2]
-        if s1 :
-            s1_tag=self.raw[s1[0]][0][2]
-        else :
-            s1_tag=None
-        if ind not in self.begins : 
+        #ind2=sdata.w0
+        #span=state[1]
+        #s0,s1,s2=state[2]
+        #if s1 :
+        #    s1_tag=self.raw_data.tags[s1[0]]#self.raw[s1[0]][0][2]
+        #else :
+        #    s1_tag=None
+        if ind not in self.raw_data.begins : 
             return [(-1,-1,pickle.dumps([(ind2,-1)]))]
         nexts=[]
-        for ind3 in self.begins[ind] :
-            sw=self.raw[ind3][0]
+        for ind3 in self.raw_data.begins[ind] :
+            sw=self.raw_data.words[ind3]
+            so=self.raw_data.offsets[ind3]
             #print(sw)
-            next_span=(sw[0],sw[0]+len(sw[1]))
+            next_span=(so,so+len(sw))
             #print(next_span)
             #input()
         
-            n=(ind3,ind+len(self.raw[ind3][0][1]),
+            n=(ind3,ind+len(self.raw_data.words[ind3]),
                     pickle.dumps(
                         [
                             (ind2,ind3),
-                            next_span,
-                            ((ind3,None,None),s0,s1_tag),
+                            #next_span,
+                            #((ind3,None,None),s0,s1_tag),
                         ]
                         )
                 )
@@ -145,15 +212,17 @@ class Path_Finding :
         for action in actions :
             ind1,ind2=state
             ind3=action
-            raw=self.raw
             if ind1==-1 :
                 w1,t1=b'~',b'~'
                 len1=b'0'
                 f1,b1=b'~',b'~'
                 m1=b''
             else :
-                r=raw[ind1]
-                w1,t1=r[0][1].encode(),r[0][2].encode()
+                r=[(self.raw_data.offsets[ind1],
+                        self.raw_data.words[ind1],
+                        self.raw_data.tag_ids[ind1]),
+                        self.raw_data.weights[ind1]]#raw[ind1]
+                w1,t1=r[0][1].encode(),str(r[0][2]).encode()
                 len1=str(len(r[0][1])).encode()
                 f1,b1=r[0][1][0].encode(),r[0][1][-1].encode()
                 m1=b'' if not r[1] else str(r[1][0]).encode()
@@ -163,8 +232,11 @@ class Path_Finding :
                 f2,b2=b'~',b'~'
                 m2=b''
             else :
-                r=raw[ind2]
-                w2,t2=r[0][1].encode(),r[0][2].encode()
+                r=[(self.raw_data.offsets[ind2],
+                        self.raw_data.words[ind2],
+                        self.raw_data.tag_ids[ind2]),
+                        self.raw_data.weights[ind2]]#raw[ind1]
+                w2,t2=r[0][1].encode(),str(r[0][2]).encode()
                 len2=str(len(r[0][1])).encode()
                 f2,b2=r[0][1][0].encode(),r[0][1][-1].encode()
                 m2=b'' if not r[1] else str(r[1][0]).encode()
@@ -174,8 +246,12 @@ class Path_Finding :
                 f3,b3=b'~',b'~'
                 m3=b''
             else :
-                r=raw[ind3]
-                w3,t3=r[0][1].encode(),r[0][2].encode()
+                r=[(self.raw_data.offsets[ind3],
+                        self.raw_data.words[ind3],
+                        self.raw_data.tag_ids[ind3]),
+                        self.raw_data.weights[ind3]]#raw[ind1]
+
+                w3,t3=r[0][1].encode(),str(r[0][2]).encode()
                 len3=str(len(r[0][1])).encode()
                 f3,b3=r[0][1][0].encode(),r[0][1][-1].encode()
                 m3=b'' if not r[1] else str(r[1][0]).encode()
