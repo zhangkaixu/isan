@@ -1,4 +1,17 @@
 #!/usr/bin/python3
+"""
+命令行工具，用于打乱文件中行的顺序
+
+    usage: shuffle_lines.py [-h] [-i] filename [filename ...]
+
+如果提供一个文件，则打乱该文件顺序。
+
+如果提供多个文件，则同步地打乱多个文件中行的顺序。
+这里多个文件中对应行的数据有对应关系。
+多个文件需要有相同数目的行。
+
+给出 `-i` 参数， 则会将打乱顺序的内容写回文件。
+"""
 import argparse
 import random
 import sys

@@ -1,0 +1,7 @@
+中文分词
+========
+
+
+
+.. automodule:: isan.tagging.cws
+    :members:

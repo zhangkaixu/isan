@@ -1,0 +1,18 @@
+实用工具
+========
+
+.. automodule:: isan.utls
+    :members:
+
+文件分割
+--------
+
+.. automodule:: isan.utls.divide
+    :members:
+
+随机顺序
+--------
+
+.. automodule:: isan.utls.shuffle_lines
+    :members:
+

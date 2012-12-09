@@ -3,17 +3,15 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Isan's documentation!
-================================
-
-Contents:
-
-.. automodule:: isan.tagging.cws
-    :members:
 
 
 .. toctree::
    :maxdepth: 2
+   
+   解码
+   感知器
+   标注模型
+   实用工具
 
 
 

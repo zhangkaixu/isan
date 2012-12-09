@@ -1,23 +1,49 @@
 #!/usr/bin/python3
 """
-@author ZHANG Kaixu
+ZHANG Kaixu
+
+根据 :py:class:`Task` 
+
+
+
 """
 import sys
 import pickle
 import collections
 
 
+class Task:
+    """
+    task
+
+    .. py:function:: shift(self, step,state)
+        处理 shift 动作
+
+        :param integer step: 当前步骤
+        :param bytes state: 当前状态
+        :return: list of tuples `[(action, next_step, next_state) , ...]`
+
+
+
+    """
+
+    def shift(self,last_ind,stat):
+        pass
+    pass
 
 class Model(object):
-    """@brief 平均感知器模型
+    """平均感知器模型
+    :py:func:`__init__`
+    
     """
-    name="平均感知器" 
+    name="平均感知器" #: 模型的名字
+
     def __init__(self,model_file,schema=None,Searcher=None,beam_width=8,**conf):
         """
-        @brief 初始化
+        初始化
         如果不设置，则读取已有模型。如果设置，就是学习新模型
         """
-        self.beam_width=beam_width;
+        self.beam_width=beam_width#:搜索宽度
         self.conf=conf
         if schema==None:
             file=open(model_file,"rb")
@@ -142,10 +168,19 @@ class Model(object):
     def train(self,training_file,iteration=5,dev_file=None):
         """
         训练
+        
+        根据一个Task
+
+        首先使用 :py:func:`_learn_sentence`
+
+        首先使用 
+        
+        :py:func:`develop`
+        
         """
         for it in range(iteration):#迭代整个语料库
             print("训练集第 \033[33;01m%i\033[1;m 次迭代"%(it+1),file=sys.stderr)
-            eval=self.schema.Eval()#测试用的对象
+            eval=self.schema.Eval()#: 测试用的对象
             if type(training_file)==str:training_file=[training_file]
             for t_file in training_file:
                 for line in open(t_file):#迭代每个句子

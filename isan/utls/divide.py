@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+"""
+分割文件::
+
+    ./divide.py number:filename [number:filename ...]
+
+
+"""
 import itertools
 import sys
 if __name__=='__main__':

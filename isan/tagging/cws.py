@@ -8,11 +8,17 @@ class Task:
 
     来看看如何建造一个中文分词模型
     只需要编写最核心的代码，其它代码我都已经编好了
-    isan::tagging::cws::Task::codec
+
+    :py:attr:`name`
+
+    :py:func:`init`
+
+    :py:func:`shift` and
+    :py:func:`reduce`
+
     """
     xa,xb=3,3
-    """告诉isan，这是个什么task"""
-    name='中文分词'
+    name='中文分词' ##name
     
     class codec:
         """
@@ -81,13 +87,15 @@ class Task:
         return moves
 
 
+    stat_fmt=Struct('hcchh')
     """
     在isan中，状态是一个bytes对象，但Python中tuple好处理一些，
     在此规定一种从tuple到bytes对象的转换规则
     """
-    stat_fmt=Struct('hcchh')
-    """分词搜索时的初始状态"""
+
     init_stat=stat_fmt.pack(*(0,b'0',b'0',0,0))
+    """分词搜索时的初始状态"""
+
     def get_init_states(self) :
         return [self.init_stat]
 
@@ -208,14 +216,15 @@ class Task:
                 ]
                 )
         return fv
+
+    Eval=tagging_eval.TaggingEval
     """
     最后告诉isan，如何评价模型的输出和标准答案的输出的好坏。具体可以看这个class
     """
-    Eval=tagging_eval.TaggingEval
 
 
     """
-    to generate candidates to make lattice
+    用于生成lattice
     """
     def gen_candidates(self,states,threshold=10):
         threshold=threshold*1000

@@ -1,0 +1,6 @@
+感知器
+======
+
+.. automodule:: isan.common.perceptrons
+    :members:
+
