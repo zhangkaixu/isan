@@ -2,5 +2,6 @@
 ======
 
 .. automodule:: isan.common.perceptrons
-    :members:
 
+.. autoclass:: isan.common.perceptrons.Task
+    :members:
