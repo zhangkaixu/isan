@@ -3,12 +3,47 @@ import json
 import collections
 import math
 from isan.common.lattice import Lattice_Task as Base_Task
-from isan.common.lattice import Lattice as Lattice
+from isan.data.lattice import Lattice as Lattice
 import isan.parsing.ldep_eval as eval
+import isan.data.lattice
 
 def make_color(s,color='36'):
     return '\033['+color+';01m%s\033[1;m'%s #blue
 
+class codec :
+    @staticmethod
+    def decode(line):
+        data=isan.data.lattice.Json_Lattice_Data(line)
+        lat=json.loads(line)
+        raw=[]
+        for i in range(len(lat)):
+            k,v =lat[i]
+            k=tuple(k)
+            lat[i][0]=k
+            #if not ('is_test' in v and v['is_test']) :
+            if True:
+                raw.append([k,v.get('tag-weight',None)])
+            
+            if 'dep' in v and v['dep'][1]!=None :
+                v['dep'][1]=tuple(v['dep'][1])
+        l,w=zip(*raw)
+        lattice=Lattice(l,w)
+        lattice=data.make_raw()
+        lat=data.make_gold()
+        return {'raw':lattice,'y':lat}
+    @staticmethod
+    def result_to_arcs(result):
+        index={}
+        arcs=[]
+        for i in range(len(result)):
+            k,v=result[i]
+            index[k]=i
+            if 'dep' not in v : continue
+            head=v['dep'][1]
+            arcs.append((k,head))
+        arcs=[(index[a],index[b] if b is not None else -1)for a,b in arcs]
+        arcs=sorted(arcs)
+        return arcs
 
 
 class Action :
@@ -164,36 +199,6 @@ class State (Action):
                 stack
                 )
 
-class codec :
-    @staticmethod
-    def decode(line):
-        lat=json.loads(line)
-        raw=[]
-        for i in range(len(lat)):
-            k,v =lat[i]
-            k=tuple(k)
-            lat[i][0]=k
-            if True:
-                raw.append([k,v.get('tag-weight',None)])
-            
-            if 'dep' in v and v['dep'][1]!=None :
-                v['dep'][1]=tuple(v['dep'][1])
-        l,w=zip(*raw)
-        lattice=Lattice(l,w)
-        return {'raw':lattice,'y':lat}
-    @staticmethod
-    def result_to_arcs(result):
-        index={}
-        arcs=[]
-        for i in range(len(result)):
-            k,v=result[i]
-            index[k]=i
-            if 'dep' not in v : continue
-            head=v['dep'][1]
-            arcs.append((k,head))
-        arcs=[(index[a],index[b] if b is not None else -1)for a,b in arcs]
-        arcs=sorted(arcs)
-        return arcs
 
 class Dep (Base_Task):
     name="依存句法分析"

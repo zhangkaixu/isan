@@ -1,31 +1,5 @@
 import isan.common.perceptrons
 
-class Lattice :
-    def __init__(self,l,w):
-        self.weights=w
-        self.items=l
-        chars={}
-        begins={}
-        for i,item in enumerate(self.items) :
-            begin=item[0]
-            for j,c in enumerate(item[2]):
-                o=j+begin
-                if o not in chars: chars[o]=c
-            if begin not in begins : begins[begin]=[]
-            begins[begin].append(i)
-        self.begins=begins
-        self.sentence=''.join(x[1] for x in sorted(list(chars.items())))
-        self.length=len(self.sentence)
-    def arcs_to_result(self,arcs):
-        rst=set()
-        rst_result=arcs
-        std_result=self.items
-        for s,d in rst_result :
-            s=std_result[s]
-            d=std_result[d] if d != -1 else None
-            r=(s[:3],s[3],d)
-            rst.add(r)
-        return rst
 
 class Lattice_Task(isan.common.perceptrons.Task):
     def get_init_states(self) :
