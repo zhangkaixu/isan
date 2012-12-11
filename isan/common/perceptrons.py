@@ -29,6 +29,7 @@ import pickle
 import collections
 
 
+
 class Task:
     """
     task
@@ -104,6 +105,7 @@ class Task:
         :return: list of tuples `[(action, next_step, next_state) , ...]`
 
         """
+
 
 class Model(object):
     """平均感知器模型
