@@ -24,7 +24,9 @@ class Eval:
         return 
     def __call__(self,std_result,rst_result):
         rst=rst_result
-        #print(rst)
+        #print(std_result)
+        #input()
+
         #rst=set()
         #for s,d in rst_result :
         #    s=std_result[s][0]
@@ -33,7 +35,7 @@ class Eval:
         #    rst.add(r)
         #print(rst)
         #input()
-        std=[(x[0][:3],x[0][3],x[1]['dep'][1]) for x in std_result if 'dep' in x[1]]
+        std=[(x[0][:3],x[0][3],x[1][0]) for x in std_result if x[1] ]
         std=set(std)
         self.cal_src({(w,d[:3] if d else None) for w,t,d in std},
                 {(w,d[:3] if d else None) for w,t,d in rst},

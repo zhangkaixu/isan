@@ -14,20 +14,6 @@ class codec :
     @staticmethod
     def decode(line):
         data=isan.data.lattice.Json_Lattice_Data(line)
-        lat=json.loads(line)
-        raw=[]
-        for i in range(len(lat)):
-            k,v =lat[i]
-            k=tuple(k)
-            lat[i][0]=k
-            #if not ('is_test' in v and v['is_test']) :
-            if True:
-                raw.append([k,v.get('tag-weight',None)])
-            
-            if 'dep' in v and v['dep'][1]!=None :
-                v['dep'][1]=tuple(v['dep'][1])
-        l,w=zip(*raw)
-        lattice=Lattice(l,w)
         lattice=data.make_raw()
         lat=data.make_gold()
         return {'raw':lattice,'y':lat}
@@ -38,8 +24,8 @@ class codec :
         for i in range(len(result)):
             k,v=result[i]
             index[k]=i
-            if 'dep' not in v : continue
-            head=v['dep'][1]
+            if v is None : continue
+            head=v[0]
             arcs.append((k,head))
         arcs=[(index[a],index[b] if b is not None else -1)for a,b in arcs]
         arcs=sorted(arcs)
