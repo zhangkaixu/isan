@@ -1,5 +1,5 @@
 test
-data
+/data*
 test.*
 test*
 test_ctb.zsh

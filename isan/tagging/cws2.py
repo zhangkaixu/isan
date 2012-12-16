@@ -120,17 +120,17 @@ class Task (Base_Task):
 
     reduce=None
 
-    def update_moves(self,std_moves,rst_moves) :
-        for move in std_moves :
-            yield move, 1
-        for move in rst_moves :
-            yield move, -1
-        pass
+    #def update_moves(self,std_moves,rst_moves) :
+    #    for move in std_moves :
+    #        yield move, 1
+    #    for move in rst_moves :
+    #        yield move, -1
+    #    pass
 
-    """
-    stuffs about the early update
-    """
-    early_stop=None
+    #"""
+    #stuffs about the early update
+    #"""
+    #early_stop=None
 
 
     """
