@@ -24,6 +24,7 @@ ZHANG Kaixu
 
 
 """
+import logging
 import sys
 import pickle
 import collections
@@ -119,6 +120,9 @@ class Model(object):
         初始化
         如果不设置，则读取已有模型。如果设置，就是学习新模型
         """
+        logging.basicConfig(level=logging.DEBUG)
+        #logging.basicConfig(level=logging.INFO)
+        self.logger=logging.getLogger(__name__)
         self.beam_width=beam_width#:搜索宽度
         self.conf=conf
         if task==None:
@@ -231,6 +235,11 @@ class Model(object):
         y=arg.get('y',None)
         Y_a=arg.get('Y_a',None)
 
+        #self.logger.debug('get training example')
+        #self.logger.debug("raw: %s"%raw)
+        #self.logger.debug("y: %s"%y)
+        #self.logger.debug("Y_a: %s"%Y_a)
+
 
         #学习步数加一
         self.step+=1
@@ -238,6 +247,8 @@ class Model(object):
         #set oracle, get standard actions
         if hasattr(self.task,'set_oracle'):
             std_moves=self.task.set_oracle(raw,y)
+
+        #self.logger.debug(std_moves)
 
         #get result actions
         rst_moves=self.search(raw,Y_a)#得到解码后动作

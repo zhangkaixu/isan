@@ -10,10 +10,40 @@ import isan.data.lattice
 def make_color(s,color='36'):
     return '\033['+color+';01m%s\033[1;m'%s #blue
 
+
 class codec :
+    class Json_Lattice_Data :
+        def __init__(self,line):
+            self.lattice=json.loads(line)
+        def make_raw(self):
+            lat=self.lattice
+            raw=[]
+            for i in range(len(lat)):
+                k,v =lat[i]
+                k=tuple(k)
+                lat[i][0]=k
+                #if not ('is_test' in v and v['is_test']) :
+                if True:
+                    raw.append([k,v.get('tag-weight',None)])
+                if 'dep' in v and v['dep'][1]!=None :
+                    v['dep'][1]=tuple(v['dep'][1])
+            l,w=zip(*raw)
+            lattice=Lattice(l,w)
+            return lattice
+
+        def make_gold(self):
+            lat=self.lattice
+            gold=[]
+            for k,v in lat :
+                if 'tag-weight' in v : del v['tag-weight']
+                if not v : v=None
+                else :
+                    v=[v['dep'][1]]
+                gold.append([k,v])
+            return gold
     @staticmethod
     def decode(line):
-        data=isan.data.lattice.Json_Lattice_Data(line)
+        data=codec.Json_Lattice_Data(line)
         lattice=data.make_raw()
         lat=data.make_gold()
         return {'raw':lattice,'y':lat}
@@ -30,6 +60,18 @@ class codec :
         arcs=[(index[a],index[b] if b is not None else -1)for a,b in arcs]
         arcs=sorted(arcs)
         return arcs
+    @staticmethod
+    def arcs_to_result(arcs,lattice):
+        rst=set()
+        rst_result=arcs
+        std_result=lattice.items
+        for s,d in rst_result :
+            s=std_result[s]
+            d=std_result[d] if d != -1 else None
+            r=(s[:3],s[3],d)
+            rst.add(r)
+        return rst
+        pass
 
 
 class Action :
@@ -40,9 +82,6 @@ class Action :
     def shift_action(sind):
         return Action._shift_offset+sind
 
-    @staticmethod
-    def is_shift_action(action):
-        return action>=Action._shift_offset
     @staticmethod
     def parse_action(action):
         if action<Action._shift_offset : 
@@ -110,6 +149,7 @@ class State (Action):
     def shift(self,shift_ind):
         item=self.lattice.items[shift_ind]
         next_ind=self.ind+2*len(item[2])-1
+        #next_ind=self.ind+2*len(item[2])
         if next_ind==self.stop_step : next_ind=-1
         state=(
                 next_ind,
@@ -124,6 +164,7 @@ class State (Action):
             )
         return [(self.shift_action(shift_ind),next_ind,pickle.dumps(state))]
     def reduce(self,pre_state,alpha_ind):
+        #return []
         next_ind=self.ind+1
         if next_ind==self.stop_step : next_ind=-1
         s0,s1,s2=self.stack_top

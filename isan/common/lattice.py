@@ -2,14 +2,45 @@ import isan.common.perceptrons
 
 
 class Lattice_Task(isan.common.perceptrons.Task):
-    def get_init_states(self) :
-        return [self.State.init_stat]
-
     def moves_to_result(self,moves,_):
         actions=list(zip(*moves))[2]
         arcs=self.Action.actions_to_arcs(actions)
-        return self.lattice.arcs_to_result(arcs)
+        return self.codec.arcs_to_result(arcs,self.lattice)
 
+    def get_init_states(self) :
+        return [self.State.init_stat]
+
+    def check(self,std_moves,rst_moves):
+        #print('std')
+        #for step,state,action in std_moves:
+        #    print(step,self.State(state,self),action)
+        #print('rst')
+        #for step,state,action in rst_moves:
+        #    print(step,self.State(state,self),action)
+
+        if len(std_moves)!=len(rst_moves) :return False
+        return all(
+                std_move[2]==rst_move[2]
+                for std_move,rst_move in zip(std_moves,rst_moves)
+                )
+
+    def shift(self,last_ind,stat):
+        state=self.State(stat,self.lattice)
+        
+        shift_inds=self.lattice.begins.get(state.span[1],[])
+        rtn=[]
+        for shift_ind in shift_inds:
+            rtn+=state.shift(shift_ind)
+        return rtn
+
+    def reduce(self,last_ind,stat,pred_inds,predictors):
+        rtn=[]
+        st=self.State(stat,self.lattice)
+        for i,predictor in enumerate(predictors) :
+            pre_st=self.State(predictor,self.lattice)
+            rtn+=st.reduce(pre_st,i)
+        return rtn
+    ## stuffs about the early update
     def result_to_actions(self,result):
         """
         将依存树转化为shift-reduce的动作序列（与动态规划用的状态空间无关）
@@ -39,35 +70,6 @@ class Lattice_Task(isan.common.perceptrons.Task):
                 stack.pop()
                 stack.append([n[1],n[2]])
         return stats
-    def check(self,std_moves,rst_moves):
-        #print('std')
-        #for step,state,action in std_moves:
-        #    print(step,self.State(state,self),action)
-        #print('rst')
-        #for step,state,action in rst_moves:
-        #    print(step,self.State(state,self),action)
-
-        if len(std_moves)!=len(rst_moves) :return False
-        return all(
-                std_move[2]==rst_move[2]
-                for std_move,rst_move in zip(std_moves,rst_moves)
-                )
-    def shift(self,last_ind,stat):
-        state=self.State(stat,self.lattice)
-        shift_inds=self.lattice.begins.get(state.span[1],[])
-        rtn=[]
-        for shift_ind in shift_inds:
-            rtn+=state.shift(shift_ind)
-        return rtn
-
-    def reduce(self,last_ind,stat,pred_inds,predictors):
-        rtn=[]
-        st=self.State(stat,self.lattice)
-        for i,predictor in enumerate(predictors) :
-            pre_st=self.State(predictor,self.lattice)
-            rtn+=st.reduce(pre_st,i)
-        return rtn
-    ## stuffs about the early update
     def set_oracle(self,raw,y) :
         self.set_raw(raw,None)
 
