@@ -83,7 +83,7 @@ if __name__ == '__main__':
             'Ya': raw_with_Ya_reader,
             'Yb': raw_with_Yb_reader,
             }
-    writers={'raw':raw_writer,
+    writers={'raw': raw_writer,
             'Ya': raw_with_Ya_writer,
             'Yb':raw_with_Yb_writer,
             }
