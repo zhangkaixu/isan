@@ -36,7 +36,9 @@ public:
         if(this->early_stop_checker)this->use_early_stop=true;
         this->feature_generator=feature_generator;
         this->shifted_state_generator=shifted_state_generator;
+        
         this->reduced_state_generator=reduced_state_generator;
+        //std::cout<<reduced_state_generator<<"\n";
         weights=new Default_Weights();
     };
     ~General_Searcher_Data(){
@@ -76,16 +78,18 @@ public:
             std::vector<int>& reduce_pred_alphas,
             std::vector<Score_Type>& scores
             ){
-        (*reduced_state_generator)(
-                state_ind,
-                state,
-                pred_alphas,
-                next_actions,
-                next_inds,
-                next_states,
-                reduce_pred_alphas
-                );
-        cal_weights(state,next_actions,scores);
+        if(this->reduced_state_generator){
+            (*reduced_state_generator)(
+                    state_ind,
+                    state,
+                    pred_alphas,
+                    next_actions,
+                    next_inds,
+                    next_states,
+                    reduce_pred_alphas
+                    );
+            cal_weights(state,next_actions,scores);
+        }
     };
     inline void cal_weights(
             const STATE& state,
@@ -132,7 +136,7 @@ public:
         };
 
         reduced_state_generator=NULL;
-        if(py_reduce_callback){
+        if(py_reduce_callback!=Py_None){
             reduced_state_generator=new Python_Reduced_State_Generator(py_reduce_callback);
         };
 

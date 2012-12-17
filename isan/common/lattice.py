@@ -11,13 +11,6 @@ class Lattice_Task(isan.common.perceptrons.Task):
         return [self.State.init_stat]
 
     def check(self,std_moves,rst_moves):
-        #print('std')
-        #for step,state,action in std_moves:
-        #    print(step,self.State(state,self),action)
-        #print('rst')
-        #for step,state,action in rst_moves:
-        #    print(step,self.State(state,self),action)
-
         if len(std_moves)!=len(rst_moves) :return False
         return all(
                 std_move[2]==rst_move[2]
@@ -105,10 +98,10 @@ class Lattice_Task(isan.common.perceptrons.Task):
         last_steps,last_states,actions=zip(*moves)
         for last_state,action,next_state in zip(last_states,actions,next_states):
             if last_state==b'': return False
-            next_state=self.State.load(next_state)#pickle.loads(next_state)
+            next_state=self.State.load(next_state)
             if next_state == self.std_states[-1][1] : 
         
-                last_state=self.State.load(last_state)#pickle.loads(last_state)
+                last_state=self.State.load(last_state)
                 if step==0 or last_state==self.std_states[-1][2] :
                     ps=self.std_states.pop()
                     self.early_stop_step=ps[0]
@@ -116,13 +109,6 @@ class Lattice_Task(isan.common.perceptrons.Task):
         #print("Eearly STOP!")
         return True
     def update_moves(self,std_moves,rst_moves) :
-        #print('update',self.early_stop_step)
-        #for std,rst in zip(std_moves,rst_moves) :
-        #    if std!= rst :
-        #        yield std,1
-        #        yield rst,-1
-        #        return
-        #return
         for std in std_moves:
             if self.early_stop_step == None or self.early_stop_step>=std[0] :
                 yield std, 1
