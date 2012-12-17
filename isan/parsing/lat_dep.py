@@ -234,7 +234,6 @@ class Dep (Base_Task):
     Eval=eval.Eval
     codec=codec
 
-
     def set_raw(self,raw,_):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
@@ -242,7 +241,7 @@ class Dep (Base_Task):
         self.lattice=raw
         self.cb_fvs=[]
         for i,item in enumerate(self.lattice.items):
-            fv=[b'CBstep' for x in range(2*(item[1]-item[0])-1)]
+            fv=[]
 
             for j,c in enumerate(item[2]):
 
@@ -264,6 +263,7 @@ class Dep (Base_Task):
                 l2=l2.encode()
                 r1=r1.encode()
                 r2=r2.encode()
+                tag=item[3].encode()
                 fv+=[
                         b'C1'+pos+c,
                         b'C2'+pos+l1,
@@ -272,12 +272,63 @@ class Dep (Base_Task):
                         b'C5'+pos+l1+c,
                         b'C6'+pos+c+r1,
                         b'C7'+pos+r1+r2,
+                        b'CT1'+pos+c+tag,
+                        b'CT2'+pos+l1+tag,
+                        b'CT3'+pos+r1+tag,
+                        b'CT4'+pos+l2+l1+tag,
+                        b'CT5'+pos+l1+c+tag,
+                        b'CT6'+pos+c+r1+tag,
+                        b'CT7'+pos+r1+r2+tag,
                         ]
             self.cb_fvs.append(fv)
         self.margins=[str(math.floor(math.log(float(k)/64.0+1))).encode() if k!=None else None 
                 for k in self.lattice.weights]
         
         self.f_raw=[[k[2].encode(),k[3].encode()] for k in self.lattice.items]
+
+    #def set_raw(self,raw,_):
+    #    """
+    #    对需要处理的句子做必要的预处理（如缓存特征）
+    #    """
+    #    self.lattice=raw
+    #    self.cb_fvs=[]
+    #    for i,item in enumerate(self.lattice.items):
+    #        fv=[b'CBstep' for x in range(2*(item[1]-item[0])-1)]
+
+    #        for j,c in enumerate(item[2]):
+
+    #            o=item[0]+j
+    #            if item[0]+1==item[1]:
+    #                pos=b's'
+    #            elif o == item[0] :
+    #                pos=b'b'
+    #            elif o==item[1]-1 :
+    #                pos=b'e'
+    #            else :
+    #                pos=b'm'
+    #            l2=self.lattice.sentence[o-2] if o-2>=0 else '#'
+    #            l1=self.lattice.sentence[o-1] if o-1>=0 else '#'
+    #            r1=self.lattice.sentence[o+1] if o+1<len(self.lattice.sentence) else '#'
+    #            r2=self.lattice.sentence[o+2] if o+2<len(self.lattice.sentence) else '#'
+    #            c=c.encode()
+    #            l1=l1.encode()
+    #            l2=l2.encode()
+    #            r1=r1.encode()
+    #            r2=r2.encode()
+    #            fv+=[
+    #                    b'C1'+pos+c,
+    #                    b'C2'+pos+l1,
+    #                    b'C3'+pos+r1,
+    #                    b'C4'+pos+l2+l1,
+    #                    b'C5'+pos+l1+c,
+    #                    b'C6'+pos+c+r1,
+    #                    b'C7'+pos+r1+r2,
+    #                    ]
+    #        self.cb_fvs.append(fv)
+    #    self.margins=[str(math.floor(math.log(float(k)/64.0+1))).encode() if k!=None else None 
+    #            for k in self.lattice.weights]
+    #    
+    #    self.f_raw=[[k[2].encode(),k[3].encode()] for k in self.lattice.items]
 
     def gen_features(self,span,actions):
         stat=self.State.load(span)
@@ -346,6 +397,7 @@ class Dep (Base_Task):
 
         def _shift_f(stat,sind):
             q0_w,q0_t=self.f_raw[sind]
+            q0_m=self.margins[sind]
             fv=[
                     b'S0'+w0_w,
                     b'S1'+w0_t,
@@ -363,6 +415,8 @@ class Dep (Base_Task):
                     b'6'+q0_w,
                     b'7'+q0_t,
                     b'8'+q0_w+q0_t,
+                    ]
+            fv+=[
                     #(2)
                     b'a'+s0_t+q0_t,
                     #(3)
@@ -370,10 +424,9 @@ class Dep (Base_Task):
                     b'j'+s0_w+s1_t+q0_t,
                     ]
             fv+=self.cb_fvs[sind]
-            if s0_m :
-                fv+=[b'M'+s0_m]
+            if q0_m : fv+=[b'M'+q0_m]
             ba=b'sh'
-            fv=[ba+x for x in fv]+[b'SHIFT']
+            fv=[ba+x for x in fv]
             return fv
             pass
         def _reduce_f(stat,action):
