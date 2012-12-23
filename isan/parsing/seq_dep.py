@@ -115,9 +115,6 @@ class Dep (Base_Dep):
         stat=self.State.load(span)
         ind,sp,stack_top,sequence=stat
         b,e=sp
-
-        qq0=self.lattice.sentence[e].encode() if e < len(self.lattice.sentence) else b'#'
-        qq1=self.lattice.sentence[e+1].encode() if e+1 < len(self.lattice.sentence) else b'#'
         
         qid=self.lattice.begins.get(sp[1],[len(self.f_raw)])[0]
 
@@ -180,18 +177,7 @@ class Dep (Base_Dep):
                 b'p'+s0_w+s1_t+s0r_t,
                 b'q'+s0_t+s1_t+s2_t,
 
-                #b'6~'+qq0,
-                #b'7~'+qq0+qq1,
-                ##(2)
-                #b'a~'+s0_t+qq0,
-                #b'a~~'+s0_t+qq0+qq1,
-                ##(3)
-                #b'i~'+s0_w+qq0,
-                #b'h~'+s0_t+s1_t+qq0,
-                #b'h~~'+s0_t+s1_t+qq0+qq1,
-                #b'j~'+s0_w+s1_t+qq0,
-
-
+                b'6'+q0_w,
                 b'7'+q0_t,
                 b'8'+q0_w+q0_t,
                 b'a'+s0_t+q0_t,
@@ -203,10 +189,8 @@ class Dep (Base_Dep):
                 ]
 
         def _shift_f(stat,sind):
-            #q0_w,q0_t=self.f_raw[sind]
-            #q0_m=self.margins[sind]
             fv=base_fv[:]
-            ba=b'sh'
+            ba=b's'
             fv=[ba+x for x in fv]
             return fv
             pass
@@ -224,6 +208,8 @@ class Dep (Base_Dep):
                 fv=_shift_f(span,rest[0])
             else :
                 fv=_reduce_f(span,action)
+            #print(sorted(fv))
             fvs.append(fv[:])
+        #input()
         return fvs
 

@@ -12,13 +12,18 @@ test_dag:
 test_dep:
 	./parsing.sh model.bin --train test/ctb5.test.txt --dev test/ctb5.test.txt
 
+test_dep2:
+	#./dep2.sh model.bin --train test/ctb5.test.txt --dev test/ctb5.test.txt
+	./dep2.sh model.bin --train test/train1000.dlat --dev test/test.dlat
+	#./dep2.sh model.bin --train test/train.dlat --dev test/test.dlat
+
 test_lat_dep:
 	./lat_dep.sh model.bin --train test/train1000.dlat --dev test/test.dlat --iteration=20
 	#./lat_dep.sh model.bin --train test/train.dlat --dev test/test.dlat --iteration=20
 
 test_seq_dep:
-	./seq_dep.sh model.bin --train test/train1000.dlat --dev test/test.dlat --iteration=20
-	#./seq_dep.sh model.bin --train test/train.dlat --dev test/test.dlat --iteration=20
+	#./seq_dep.sh model.bin --train test/train1000.dlat --dev test/test.dlat --iteration=20
+	./seq_dep.sh model.bin --train test/train.dlat --dev test/test.dlat --iteration=20
 
 test_lat_tag:
 	#./lat_tag.sh model.bin --train test/train.dlat --dev test/test.dlat --iteration=5

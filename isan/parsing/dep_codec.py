@@ -16,7 +16,6 @@ def decode(line):
         
 
 def to_raw(line):
-    #print(line)
     return [(w,t)for w,t,*_ in line]
     
 
