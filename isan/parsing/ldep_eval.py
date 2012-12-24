@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from isan.parsing.eval import PRF
 import time
 
 class Eval:
@@ -7,6 +8,7 @@ class Eval:
     def make_color(s):
         return '\033[36;01m%s\033[1;m'%s #blue
     def __init__(self):
+        self.base=PRF()
         self.dep_src=[0,0,0]
         self.tag_src=[0,0,0]
         self.seg_src=[0,0,0]
@@ -37,9 +39,16 @@ class Eval:
         #input()
         std=[(x[0][:3],x[0][3],x[1][0]) for x in std_result if x[1] ]
         std=set(std)
-        self.cal_src({(w,d[:3] if d else None) for w,t,d in std},
-                {(w,d[:3] if d else None) for w,t,d in rst},
+
+        dep_std={x for x in std if x[1]!='PU'}
+        dep_rst={x for x in rst if x[1]!='PU'}
+        self.base({(w,d[:3] if d else None) for w,t,d in dep_std},
+                {(w,d[:3] if d else None) for w,t,d in dep_rst})
+
+        self.cal_src({(w,d[:3] if d else None) for w,t,d in dep_std},
+                {(w,d[:3] if d else None) for w,t,d in dep_rst},
                 self.dep_src)
+
         std=set(x[:2] for x in std)
         rst=set(x[:2] for x in rst)
         #print(std)
@@ -77,7 +86,7 @@ class Eval:
     def print_result(self):
         duration=time.time()-self.start_time
         print(duration)
-        self.print_src(self.dep_src)
+        print(self.base)
         self.print_src(self.tag_src)
         self.print_src(self.seg_src)
 
