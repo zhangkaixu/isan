@@ -1,4 +1,6 @@
 from struct import Struct
+import json
+import sys
 import isan.tagging.eval as tagging_eval
 #import isan.tagging.cwstask as cwstask
 
@@ -31,6 +33,8 @@ class Task:
             从一行文本中，得到输入（raw）和输出（y）
             """
             if not line: return []
+            if line[0]=='{' :
+                return json.loads(line)
             seq=[word for word in line.split()]
             raw=''.join(seq)
             return {'raw':raw,
@@ -105,8 +109,29 @@ class Task:
         """
         ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
         next_ind=last_ind+1 if last_ind+1 <= len(self.raw) else -1
+        if self.actions and self.actions[ind]:
+            if self.actions[ind]=='s':
+                return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl))]
+            else :
+                return [(self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+        if self.intervals :
+            rtn=[]
+            ll,lr=self.intervals[ind-wordl]
+            rl,rr=self.intervals[ind]
+            if lr!=-1 and lr<=ind :
+                return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl))]
+            if rl!=-1 and ind-wordl<rl :
+                return [(self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
         return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
+    #def shift(self,last_ind,stat):
+    #    """
+    #    根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
+    #    """
+    #    ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
+    #    next_ind=last_ind+1 if last_ind+1 <= len(self.raw) else -1
+    #    return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
+    #            (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
     reduce=None
 
     def check(self,std_moves,rst_moves):
@@ -117,6 +142,8 @@ class Task:
 
     def update_moves(self,std_moves,rst_moves) :
         for move in std_moves :
+            if self.early_stop and move[0]>=self.early_stop :
+                break
             yield move, 1
         for move in rst_moves :
             yield move, -1
@@ -128,24 +155,53 @@ class Task:
         """
         #self.init_stat,self.shift,self.gen_features=cwstask.new()
         #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
+        #self.init_stat,_,self.gen_features=cwstask.new()
+        #self.init_stat,_,_=cwstask.new()
         pass
 
     """
     stuffs about the early update
     """
     def set_oracle(self,raw,y) :
-        return self.result_to_moves(y)
+        self.early_stop=None
+        moves=self.result_to_moves(y)
+        self.oracle={}
+        self.max_ind=0
+        for ind,state,action in moves:
+            self.oracle[ind]=state
+            if ind > self.max_ind : self. max_ind = ind;
 
+        return moves
     def remove_oracle(self):
-        pass
+        self.oracle=None
+    
+    #def early_stop(self,step,next_states,moves):
+    #    if (not hasattr(self,"oracle")) or (not self.oracle) : return False
+    #    if step>0 and step in self.oracle :
+    #        state=self.oracle[step]
+    #        for s,m in zip(next_states,moves) :
+    #            if s==state :
+    #                if m[0] not in self.oracle or self.oracle[m[0]]!=m[1]: 
+    #                    self.early_stop=step
+    #                    return True
+    #                else :
+    #                    return False
+    #        self.early_stop=step
+    #        return True
+    #    return False
 
     """
     stuffs about the feature generation
     """
-    def set_raw(self,raw,_):
+    def set_raw(self,raw,Y=None):
         """
         这个函数用来在每次新到一个输入的时候，做一些预处理，一般为了加快特征向量生成的速度
         """
+        if Y:
+            self.actions,self.intervals=Y
+        else :
+            self.actions,self.intervals=None,None
+
         self.raw=raw
         uni_chars=list(x.encode() for x in '###'+raw+'##')
         bi_chars=[uni_chars[i]+uni_chars[i+1]
