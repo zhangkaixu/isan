@@ -112,8 +112,9 @@ class Dep (Base_Dep):
         self.f_raw=[[k[2].encode(),k[3].encode()] for k in self.lattice.items]
 
     def gen_features(self,span,actions):
+        
         stat=self.State.load(span)
-        ind,sp,stack_top,sequence=stat
+        ind,sp,stack_top,*_=stat
         b,e=sp
         
         qid=self.lattice.begins.get(sp[1],[len(self.f_raw)])[0]
@@ -125,13 +126,6 @@ class Dep (Base_Dep):
         if qid+1< len(self.f_raw) :
             q1_w,q1_t=self.f_raw[qid+1]
 
-        w0_w,w0_t=b'~',b'~'
-        w1_w,w1_t=b'~',b'~'
-        if sequence[0]!=None :
-            w0_w,w0_t=self.f_raw[sequence[0]]
-        if sequence[1]!=None :
-            w1_w,w1_t=self.f_raw[sequence[1]]
-
         #print(w1_w.decode(),w0_w.decode(),q0_w.decode(),q1_w.decode())
 
         s0,s1,s2_t=stack_top
@@ -141,7 +135,7 @@ class Dep (Base_Dep):
             s0l_t=b'~' if s0l_t is None else s0l_t.encode()
             s0r_t=b'~' if s0r_t is None else s0r_t.encode()
             s0_w,s0_t=self.f_raw[s0_ind]
-            s0_m=self.margins[s0_ind]
+            #s0_m=self.margins[s0_ind]
         else:
             s0_w,s0_t,s0l_t,s0r_t=b'~',b'~',b'~',b'~'
             s0_m=b'~'

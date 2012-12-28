@@ -5,10 +5,10 @@ import isan.parsing.eval as eval
 from isan.data.lattice import Lattice as Lattice
 from isan.common.lattice import Lattice_Task as Base_Task
 
-from isan.parsing.lat_dep import Action as Base_Action
-from isan.parsing.lat_dep import State as Base_State
-from isan.parsing.lat_dep import codec as base_codec
-from isan.parsing.lat_dep import Dep as Base_Dep
+from isan.parsing.seq_dep import Action as Base_Action
+from isan.parsing.seq_dep import State as Base_State
+from isan.parsing.seq_dep import codec as base_codec
+from isan.parsing.seq_dep import Dep as Base_Dep
 
 
 class codec (base_codec):
@@ -125,18 +125,23 @@ class Action (Base_Action):
 
 class State(Action,Base_State) :
     init_stat=pickle.dumps((0,(0,0),(None,None,None)))
+    shift_cost=1
+    reduce_cost=1
     def __init__(self,bt,lattice):
         self.lattice=lattice
         state=pickle.loads(bt)
         self.ind,self.span,self.stack_top=state
         #self.stop_step=2*len(self.lattice.items)-1
-        self.stop_step=2*self.lattice.length-1
+        #self.stop_step=2*self.lattice.length-1
+        self.stop_step=self.lattice.length*State.shift_cost+(self.lattice.length-1)*State.reduce_cost
 
     def shift(self,shift_ind):
         item=self.lattice.items[shift_ind]
         #next_ind=self.ind+1
         next_ind=self.ind+2*len(item[2])-1
-        if next_ind==self.stop_step : next_ind=-1
+        #next_ind=self.ind+len(item[2])*State.shift_cost+(len(item[2])-1)*State.reduce_cost
+        #if next_ind==self.stop_step : next_ind=-1
+        if item[1]==self.lattice.length and self.stack_top[0]==None : next_ind=-1
 
         state=(
                 next_ind,
@@ -149,9 +154,13 @@ class State(Action,Base_State) :
         pass
     def reduce(self,pre_state,alpha_ind):
         next_ind=self.ind+1
-        if next_ind==self.stop_step : next_ind=-1
+        #next_ind=self.ind+State.reduce_cost
+        if self.span[1]==self.lattice.length and pre_state.stack_top[1]==None : next_ind=-1
+        
         s0,s1,s2=self.stack_top
+        
         if s0==None or s1==None: return []
+
         reduce_state1=(
                 next_ind, 
                 (pre_state.span[0],self.span[1]), 
@@ -170,8 +179,6 @@ class State(Action,Base_State) :
 
 class Dep (Base_Dep):
     pass
-
-class XX:
     name="依存句法分析"
     Action=Action
     State=State
@@ -179,14 +186,6 @@ class XX:
     Eval=eval.Eval
     codec=codec
 
-
-    def set_raw(self,raw,Y):
-        """
-        对需要处理的句子做必要的预处理（如缓存特征）
-        """
-        self.lattice=raw
-        self.f_raw=[[w.encode()if w else b'',t.encode()if t else b''] 
-                for b,e,w,t in self.lattice.items]
 
     def gen_features(self,span,actions):
         fvs=[]
