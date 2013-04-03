@@ -408,7 +408,7 @@ public:
                 end_map=sequence[step];
                 break;
             };
-            //std::cout<<"step "<<step<<"\n";
+            //std::cout<<"step "<<step<<" beam size:"<<beam.size()<<"\n";
             
             
             /*gen next step*/
@@ -434,6 +434,8 @@ public:
                         next_inds,
                         shifted_states,
                         shift_scores);
+
+                
 
 #ifdef REDUCE
                 this->data->reduce(

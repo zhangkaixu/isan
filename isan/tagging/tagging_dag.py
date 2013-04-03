@@ -70,21 +70,22 @@ class codec :
 
         if not line: return []
         log2=math.log(2)
-        ldep=json.loads(line)
-        raw=[]
+        line=list(map(lambda x:x.split(','), line.split()))
+        line=[[int(label),int(b),int(e),w,t,int(conf)] for label,b,e,w,t,conf in line]
+        items=[]
+        weights=[]
         y=[]
-        #print(ldep)
-        for k,v in ldep :
-            if 'tag-weight' in v or v.get('is_test',True)==False :
-                weight=v.get('tag-weight',None)
-                weight=[math.floor(math.log(int(weight)+1)/log2)] if weight!=None else []
-                raw.append([(k[0],k[2],k[3]),weight])
-            if 'dep' in v :
-                #y.append((k[0],k[2],k[3],v['dep'][1],v['dep'][0]))
-                y.append((k[0],k[2],k[3]))
-        raw,weights=zip(*raw)
-        raw=[(it[0],it[0]+len(it[1]),it[1],it[2]) for it in raw]
-        raw=Lattice(raw,weights)
+        for l,b,e,w,t,conf in line :
+            if conf != -2:
+                items.append([b,e,w,t])
+                if conf == -1 :
+                    conf = None
+                else :
+                    conf = str(math.floor(math.log(conf/500+1)))
+                weights.append(conf)
+            if l ==1 :
+                y.append((b,w,t))
+        raw=Lattice(items,weights)
         return {'raw':raw,
                 'y':y,
                 'Y_a' : None,
@@ -100,11 +101,16 @@ class State :
     def __init__(self,bt,lattice):
         words,*_=pickle.loads(bt)
         self.w1,self.w0=words
+        self.lattice=lattice
     def shift(self,wid):
         return pickle.dumps([(self.w0,wid)])
     @staticmethod
     def load(bt):
         return pickle.loads(bt)
+    def __str__(self):
+        return "【%i %s | %i %s】"%(
+                (self.w1),self.lattice.items[self.w1] if self.w1>=0 else '',
+                (self.w0),self.lattice.items[self.w0] if self.w0>=0 else '',)
 
 class Path_Finding (Base_Task):
     """
@@ -149,13 +155,12 @@ class Path_Finding (Base_Task):
         nexts=[]
         for ind3 in self.lattice.begins[step] :
             next_step=self.shift_step(step,ind3)
-            print(next_step)
-            input()
             n=(
                     ind3, #shift action id
                     next_step,
                     state.shift(ind3)
                 )
+            #print(n[0],n[1],self.State(n[2],self.lattice))
             nexts.append(n)
         return nexts
     reduce=None
@@ -248,7 +253,7 @@ class Path_Finding (Base_Task):
                 w1,t1=r[0][1].encode(),str(r[0][2]).encode()
                 len1=str(len(r[0][1])).encode()
                 f1,b1=r[0][1][0].encode(),r[0][1][-1].encode()
-                m1=b'' if not r[1] else str(r[1][0]).encode()
+                m1=None if r[1] is None else r[1].encode()
             if ind2==-1 :
                 w2,t2=b'~',b'~'
                 len2=b'0'
@@ -262,7 +267,7 @@ class Path_Finding (Base_Task):
                 w2,t2=r[0][1].encode(),str(r[0][2]).encode()
                 len2=str(len(r[0][1])).encode()
                 f2,b2=r[0][1][0].encode(),r[0][1][-1].encode()
-                m2=b'' if not r[1] else str(r[1][0]).encode()
+                m2=None if r[1] is None else r[1].encode()
             if ind3==-1 :
                 w3,t3=b'~',b'~'
                 len3=b'0'
@@ -277,15 +282,19 @@ class Path_Finding (Base_Task):
                 w3,t3=r[0][1].encode(),str(r[0][2]).encode()
                 len3=str(len(r[0][1])).encode()
                 f3,b3=r[0][1][0].encode(),r[0][1][-1].encode()
-                m3=b'' if not r[1] else str(r[1][0]).encode()
+                m3=None if r[1] is None else r[1].encode()
 
-            fv=[
-                    b'm3~'+m3,
-                    b'm3m2~'+m3+b'~'+m2,
+            fv=(([b'm3~'+m3,] if m3 is not None else [])+
+                    ([b'm3m2~'+m3+b'~'+m2,] if m3 is not None  and m2 is not None else [])+
+            [
                     b'w3~'+w3,
                     b't3~'+t3,
                     b'w3t3~'+w3+t3,
                     b'l3~'+len3,
+                    b'l3l2~'+len3+b'~'+len2,
+                    b'l3l2l1~'+len3+b'~'+len2+b'~'+len1,
+                    b'w3l2~'+w3+b'~'+len2,
+                    b'w3t3l2~'+w3+t3+b'~'+len2,
                     b'l3t3~'+len3+t3,
                     b'l3w2~'+len3+w2,
                     b'l3t2~'+len3+t2,
@@ -294,12 +303,12 @@ class Path_Finding (Base_Task):
                     b'w3w2t2~'+w3+t2+w2,
                     b't3w2~'+t3+w2,
                     b'w3t2~'+w3+t2,
-                    b'w3t3~'+w3+t3,
                     b't3t2~'+t3+t2,
                     b't3t1~'+t3+t1,
                     b't3t2t1~'+t3+t2+t1,
                     
-                    ]
+                    ])
+            #print(fv)
             fvs.append(fv)
         return fvs
     Eval=Eval
