@@ -116,6 +116,24 @@ class Path_Finding (Base_Task):
     """
     finding path in a DAG
     """
+
+    def __init__(self):
+        self.sgcount={}
+
+        
+        for line in open("sg.count.txt"):
+            word,f15,f0,fw=line.split()
+            f15=int(f15)
+            f0=int(f0)
+            fw=float(fw)
+            if f0==0 or fw==0 : continue
+            self.sgcount[word]=[
+                    str(int(math.log(f15))).encode(),
+                    str(int(math.log(f0))).encode(),
+                    str(int(math.log(f0/f15))).encode(),
+                    str(int(math.log(fw/f15))).encode(),
+                    ]
+
     codec=codec
     State=State
 
@@ -167,7 +185,6 @@ class Path_Finding (Base_Task):
 
 
     def actions_to_moves(self,actions):
-
         state=self.init_state
         step=0
         moves=[]
@@ -273,6 +290,7 @@ class Path_Finding (Base_Task):
                 len3=b'0'
                 f3,b3=b'~',b'~'
                 m3=b''
+                w3sg=[b'',b'',b'',b'']
             else :
                 r=[(self.lattice.items[ind3][0],
                         self.lattice.items[ind3][2],
@@ -283,6 +301,10 @@ class Path_Finding (Base_Task):
                 len3=str(len(r[0][1])).encode()
                 f3,b3=r[0][1][0].encode(),r[0][1][-1].encode()
                 m3=None if r[1] is None else r[1].encode()
+                if len(w3)==1 :
+                    w3sg=[b'~',b'~',b'~',b'~']
+                else :
+                    w3sg=self.sgcount.get(w3,[b'*',b'*',b'*',b'*'])
 
             fv=(([b'm3~'+m3,] if m3 is not None else [])+
                     ([b'm3m2~'+m3+b'~'+m2,] if m3 is not None  and m2 is not None else [])+
@@ -307,6 +329,10 @@ class Path_Finding (Base_Task):
                     b't3t1~'+t3+t1,
                     b't3t2t1~'+t3+t2+t1,
                     
+                    b'w3sg1~'+w3sg[0],
+                    b'w3sg2~'+w3sg[1],
+                    b'w3sg3~'+w3sg[2],
+                    b'w3sg4~'+w3sg[3],
                     ])
             #print(fv)
             fvs.append(fv)
