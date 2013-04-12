@@ -122,21 +122,30 @@ class Path_Finding (Base_Task):
         for line in open("av.txt"):
             word,av=line.split()
             av=int(av)
-            self.av[word]=str(int(math.log(av+1))).encode()
+            self.av[word]=str(int(math.log(av+1)*2)).encode()
+            #print(word,self.av[word],av)
 
-        self.sgcount={}
-        for line in open("sg.count.txt"):
-            word,f15,f0,fw=line.split()
-            f15=int(f15)
-            f0=int(f0)
-            fw=float(fw)
-            if f0==0 or fw==0 : continue
-            self.sgcount[word]=[
-                    str(int(math.log(f15))).encode(),
-                    str(int(math.log(f0))).encode(),
-                    str(int(math.log(f0/f15))).encode(),
-                    str(int(math.log(fw/f15))).encode(),
-                    ]
+
+        self.ae={}
+        for line in open("large.50.txt"):
+            word,*inds=line.split()
+            inds=[x.encode() for x in inds]
+            self.ae[word]=inds
+
+
+        #self.sgcount={}
+        #for line in open("sg.count.txt"):
+        #    word,f15,f0,fw=line.split()
+        #    f15=int(f15)
+        #    f0=int(f0)
+        #    fw=float(fw)
+        #    if f0==0 or fw==0 : continue
+        #    self.sgcount[word]=[
+        #            str(int(math.log(f15))).encode(),
+        #            str(int(math.log(f0))).encode(),
+        #            str(int(math.log(f0/f15))).encode(),
+        #            str(int(math.log(fw/f15))).encode(),
+        #            ]
 
     codec=codec
     State=State
@@ -229,13 +238,6 @@ class Path_Finding (Base_Task):
         self.oracle={}
         for step,state,action in moves2 :
             self.oracle[step]=self.State.load(state)
-        
-        #print(self.lattice)
-        #for move in moves2:
-        #    print(move[0],self.State.load(move[1]),move[2])
-        #print(moves2)
-        #input()
-
         return moves2
     def remove_oracle(self):
         self.oracle=None
@@ -254,6 +256,19 @@ class Path_Finding (Base_Task):
 
     def set_raw(self,raw,Y):
         self.lattice=raw
+        self.words_av = []
+        self.ae_inds=[]
+        for item in raw.items :
+            word=item[2]
+            if len(word)==1 :
+                self.words_av.append(b'~')
+                self.ae_inds.append([])
+            else:
+                self.words_av.append(self.av.get(word,b'*'))
+                self.ae_inds.append(self.ae.get(word,[b'*']))
+        #print(self.ae_inds)
+        #input()
+
 
     def gen_features(self,state,actions):
         fvs=[]
@@ -280,6 +295,8 @@ class Path_Finding (Base_Task):
                 len2=b'0'
                 f2,b2=b'~',b'~'
                 m2=b''
+                w2av=b''
+                aeinds2=[]
             else :
                 r=[(self.lattice.items[ind2][0],
                         self.lattice.items[ind2][2],
@@ -289,13 +306,15 @@ class Path_Finding (Base_Task):
                 len2=str(len(r[0][1])).encode()
                 f2,b2=r[0][1][0].encode(),r[0][1][-1].encode()
                 m2=None if r[1] is None else r[1].encode()
+                w2av=self.words_av[ind2]
+                aeinds2=self.ae_inds[ind2]
             if ind3==-1 :
                 w3,t3=b'~',b'~'
                 len3=b'0'
                 f3,b3=b'~',b'~'
                 m3=b''
-                w3sg=[b'',b'',b'',b'']
                 w3av=b''
+                aeinds3=[]
             else :
                 r=[(self.lattice.items[ind3][0],
                         self.lattice.items[ind3][2],
@@ -306,12 +325,8 @@ class Path_Finding (Base_Task):
                 len3=str(len(r[0][1])).encode()
                 f3,b3=r[0][1][0].encode(),r[0][1][-1].encode()
                 m3=None if r[1] is None else r[1].encode()
-                if len(w3)==1 :
-                    w3sg=[b'~',b'~',b'~',b'~']
-                    w3av=b'~'
-                else :
-                    w3sg=self.sgcount.get(w3,[b'*',b'*',b'*',b'*'])
-                    w3av=self.av.get(w3,b'*')
+                w3av=self.words_av[ind3]
+                aeinds3=self.ae_inds[ind3]
 
             fv=(([b'm3~'+m3,] if m3 is not None else [])+
                     ([b'm3m2~'+m3+b'~'+m2,] if m3 is not None  and m2 is not None else [])+
@@ -337,11 +352,24 @@ class Path_Finding (Base_Task):
                     b't3t2t1~'+t3+t2+t1,
                     
                     b'w3av~'+w3av,
-                    #b'w3sg1~'+w3sg[0],
-                    #b'w3sg2~'+w3sg[1],
-                    #b'w3sg3~'+w3sg[2],
-                    #b'w3sg4~'+w3sg[3],
+                    b't3w3av~'+t3+b'~'+w3av,
+                    b'w2avw3av~'+w2av+b'~'+w3av,
+                    b'w2avt3~'+w2av+b'~'+t3,
+                    b't2w3av~'+t2+b'~'+w3av,
+                    #b'w2w3av~'+w2+b'~'+w3av,
                     ])
+            for aeind in aeinds3 :
+                fv+=[
+                        b't3aeind3'+t3+aeind,
+                        b't2aeind3'+t2+aeind,
+                        #b't1t2aeind3'+t1+b'~'+t2+aeind,
+                        ]
+            #for aeind in aeinds2 :
+            #    fv+=[
+            #            b't3aeind2'+t3+aeind,
+            #            #b't3aeind2t1'+t3+aeind+t1,
+            #            ]
+                #pass
             #print(fv)
             fvs.append(fv)
         return fvs
