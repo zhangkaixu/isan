@@ -118,9 +118,13 @@ class Path_Finding (Base_Task):
     """
 
     def __init__(self):
-        self.sgcount={}
+        self.av={}
+        for line in open("av.txt"):
+            word,av=line.split()
+            av=int(av)
+            self.av[word]=str(int(math.log(av+1))).encode()
 
-        
+        self.sgcount={}
         for line in open("sg.count.txt"):
             word,f15,f0,fw=line.split()
             f15=int(f15)
@@ -291,6 +295,7 @@ class Path_Finding (Base_Task):
                 f3,b3=b'~',b'~'
                 m3=b''
                 w3sg=[b'',b'',b'',b'']
+                w3av=b''
             else :
                 r=[(self.lattice.items[ind3][0],
                         self.lattice.items[ind3][2],
@@ -303,8 +308,10 @@ class Path_Finding (Base_Task):
                 m3=None if r[1] is None else r[1].encode()
                 if len(w3)==1 :
                     w3sg=[b'~',b'~',b'~',b'~']
+                    w3av=b'~'
                 else :
                     w3sg=self.sgcount.get(w3,[b'*',b'*',b'*',b'*'])
+                    w3av=self.av.get(w3,b'*')
 
             fv=(([b'm3~'+m3,] if m3 is not None else [])+
                     ([b'm3m2~'+m3+b'~'+m2,] if m3 is not None  and m2 is not None else [])+
@@ -329,10 +336,11 @@ class Path_Finding (Base_Task):
                     b't3t1~'+t3+t1,
                     b't3t2t1~'+t3+t2+t1,
                     
-                    b'w3sg1~'+w3sg[0],
-                    b'w3sg2~'+w3sg[1],
-                    b'w3sg3~'+w3sg[2],
-                    b'w3sg4~'+w3sg[3],
+                    b'w3av~'+w3av,
+                    #b'w3sg1~'+w3sg[0],
+                    #b'w3sg2~'+w3sg[1],
+                    #b'w3sg3~'+w3sg[2],
+                    #b'w3sg4~'+w3sg[3],
                     ])
             #print(fv)
             fvs.append(fv)
