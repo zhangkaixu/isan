@@ -31,6 +31,8 @@ class Eval:
     def __init__(self):
         self.std=0
         self.cor=0
+        self.cmpl_std=0
+        self.cmpl_cor=0
         self.non_root_std=0
         self.non_root_cor=0
         self.root_std=0
@@ -45,22 +47,29 @@ class Eval:
         rst=set((k,v) for k,v in enumerate(rst_result) if k in kset)
         self.base(std,rst)
         
-        self.std+=sum(1 for s in std_result if s[1]!='PU')
+        #self.std+=sum(1 for s in std_result if s[1]!='PU')
+        self.std+=len(std)
+        self.cmpl_std+=1
+        flag=True
         for s,r in zip(std_result,rst_result) : 
             if s[1]=='PU' : continue
             if s[2]!=-1 :
                 self.non_root_std+=1
                 if s[2]==r : self.non_root_cor+=1
+                else : flag=False
             else :
                 self.root_std+=1
                 if s[2]==r : self.root_cor+=1
+                else : flag=False
+        if flag : self.cmpl_cor+=1
         pass
     def print_result(self):
         duration=time.time()-self.start_time
-        print(self.base)
-        print("std:%d non-root正确率:\033[32;01m%.4f\033[1;m root正确率:\033[32;01m%.4f\033[1;m 历时:%.2f 现时:%s"%(
-                self.std,
+        #print(self.base)
+        print("word正确率:\033[32;01m%.4f\033[1;m non-root正确率:%.4f root正确率:%.4f 整句正确率:%.4f 历时:%.2f 现时:%s"%(
+                (self.root_cor+self.non_root_cor)/(self.non_root_std+self.root_std),
                 self.non_root_cor/self.non_root_std,
                 self.root_cor/self.root_std,
+                self.cmpl_cor/self.cmpl_std,
                 duration,
                 time.strftime("%H:%M:%S")))

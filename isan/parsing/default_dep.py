@@ -6,6 +6,14 @@ class Dep:
     name="依存句法分析"
 
     def __init__(self):
+        self.ae={}
+        #for line in open("large.50.99.txt"):
+        #for line in open("/home/zkx/wordtype/autoencoder/30words.9.txt"):
+        for line in open("/home/zkx/wordtype/autoencoder/70words.9.txt"):
+            word,*inds=line.split()
+            inds=[x.encode() for x in inds]
+            self.ae[word]=inds
+
         self.Y=None
     
     shift_action=ord('s')
@@ -14,11 +22,6 @@ class Dep:
     #init=(0,(0,0),(None,None,None))
 
     def check(self,std_moves,rst_moves):
-        #for std_move,rst_move in zip(std_moves,rst_moves):
-        #    print('std',pickle.loads(std_move[1]),chr(std_move[2]))
-        #for std_move,rst_move in zip(std_moves,rst_moves):
-        #    print('rst',pickle.loads(rst_move[1]),chr(rst_move[2]))
-        #input()
         return all(
                 std_move[2]==rst_move[2]
                 for std_move,rst_move in zip(std_moves,rst_moves)
@@ -92,6 +95,13 @@ class Dep:
         self.shift_rules=None
         self.f_raw=[[w.encode()if w else b'',t.encode()if t else b''] for w,t in raw]
 
+        self.ae_inds=[]
+        for word,tag in raw :
+            if len(word)==1 :
+                self.ae_inds.append([])
+            else:
+                self.ae_inds.append(self.ae.get(word,[b'*']))
+
     def gen_features(self,span,actions):
         fvs=[]
         fv=self.gen_features_one(span)
@@ -107,15 +117,16 @@ class Dep:
 
         s2_t=b'~' if s2 is None else self.f_raw[s2][1]
 
-
         if s0:
             s0m,s0l,s0r=s0
             s0l_t=b'~' if s0l is None else self.f_raw[s0l][1]
             s0r_t=b'~' if s0r is None else self.f_raw[s0r][1]
             s0_w=self.f_raw[s0m][0]
             s0_t=self.f_raw[s0m][1]
+            aeind0h=self.ae_inds[s0m]
         else:
             s0_w,s0_t,s0l_t,s0r_t=b'~',b'~',b'~',b'~'
+            aeind0h=[]
 
         if s1:
             s1m,s1l,s1r=s1
@@ -129,13 +140,6 @@ class Dep:
         q0_w,q0_t=self.f_raw[ind] if ind<len(self.f_raw) else (b'~',b'~')
         q1_t=self.f_raw[ind+1][1] if ind+1<len(self.f_raw) else b'~'
 
-        #print(' '.join([str(i)+':'+it[0]+'_'+it[1] for i,it in enumerate(self.raw)]))
-        #print(stat)
-        #print(s0_w.decode(),s0_t,s0l_t,s0r_t)
-        #print(s1_w.decode(),s1_t,s1l_t,s1r_t)
-        #print(q0_w.decode(),q0_t,q1_t)
-        #input()
-        
         fv=[
                 #(1)
                 b'0'+s0_w,
@@ -171,8 +175,15 @@ class Dep:
                 #(5)
                 b'q'+s0_t+s1_t+s2_t,
                 ]
-        #print(*[x.decode() for x in fv])
-        #input()
+
+        for aeind in aeind0h :
+            fv+=[
+                    b'q0_taeind0~'+q0_t+aeind,
+                    b's0lt_taeind0~'+s0l_t+aeind,
+                    b's0rt_taeind0~'+s0r_t+aeind,
+                    b's1t_taeind0~'+s1_t+aeind,
+                    ]
+
         return fv
     def moves_to_result(self,moves,raw):
         #actions=moves[1]

@@ -127,7 +127,12 @@ class Path_Finding (Base_Task):
 
 
         self.ae={}
-        for line in open("large.50.txt"):
+        #for line in open("large.50.txt"):
+        #for line in open("30words.99.txt"):
+        #for line in open("/home/zkx/wordtype/autoencoder/30words.9.txt"):
+        #for line in open("/home/zkx/wordtype/autoencoder/30words.9.h60.txt"):
+        for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
+        #for line in open("/home/zkx/wordtype/autoencoder/70words.9.n10.txt"):
             word,*inds=line.split()
             inds=[x.encode() for x in inds]
             self.ae[word]=inds
@@ -268,7 +273,43 @@ class Path_Finding (Base_Task):
                 self.ae_inds.append(self.ae.get(word,[b'*']))
         #print(self.ae_inds)
         #input()
+        #sentence=[x.encode() for x in self.lattice.sentence]
+        #cb=[]
+        #for i in range(len(sentence)):
+        #    l2=sentence[i-2] if i-2 >=0 else b'#'
+        #    l1=sentence[i-1] if i-1 >=0 else b'#'
+        #    m=sentence[i]
+        #    r1=sentence[i+1] if i+1<len(sentence) else b'#'
+        #    r2=sentence[i+2] if i+2<len(sentence) else b'#'
+        #    cb.append([b'u1'+l1,b'u2'+m,b'u3'+r1,
+        #            b'b1'+l2+l1,b'b2'+l1+m,
+        #            b'b3'+m+r1,b'b4'+r1+r2])
 
+        #self.char_based=[]
+        #for item in raw.items :
+        #    b=item[0]
+        #    e=item[1]
+        #    word=item[2]
+        #    tag=item[3].encode()
+        #    if len(word)==1 :
+        #        #self.char_based.append([b'CBs'+tag+f for f in cb[b]])
+        #        self.char_based.append([b'CB2s'+f for f in cb[b]])
+        #        #self.char_based.append([b'CBs'+tag+f for f in cb[b]]+
+        #        #        [b'CB2s'+f for f in cb[b]])
+        #    else :
+        #        fv=[]
+        #        #fv.extend([b'CBb'+tag+f for f in cb[b]])
+        #        fv.extend([b'CB2b'+f for f in cb[b]])
+        #        for j in range(b+1,e-1) :
+        #            #fv.extend([b'CBm'+tag+f for f in cb[j]])
+        #            fv.extend([b'CB2m'+f for f in cb[j]])
+        #        #fv.extend([b'CBe'+tag+f for f in cb[e-1]])
+        #        fv.extend([b'CB2e'+f for f in cb[e-1]])
+        #        self.char_based.append(fv)
+
+        #for item,fv in zip(raw.items,self.char_based):
+        #    print(item[2],list(map(lambda x:x.decode(),fv)))
+        #input()
 
     def gen_features(self,state,actions):
         fvs=[]
@@ -315,6 +356,7 @@ class Path_Finding (Base_Task):
                 m3=b''
                 w3av=b''
                 aeinds3=[]
+                #cb3=[]
             else :
                 r=[(self.lattice.items[ind3][0],
                         self.lattice.items[ind3][2],
@@ -327,6 +369,7 @@ class Path_Finding (Base_Task):
                 m3=None if r[1] is None else r[1].encode()
                 w3av=self.words_av[ind3]
                 aeinds3=self.ae_inds[ind3]
+                #cb3=self.char_based[ind3]
 
             fv=(([b'm3~'+m3,] if m3 is not None else [])+
                     ([b'm3m2~'+m3+b'~'+m2,] if m3 is not None  and m2 is not None else [])+
@@ -362,6 +405,7 @@ class Path_Finding (Base_Task):
                 fv+=[
                         b't3aeind3'+t3+aeind,
                         b't2aeind3'+t2+aeind,
+                        #b'w2aeind3'+w2+aeind,
                         #b't1t2aeind3'+t1+b'~'+t2+aeind,
                         ]
             #for aeind in aeinds2 :
@@ -370,6 +414,7 @@ class Path_Finding (Base_Task):
             #            #b't3aeind2t1'+t3+aeind+t1,
             #            ]
                 #pass
+            #fv+=cb3
             #print(fv)
             fvs.append(fv)
         return fvs
