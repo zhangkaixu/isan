@@ -5,8 +5,30 @@ import json
 import time
 import math
 import sys
+import subprocess
 from isan.common.lattice import Lattice_Task as Base_Task
 from isan.data.lattice import Lattice as Lattice
+
+class Thulac :
+    def __init__(self,model_path,threshold=0,bin_path='bin/predict_c',
+            ):
+        self.sp=subprocess.Popen(bin_path+r' %s %s '%(
+            '--threshold %i'%(threshold) if threshold!=0 else '',
+            model_path,),
+                stdin=subprocess.PIPE,stdout=subprocess.PIPE,
+                shell=True)
+        self.threshold=threshold
+    def __call__(self,input):
+        input=input.strip()
+        self.sp.stdin.write((input+'\n').encode())
+        self.sp.stdin.flush()
+        output=self.sp.stdout.readline().decode().strip()
+        if self.threshold!=0 :
+            output=[it.split(',') for it in output.split()]
+            output=[[b,e,input[int(b):int(e)],t,i] for b,e,t,i in output]
+        else :
+            output=[it.split('_') for it in output.split()]
+        return output
 
 class Eval :
     def __init__(self):
@@ -118,6 +140,9 @@ class Path_Finding (Base_Task):
     """
 
     def __init__(self):
+
+
+
         self.av={}
         for line in open("av.txt"):
             word,av=line.split()
@@ -127,15 +152,12 @@ class Path_Finding (Base_Task):
 
 
         self.ae={}
-        #for line in open("large.50.txt"):
-        #for line in open("30words.99.txt"):
-        #for line in open("/home/zkx/wordtype/autoencoder/30words.9.txt"):
-        #for line in open("/home/zkx/wordtype/autoencoder/30words.9.h60.txt"):
+        #for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
         for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
-        #for line in open("/home/zkx/wordtype/autoencoder/70words.9.n10.txt"):
             word,*inds=line.split()
             inds=[x.encode() for x in inds]
             self.ae[word]=inds
+
 
 
         #self.sgcount={}
@@ -151,6 +173,19 @@ class Path_Finding (Base_Task):
         #            str(int(math.log(f0/f15))).encode(),
         #            str(int(math.log(fw/f15))).encode(),
         #            ]
+
+        self.mkcls={}
+        for line in open('brown.out'):
+            clu,word,_=line.split()
+        #for line in open('mkcls.out'):
+            #word,clu=line.split()
+            #if word not in self.ae : continue
+            self.mkcls[word]=str(int(clu)).encode()
+
+        self.thulac_model=Thulac(bin_path='~/minilac/bin/predict_c',
+                model_path='~/minilac/models/pku/model_c',
+                threshold=0)
+        
 
     codec=codec
     State=State
@@ -263,14 +298,48 @@ class Path_Finding (Base_Task):
         self.lattice=raw
         self.words_av = []
         self.ae_inds=[]
+        self.seq_mkcls=[]
+        result=self.thulac_model(self.lattice.sentence)
+        pku={}
+
+        offset=0
+        for w,t in result :
+            pku[(offset,offset+len(w))]=t.encode()
+            offset+=len(w)
+
+        #result=[[int(b),int(e),tag.encode(),int(m)] for b,e,_,tag,m in result]
+        #for b,e,tag,m in result:
+        #    s=(b,e)
+        #    if (s not in pku) or m < pku[s][1]:
+        #        pku[s]=(tag,m)
+        #pku={k:v[0]+(b'0' if v[1]==0 else b'1') for k,v in pku.items()}
+
+        
+
+
+        self.pku=[]
         for item in raw.items :
+            b=int(item[0])
+            e=int(item[1])
             word=item[2]
             if len(word)==1 :
                 self.words_av.append(b'~')
                 self.ae_inds.append([])
+                #self.seq_mkcls.append(b'$')
             else:
                 self.words_av.append(self.av.get(word,b'*'))
                 self.ae_inds.append(self.ae.get(word,[b'*']))
+            self.seq_mkcls.append(self.mkcls.get(word,b'*'))
+            self.pku.append(pku.get((b,e),b'*'))
+
+        #print(pku)
+        #input()
+
+
+
+        #print(raw)
+        #print(self.seq_mkcls)
+
         #print(self.ae_inds)
         #input()
         #sentence=[x.encode() for x in self.lattice.sentence]
@@ -322,6 +391,7 @@ class Path_Finding (Base_Task):
                 len1=b'0'
                 f1,b1=b'~',b'~'
                 m1=b''
+                pku1=b'^'
             else :
                 r=[(self.lattice.items[ind1][0],
                         self.lattice.items[ind1][2],
@@ -331,6 +401,7 @@ class Path_Finding (Base_Task):
                 len1=str(len(r[0][1])).encode()
                 f1,b1=r[0][1][0].encode(),r[0][1][-1].encode()
                 m1=None if r[1] is None else r[1].encode()
+                pku1=self.pku[ind1]
             if ind2==-1 :
                 w2,t2=b'~',b'~'
                 len2=b'0'
@@ -338,6 +409,8 @@ class Path_Finding (Base_Task):
                 m2=b''
                 w2av=b''
                 aeinds2=[]
+                mkcls2=b''
+                pku2=b'^'
             else :
                 r=[(self.lattice.items[ind2][0],
                         self.lattice.items[ind2][2],
@@ -349,6 +422,8 @@ class Path_Finding (Base_Task):
                 m2=None if r[1] is None else r[1].encode()
                 w2av=self.words_av[ind2]
                 aeinds2=self.ae_inds[ind2]
+                mkcls2=self.seq_mkcls[ind2]
+                pku2=self.pku[ind2]
             if ind3==-1 :
                 w3,t3=b'~',b'~'
                 len3=b'0'
@@ -356,6 +431,8 @@ class Path_Finding (Base_Task):
                 m3=b''
                 w3av=b''
                 aeinds3=[]
+                mkcls3=b''
+                pku3=b'^'
                 #cb3=[]
             else :
                 r=[(self.lattice.items[ind3][0],
@@ -370,6 +447,8 @@ class Path_Finding (Base_Task):
                 w3av=self.words_av[ind3]
                 aeinds3=self.ae_inds[ind3]
                 #cb3=self.char_based[ind3]
+                mkcls3=self.seq_mkcls[ind3]
+                pku3=self.pku[ind3]
 
             fv=(([b'm3~'+m3,] if m3 is not None else [])+
                     ([b'm3m2~'+m3+b'~'+m2,] if m3 is not None  and m2 is not None else [])+
@@ -393,6 +472,16 @@ class Path_Finding (Base_Task):
                     b't3t2~'+t3+t2,
                     b't3t1~'+t3+t1,
                     b't3t2t1~'+t3+t2+t1,
+                    #pku
+                    #b'pku3~'+pku3,
+                    b't3pku3~'+t3+b'~'+pku3,
+                    b't2pku3~'+t2+b'~'+pku3,
+                    b't3pku2~'+t3+b'~'+pku2,
+                    b'w2pku3~'+w2+b'~'+pku3,
+                    b'w3pku2~'+w3+b'~'+pku2,
+                    #b'w3pku3~'+w3+b'~'+pku3,
+                    #b't2pku2pku3~'+t2+b'~'+pku2+b'~'+pku3,
+                    #b't3pku2pku3~'+t3+b'~'+pku2+b'~'+pku3,
                     
                     b'w3av~'+w3av,
                     b't3w3av~'+t3+b'~'+w3av,
@@ -400,19 +489,32 @@ class Path_Finding (Base_Task):
                     b'w2avt3~'+w2av+b'~'+t3,
                     b't2w3av~'+t2+b'~'+w3av,
                     #b'w2w3av~'+w2+b'~'+w3av,
+
+                    #mkcls
+                    #b'mk3~'+mkcls3,
+                    #b't3mk3~'+t3+mkcls3,
+                    #b't2mk3~'+t2+mkcls3,
+                    #b't3mk2~'+t3+mkcls2,
+                    #b't2mk2mk3~'+t2+mkcls2+b'~'+mkcls3,
+                    #b't3mk2mk3~'+t3+mkcls2+b'~'+mkcls3,
+
                     ])
             for aeind in aeinds3 :
                 fv+=[
+                        #b'aeind3'+aeind,
                         b't3aeind3'+t3+aeind,
                         b't2aeind3'+t2+aeind,
+                        #b't3t2aeind3'+t3+b'~'+t2+b'~'+aeind,
                         #b'w2aeind3'+w2+aeind,
                         #b't1t2aeind3'+t1+b'~'+t2+aeind,
                         ]
-            #for aeind in aeinds2 :
-            #    fv+=[
-            #            b't3aeind2'+t3+aeind,
-            #            #b't3aeind2t1'+t3+aeind+t1,
-            #            ]
+                #print(fv[-3:])
+            #input()
+            for aeind in aeinds2 :
+                fv+=[
+                        b't3aeind2'+t3+aeind,
+                        #b't3aeind2t1'+t3+aeind+t1,
+                        ]
                 #pass
             #fv+=cb3
             #print(fv)
