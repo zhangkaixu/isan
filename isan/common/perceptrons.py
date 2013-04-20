@@ -28,8 +28,7 @@ import logging
 import sys
 import pickle
 import collections
-
-
+import random
 
 class Task:
     """
@@ -271,33 +270,47 @@ class Model(object):
             return
 
         
-    def train(self,training_file,iteration=5,dev_file=None):
+    def train(self,training_file,iteration=5,dev_file=None,keep_data=True):
         """
-
         训练
-        
-        根据一个Task
-
-        循环
-
-        首先生成一个 :py:class:`Task.Eval` 用于评测
-
-        读入一行 line
-
-        使用 :py:meth:`Task.codec.decode` 解码
-
-        
         """
-        for it in range(iteration):#迭代整个语料库
-            print("训练集第 \033[33;01m%i\033[1;m 次迭代"%(it+1),file=sys.stderr)
-            eval=self.task.Eval()#: 测试用的对象
-            if type(training_file)==str:training_file=[training_file]
-            for t_file in training_file:
+        if type(training_file)==str:training_file=[training_file]
+        random.seed(123)
+
+        if keep_data :
+            training_data=[]
+            for t_file in training_file :
                 for line in open(t_file):#迭代每个句子
                     rtn=self.task.codec.decode(line.strip())#得到标准输出
                     if not rtn:continue
-                    y,hat_y=self._learn_sentence(rtn)#根据（输入，输出）学习参数，顺便得到解码结果
-                    eval(y,hat_y)#根据解码结果和标准输出，评价效果
+                    training_data.append(rtn)
+            #random.shuffle(training_data)
+
+        def gen_data():
+            if keep_data :
+                perc=0
+                print(perc,end='%\r')
+                #random.shuffle(training_data)
+                for i,e in enumerate(training_data) :
+                    p=int(i*100/len(training_data))
+                    if p != perc :
+                        print("%i"%(p),end='%\r',file=sys.stderr)
+                        perc=p
+                    yield e
+            else :
+                for t_file in training_file:
+                    for line in open(t_file):#迭代每个句子
+                        rtn=self.task.codec.decode(line.strip())#得到标准输出
+                        if not rtn:continue
+                        yield rtn
+
+        for it in range(iteration):#迭代整个语料库
+            print("训练集第 \033[33;01m%i\033[1;m 次迭代"%(it+1),file=sys.stderr)
+            eval=self.task.Eval()#: 测试用的对象
+
+            for rtn in gen_data():
+                y,hat_y=self._learn_sentence(rtn)#根据（输入，输出）学习参数，顺便得到解码结果
+                eval(y,hat_y)#根据解码结果和标准输出，评价效果
             eval.print_result()#打印评测结果
             
             if dev_file:

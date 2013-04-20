@@ -183,7 +183,8 @@ class Path_Finding (Base_Task):
             self.mkcls[word]=str(int(clu)).encode()
 
         self.thulac_model=Thulac(bin_path='~/minilac/bin/predict_c',
-                model_path='~/minilac/models/pku/model_c',
+                #model_path='~/minilac/models/pku/model_c',
+                model_path='~/thulac/hailiang',
                 threshold=0)
         
 
@@ -472,23 +473,20 @@ class Path_Finding (Base_Task):
                     b't3t2~'+t3+t2,
                     b't3t1~'+t3+t1,
                     b't3t2t1~'+t3+t2+t1,
+
                     #pku
-                    #b'pku3~'+pku3,
-                    b't3pku3~'+t3+b'~'+pku3,
-                    b't2pku3~'+t2+b'~'+pku3,
-                    b't3pku2~'+t3+b'~'+pku2,
-                    b'w2pku3~'+w2+b'~'+pku3,
-                    b'w3pku2~'+w3+b'~'+pku2,
-                    #b'w3pku3~'+w3+b'~'+pku3,
-                    #b't2pku2pku3~'+t2+b'~'+pku2+b'~'+pku3,
-                    #b't3pku2pku3~'+t3+b'~'+pku2+b'~'+pku3,
+                    #b't3pku3~'+t3+b'~'+pku3,
+                    #b't2pku3~'+t2+b'~'+pku3,
+                    #b't3pku2~'+t3+b'~'+pku2,
+                    #b'w2pku3~'+w2+b'~'+pku3,
+                    #b'w3pku2~'+w3+b'~'+pku2,
                     
-                    b'w3av~'+w3av,
-                    b't3w3av~'+t3+b'~'+w3av,
-                    b'w2avw3av~'+w2av+b'~'+w3av,
-                    b'w2avt3~'+w2av+b'~'+t3,
-                    b't2w3av~'+t2+b'~'+w3av,
-                    #b'w2w3av~'+w2+b'~'+w3av,
+                    # av
+                    #b'w3av~'+w3av,
+                    #b't3w3av~'+t3+b'~'+w3av,
+                    #b'w2avw3av~'+w2av+b'~'+w3av,
+                    #b'w2avt3~'+w2av+b'~'+t3,
+                    #b't2w3av~'+t2+b'~'+w3av,
 
                     #mkcls
                     #b'mk3~'+mkcls3,
@@ -497,25 +495,14 @@ class Path_Finding (Base_Task):
                     #b't3mk2~'+t3+mkcls2,
                     #b't2mk2mk3~'+t2+mkcls2+b'~'+mkcls3,
                     #b't3mk2mk3~'+t3+mkcls2+b'~'+mkcls3,
-
                     ])
-            for aeind in aeinds3 :
-                fv+=[
-                        #b'aeind3'+aeind,
-                        b't3aeind3'+t3+aeind,
-                        b't2aeind3'+t2+aeind,
-                        #b't3t2aeind3'+t3+b'~'+t2+b'~'+aeind,
-                        #b'w2aeind3'+w2+aeind,
-                        #b't1t2aeind3'+t1+b'~'+t2+aeind,
-                        ]
-                #print(fv[-3:])
-            #input()
-            for aeind in aeinds2 :
-                fv+=[
-                        b't3aeind2'+t3+aeind,
-                        #b't3aeind2t1'+t3+aeind+t1,
-                        ]
-                #pass
+
+            #for aeind in aeinds3 :
+            #    fv+=[ b't3aeind3'+t3+aeind,
+            #            b't2aeind3'+t2+aeind, ]
+            #for aeind in aeinds2 :
+            #    fv+=[ b't3aeind2'+t3+aeind, ]
+
             #fv+=cb3
             #print(fv)
             fvs.append(fv)
