@@ -8,11 +8,11 @@ class Dep:
     def __init__(self):
         self.ae={}
         #for line in open("large.50.99.txt"):
-        #for line in open("/home/zkx/wordtype/autoencoder/30words.9.txt"):
+        for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
         #for line in open("/home/zkx/wordtype/autoencoder/70words.9.txt"):
-        #    word,*inds=line.split()
-        #    inds=[x.encode() for x in inds]
-        #    self.ae[word]=inds
+            word,*inds=line.split()
+            inds=[x.encode() for x in inds]
+            self.ae[word]=inds
 
         self.Y=None
     
@@ -95,12 +95,12 @@ class Dep:
         self.shift_rules=None
         self.f_raw=[[w.encode()if w else b'',t.encode()if t else b''] for w,t in raw]
 
-        #self.ae_inds=[]
-        #for word,tag in raw :
-        #    if len(word)==1 :
-        #        self.ae_inds.append([])
-        #    else:
-        #        self.ae_inds.append(self.ae.get(word,[b'*']))
+        self.ae_inds=[]
+        for word,tag in raw :
+            if len(word)==1 :
+                self.ae_inds.append([])
+            else:
+                self.ae_inds.append(self.ae.get(word,[b'*']))
 
     def gen_features(self,span,actions):
         fvs=[]
@@ -123,7 +123,7 @@ class Dep:
             s0r_t=b'~' if s0r is None else self.f_raw[s0r][1]
             s0_w=self.f_raw[s0m][0]
             s0_t=self.f_raw[s0m][1]
-            #aeind0h=self.ae_inds[s0m]
+            aeind0h=self.ae_inds[s0m]
         else:
             s0_w,s0_t,s0l_t,s0r_t=b'~',b'~',b'~',b'~'
             aeind0h=[]
@@ -179,8 +179,8 @@ class Dep:
         #for aeind in aeind0h :
         #    fv+=[
         #            b'q0_taeind0~'+q0_t+aeind,
-        #            b's0lt_taeind0~'+s0l_t+aeind,
-        #            b's0rt_taeind0~'+s0r_t+aeind,
+        #            #b's0lt_taeind0~'+s0l_t+aeind,
+        #            #b's0rt_taeind0~'+s0r_t+aeind,
         #            b's1t_taeind0~'+s1_t+aeind,
         #            ]
 
@@ -290,10 +290,23 @@ class Dep:
             self.std_states.append(stat)
         std_states=list(self.actions_to_stats(raw,std_actions))
         moves=[(i,std_states[i],std_actions[i])for i in range(len(std_actions))]
+        self.oracle={}
+        for step,state,action in moves :
+            self.oracle[step]=pickle.loads(state)
         return moves
     def early_stop(self,step,next_states,moves):
+        if not hasattr(self,'oracle') or self.oracle==None : return False
         last_steps,last_states,actions=zip(*moves)
+        self.stop_step=None
+        if step in self.oracle :
+            next_states=[pickle.loads(x) for x in next_states]
+            if not (self.oracle[step]in next_states) :
+                self.stop_step=step
+                return True
+        return False
+
         if (not hasattr(self,"std_states")) or (not self.std_states) : return False
+        last_steps,last_states,actions=zip(*moves)
         for last_state,action,next_state in zip(last_states,actions,next_states):
             if last_state==b'': return False
             next_state=pickle.loads(next_state)
@@ -308,8 +321,15 @@ class Dep:
         return True
     def remove_oracle(self):
         self.std_states=[]
+        self.oracle=None
     def update_moves(self,std_moves,rst_moves) :
-        for std,rst in zip(std_moves,rst_moves):
-            yield std, 1
-            yield rst, -1
+        #for std,rst in zip(std_moves,rst_moves):
+        #    yield std, 1
+        #    yield rst, -1
+        for move in rst_moves :
+            if self.stop_step is not None and move[0]>=self.stop_step : break
+            yield move, -1
+        for move in std_moves :
+            if self.stop_step is not None and move[0]>=self.stop_step : break
+            yield move, 1
 

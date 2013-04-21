@@ -193,10 +193,10 @@ class Path_Finding (Base_Task):
 
     def update_moves(self,std_moves,rst_moves) :
         for move in rst_moves :
-            if self.stop_step>=0 and move[0]>=self.stop_step : return
+            if self.stop_step is not None and move[0]>=self.stop_step : break
             yield move, -1
         for move in std_moves :
-            if self.stop_step>=0 and move[0]>=self.stop_step : return
+            if self.stop_step is not None and move[0]>=self.stop_step : break
             yield move, 1
 
 
@@ -279,15 +279,54 @@ class Path_Finding (Base_Task):
         self.oracle={}
         for step,state,action in moves2 :
             self.oracle[step]=self.State.load(state)
+
+        self.ref_list=[]
+        for i,move in enumerate(moves2) :
+            step,state,action=move
+            self.ref_list.append([step,
+                (self.State.load(state),
+                -1 if i==0 else moves2[i-1][0],
+                None if i==0 else self.State.load(moves2[i-1][1])
+                )
+                ])
+        self.ref_list=list(reversed(self.ref_list))
+
         return moves2
     def remove_oracle(self):
         self.oracle=None
+        self.ref_list=None
+        #input()
         pass
     def early_stop(self,step,next_states,moves):
+        self.stop_step=None
+        #return False
         if not moves : return False
-        last_steps,last_states,actions=zip(*moves)
+
+
+        #if not hasattr(self,'ref_list') or self.ref_list==None : return False
+        #self.stop_step=None
+        #if step < self.ref_list[-1][0] :
+        #    return False
+        #if step > self.ref_list[-1][0] :
+        #    self.stop_step=self.ref_list[-1][0] # fix later
+        #    return True
+        #gold=self.ref_list.pop()[1]
+        ##print(gold)
+        #for i in range(len(moves)):
+        #    last_step,last_state,_=moves[i]
+        #    state=self.State.load(next_states[i])
+        #    last_state=None if last_state==b'' else self.State.load(last_state)
+        #    if (state,last_step,last_state)==gold:
+        #    #if state==gold[0]:
+        #        return False
+        #self.stop_step=gold[1]
+        #return True
+
+
+
         if not hasattr(self,'oracle') or self.oracle==None : return False
-        self.stop_step=-1
+        last_steps,last_states,actions=zip(*moves)
+        self.stop_step=None
         if step in self.oracle :
             next_states=[self.State.load(x) for x in next_states]
             if not (self.oracle[step]in next_states) :
@@ -475,18 +514,18 @@ class Path_Finding (Base_Task):
                     b't3t2t1~'+t3+t2+t1,
 
                     #pku
-                    #b't3pku3~'+t3+b'~'+pku3,
-                    #b't2pku3~'+t2+b'~'+pku3,
-                    #b't3pku2~'+t3+b'~'+pku2,
-                    #b'w2pku3~'+w2+b'~'+pku3,
-                    #b'w3pku2~'+w3+b'~'+pku2,
+                    b't3pku3~'+t3+b'~'+pku3,
+                    b't2pku3~'+t2+b'~'+pku3,
+                    b't3pku2~'+t3+b'~'+pku2,
+                    b'w2pku3~'+w2+b'~'+pku3,
+                    b'w3pku2~'+w3+b'~'+pku2,
                     
                     # av
-                    #b'w3av~'+w3av,
-                    #b't3w3av~'+t3+b'~'+w3av,
-                    #b'w2avw3av~'+w2av+b'~'+w3av,
-                    #b'w2avt3~'+w2av+b'~'+t3,
-                    #b't2w3av~'+t2+b'~'+w3av,
+                    b'w3av~'+w3av,
+                    b't3w3av~'+t3+b'~'+w3av,
+                    b'w2avw3av~'+w2av+b'~'+w3av,
+                    b'w2avt3~'+w2av+b'~'+t3,
+                    b't2w3av~'+t2+b'~'+w3av,
 
                     #mkcls
                     #b'mk3~'+mkcls3,
@@ -497,11 +536,11 @@ class Path_Finding (Base_Task):
                     #b't3mk2mk3~'+t3+mkcls2+b'~'+mkcls3,
                     ])
 
-            #for aeind in aeinds3 :
-            #    fv+=[ b't3aeind3'+t3+aeind,
-            #            b't2aeind3'+t2+aeind, ]
-            #for aeind in aeinds2 :
-            #    fv+=[ b't3aeind2'+t3+aeind, ]
+            for aeind in aeinds3 :
+                fv+=[ b't3aeind3'+t3+aeind,
+                        b't2aeind3'+t2+aeind, ]
+            for aeind in aeinds2 :
+                fv+=[ b't3aeind2'+t3+aeind, ]
 
             #fv+=cb3
             #print(fv)
