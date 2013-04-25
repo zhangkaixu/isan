@@ -1,4 +1,5 @@
 import isan.common.perceptrons
+import pickle
 
 
 class Lattice_Task(isan.common.perceptrons.Task):
@@ -119,3 +120,38 @@ class Lattice_Task(isan.common.perceptrons.Task):
                 yield rst, -1
             else :
                 break
+
+class Reenter_Stop :
+    ## stuffs about the early update
+    def set_oracle(self,raw,y) :
+        self.set_raw(raw,None)
+        std_actions=self.result_to_actions(y)#得到标准动作
+        std_states=[stat for i,stat in self.actions_to_stats(std_actions)]
+
+        moves=[(i,std_states[i],std_actions[i])for i in range(len(std_actions))]
+        self.oracle={}
+        for step,state,action in moves :
+            self.oracle[step]=pickle.loads(state)
+        return moves
+
+    def early_stop(self,step,next_states,moves):
+        if not hasattr(self,'oracle') or self.oracle==None : return False
+        last_steps,last_states,actions=zip(*moves)
+        self.stop_step=None
+        if step in self.oracle :
+            next_states=[pickle.loads(x) for x in next_states]
+            if not (self.oracle[step]in next_states) :
+                self.stop_step=step
+                return True
+        return False
+
+    def remove_oracle(self):
+        self.oracle=None
+
+    def update_moves(self,std_moves,rst_moves) :
+        for move in rst_moves :
+            if self.stop_step is not None and move[0]>=self.stop_step : break
+            yield move, -1
+        for move in std_moves :
+            if self.stop_step is not None and move[0]>=self.stop_step : break
+            yield move, 1
