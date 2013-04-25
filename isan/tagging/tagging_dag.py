@@ -140,9 +140,6 @@ class Path_Finding (Base_Task):
     """
 
     def __init__(self):
-
-
-
         self.av={}
         for line in open("av.txt"):
             word,av=line.split()
@@ -150,29 +147,12 @@ class Path_Finding (Base_Task):
             self.av[word]=str(int(math.log(av+1)*2)).encode()
             #print(word,self.av[word],av)
 
-
         self.ae={}
-        #for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
         for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
+        #for line in open("/home/zkx/wordtype/autoencoder/top_4.txt"):
             word,*inds=line.split()
             inds=[x.encode() for x in inds]
             self.ae[word]=inds
-
-
-
-        #self.sgcount={}
-        #for line in open("sg.count.txt"):
-        #    word,f15,f0,fw=line.split()
-        #    f15=int(f15)
-        #    f0=int(f0)
-        #    fw=float(fw)
-        #    if f0==0 or fw==0 : continue
-        #    self.sgcount[word]=[
-        #            str(int(math.log(f15))).encode(),
-        #            str(int(math.log(f0))).encode(),
-        #            str(int(math.log(f0/f15))).encode(),
-        #            str(int(math.log(fw/f15))).encode(),
-        #            ]
 
         self.mkcls={}
         for line in open('brown.out'):
@@ -186,7 +166,6 @@ class Path_Finding (Base_Task):
                 #model_path='~/minilac/models/pku/model_c',
                 model_path='~/thulac/hailiang',
                 threshold=0)
-        
 
     codec=codec
     State=State
@@ -198,7 +177,6 @@ class Path_Finding (Base_Task):
         for move in std_moves :
             if self.stop_step is not None and move[0]>=self.stop_step : break
             yield move, 1
-
 
     def moves_to_result(self,moves,_):
         if not moves : return []
@@ -213,9 +191,7 @@ class Path_Finding (Base_Task):
                 for ind in inds[1:]]
         return result
 
-
     init_state=State.init_state#
-
 
     def shift_step(self,step,ind):
         return step+len(self.lattice.items[ind][2])
@@ -232,11 +208,9 @@ class Path_Finding (Base_Task):
                     next_step,
                     state.shift(ind3)
                 )
-            #print(n[0],n[1],self.State(n[2],self.lattice))
             nexts.append(n)
         return nexts
     reduce=None
-
 
     def actions_to_moves(self,actions):
         state=self.init_state
@@ -249,9 +223,6 @@ class Path_Finding (Base_Task):
                     step=n
                     state=s
         return moves
-
-        
-
 
     def set_oracle(self,raw,y):
         self.set_raw(raw,None)
@@ -280,49 +251,15 @@ class Path_Finding (Base_Task):
         for step,state,action in moves2 :
             self.oracle[step]=self.State.load(state)
 
-        self.ref_list=[]
-        for i,move in enumerate(moves2) :
-            step,state,action=move
-            self.ref_list.append([step,
-                (self.State.load(state),
-                -1 if i==0 else moves2[i-1][0],
-                None if i==0 else self.State.load(moves2[i-1][1])
-                )
-                ])
-        self.ref_list=list(reversed(self.ref_list))
-
         return moves2
     def remove_oracle(self):
         self.oracle=None
-        self.ref_list=None
-        #input()
         pass
+
     def early_stop(self,step,next_states,moves):
         self.stop_step=None
         #return False
         if not moves : return False
-
-
-        #if not hasattr(self,'ref_list') or self.ref_list==None : return False
-        #self.stop_step=None
-        #if step < self.ref_list[-1][0] :
-        #    return False
-        #if step > self.ref_list[-1][0] :
-        #    self.stop_step=self.ref_list[-1][0] # fix later
-        #    return True
-        #gold=self.ref_list.pop()[1]
-        ##print(gold)
-        #for i in range(len(moves)):
-        #    last_step,last_state,_=moves[i]
-        #    state=self.State.load(next_states[i])
-        #    last_state=None if last_state==b'' else self.State.load(last_state)
-        #    if (state,last_step,last_state)==gold:
-        #    #if state==gold[0]:
-        #        return False
-        #self.stop_step=gold[1]
-        #return True
-
-
 
         if not hasattr(self,'oracle') or self.oracle==None : return False
         last_steps,last_states,actions=zip(*moves)
@@ -354,9 +291,6 @@ class Path_Finding (Base_Task):
         #        pku[s]=(tag,m)
         #pku={k:v[0]+(b'0' if v[1]==0 else b'1') for k,v in pku.items()}
 
-        
-
-
         self.pku=[]
         for item in raw.items :
             b=int(item[0])
@@ -380,8 +314,7 @@ class Path_Finding (Base_Task):
         #print(raw)
         #print(self.seq_mkcls)
 
-        #print(self.ae_inds)
-        #input()
+        """ character based """
         #sentence=[x.encode() for x in self.lattice.sentence]
         #cb=[]
         #for i in range(len(sentence)):
@@ -393,7 +326,6 @@ class Path_Finding (Base_Task):
         #    cb.append([b'u1'+l1,b'u2'+m,b'u3'+r1,
         #            b'b1'+l2+l1,b'b2'+l1+m,
         #            b'b3'+m+r1,b'b4'+r1+r2])
-
         #self.char_based=[]
         #for item in raw.items :
         #    b=item[0]
@@ -415,10 +347,6 @@ class Path_Finding (Base_Task):
         #        #fv.extend([b'CBe'+tag+f for f in cb[e-1]])
         #        fv.extend([b'CB2e'+f for f in cb[e-1]])
         #        self.char_based.append(fv)
-
-        #for item,fv in zip(raw.items,self.char_based):
-        #    print(item[2],list(map(lambda x:x.decode(),fv)))
-        #input()
 
     def gen_features(self,state,actions):
         fvs=[]
@@ -495,23 +423,27 @@ class Path_Finding (Base_Task):
             [
                     b'w3~'+w3,
                     b't3~'+t3,
-                    b'w3t3~'+w3+t3,
                     b'l3~'+len3,
-                    b'l3l2~'+len3+b'~'+len2,
-                    b'l3l2l1~'+len3+b'~'+len2+b'~'+len1,
-                    b'w3l2~'+w3+b'~'+len2,
-                    b'w3t3l2~'+w3+t3+b'~'+len2,
+                    b'w3t3~'+w3+t3,
                     b'l3t3~'+len3+t3,
-                    b'l3w2~'+len3+w2,
-                    b'l3t2~'+len3+t2,
+
                     b'w3w2~'+w3+b"-"+w2,
+                    b'w3t2~'+w3+t2,
+                    b't3w2~'+t3+w2,
+                    b't3t2~'+t3+t2,
+
+                    b'l3w2~'+len3+w2,
+                    b'w3l2~'+w3+b'~'+len2,
+                    b'l3t2~'+len3+t2,
+                    b'l3l2~'+len3+b'~'+len2,
+
+                    b'w3t3l2~'+w3+t3+b'~'+len2,#tree
                     b'w3t3w2~'+w3+t3+w2,
                     b'w3w2t2~'+w3+t2+w2,
-                    b't3w2~'+t3+w2,
-                    b'w3t2~'+w3+t2,
-                    b't3t2~'+t3+t2,
+                    
                     b't3t1~'+t3+t1,
                     b't3t2t1~'+t3+t2+t1,
+                    b'l3l2l1~'+len3+b'~'+len2+b'~'+len1,
 
                     #pku
                     b't3pku3~'+t3+b'~'+pku3,
@@ -527,7 +459,7 @@ class Path_Finding (Base_Task):
                     b'w2avt3~'+w2av+b'~'+t3,
                     b't2w3av~'+t2+b'~'+w3av,
 
-                    #mkcls
+                    # mkcls
                     #b'mk3~'+mkcls3,
                     #b't3mk3~'+t3+mkcls3,
                     #b't2mk3~'+t2+mkcls3,
@@ -544,6 +476,7 @@ class Path_Finding (Base_Task):
 
             #fv+=cb3
             #print(fv)
+            fv=[f for f in fv if b'@' not in f]
             fvs.append(fv)
         return fvs
     Eval=Eval

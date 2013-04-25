@@ -17,7 +17,13 @@ def decode(line):
 
 def to_raw(line):
     return [(w,t)for w,t,*_ in line]
-    
+
+def arcs_to_result(arcs,lattice):
+    return arcs
+
+def result_to_arcs(result):
+    return [ind for _,_,ind,_ in result]
+    pass
 
 if __name__=="__main__":
     for line in open('/media/exp/isan/test/hit_dep.txt'):
