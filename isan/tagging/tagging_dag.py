@@ -148,7 +148,8 @@ class Path_Finding (Base_Task):
             #print(word,self.av[word],av)
 
         self.ae={}
-        for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
+        #for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
+        for line in open("/home/zkx/wordtype/autoencoder/k-means/kmeans.txt"):
         #for line in open("/home/zkx/wordtype/autoencoder/top_4.txt"):
             word,*inds=line.split()
             inds=[x.encode() for x in inds]
@@ -446,12 +447,12 @@ class Path_Finding (Base_Task):
                     b'l3l2l1~'+len3+b'~'+len2+b'~'+len1,
 
                     #pku
-                    b't3pku3~'+t3+b'~'+pku3,
-                    b't2pku3~'+t2+b'~'+pku3,
-                    b't3pku2~'+t3+b'~'+pku2,
-                    b'w2pku3~'+w2+b'~'+pku3,
-                    b'w3pku2~'+w3+b'~'+pku2,
-                    
+                    #b't3pku3~'+t3+b'~'+pku3,
+                    #b't2pku3~'+t2+b'~'+pku3,
+                    #b't3pku2~'+t3+b'~'+pku2,
+                    #b'w2pku3~'+w2+b'~'+pku3,
+                    #b'w3pku2~'+w3+b'~'+pku2,
+                    #
                     # av
                     b'w3av~'+w3av,
                     b't3w3av~'+t3+b'~'+w3av,

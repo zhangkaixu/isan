@@ -87,10 +87,11 @@ class State (Action) :
 
     def shift(self,_):
         ind,span,stack_top=self.stat
+        ind=-ind
         next_ind=ind+1
         if next_ind==self.stop_step : next_ind=-1
         state=(
-                next_ind,
+                -next_ind,
                 (span[1],span[1]+1), # stack top 的 span
                 ((span[1],None,None),
                         stack_top[0],
@@ -100,6 +101,7 @@ class State (Action) :
 
     def reduce(self,pre_state,alpha_ind):
         ind,span,stack_top=self.stat
+        ind=-ind
         predictor=pre_state.stat
         s0,s1,s2=stack_top
         if s0==None or s1==None:return []
@@ -110,11 +112,11 @@ class State (Action) :
         if next_ind==self.stop_step : next_ind=-1
 
         rtn= [
-             (self.left_reduce,next_ind,pickle.dumps((ind+1, # ind
+             (self.left_reduce,next_ind,pickle.dumps((-(ind+1), # ind
                 (p_span[0],span[1]), #span
                 ((s1[0],s1[1],s0[0]),predictor[2][1],predictor[2][2]))), ##
                 alpha_ind),
-             (self.right_reduce,next_ind,pickle.dumps((ind+1, #
+             (self.right_reduce,next_ind,pickle.dumps((-(ind+1), #
                 (p_span[0],span[1]),
                 ((s0[0],s1[0],s0[2]),predictor[2][1],predictor[2][2]))),
                 alpha_ind),
@@ -132,13 +134,17 @@ class Dep (Reenter_Stop, Base_Task):
     
     def __init__(self):
         # autoencoder
-        #self.ae={}
-        ##for line in open("large.50.99.txt"):
+        self.ae={}
+        #for line in open("large.50.99.txt"):
         #for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
-        ##for line in open("/home/zkx/wordtype/autoencoder/70words.9.txt"):
+        #for line in open("/home/zkx/wordclass/dict.txt"):
+        #for line in open("/home/zkx/wordtype/autoencoder/70words.9.txt"):
         #    word,*inds=line.split()
-        #    inds=[x.encode() for x in inds]
-        #    self.ae[word]=inds
+        for line in open("/home/zkx/brown-cluster/011-c500-p1-Rwords_1000.out/paths"):
+            inds,word,*_=line.split()
+            inds=[inds]
+            inds=[x.encode() for x in inds]
+            self.ae[word]=inds
         pass
 
     def set_raw(self,raw,Y):
@@ -150,12 +156,19 @@ class Dep (Reenter_Stop, Base_Task):
         self.f_raw=[[w.encode()if w else b'',t.encode()if t else b''] for w,t in raw]
 
         # autoencoder
-        #self.ae_inds=[]
-        #for word,tag in raw :
-        #    if len(word)==1 :
-        #        self.ae_inds.append([b'**'])
-        #    else:
-        #        self.ae_inds.append(self.ae.get(word,[b'*']))
+        self.ae_inds=[]
+        for word,tag in raw :
+            #if tag[0]!='N' :
+            #    self.ae_inds.append([])
+            #    continue
+            if len(word)==1 :
+                self.ae_inds.append([b'**'])
+            else:
+                self.ae_inds.append(self.ae.get(word,[b'*']))
+        print(len(self.ae))
+        print(raw)
+        print(self.ae_inds)
+        input()
 
     def gen_features(self,span,actions):
         fvs=[]
@@ -178,10 +191,10 @@ class Dep (Reenter_Stop, Base_Task):
             s0r_t=b'~' if s0r is None else self.f_raw[s0r][1]
             s0_w=self.f_raw[s0m][0]
             s0_t=self.f_raw[s0m][1]
-            #aeind0h=self.ae_inds[s0m]
+            aeind0h=self.ae_inds[s0m]
         else:
             s0_w,s0_t,s0l_t,s0r_t=b'~',b'~',b'~',b'~'
-            #aeind0h=[]
+            aeind0h=[]
 
         if s1:
             s1m,s1l,s1r=s1
@@ -232,14 +245,14 @@ class Dep (Reenter_Stop, Base_Task):
                 ]
 
         # autoencoder
-        #for aeind in aeind0h :
-        #    fv+=[
-        #            b's0_taeind0~'+q0_t+b'~'+aeind,
-        #            b's0_waeind0~'+q0_w+b'~'+aeind,
-        #            #b's0lt_taeind0~'+s0l_t+b'~'+aeind,
-        #            #b's0rt_taeind0~'+s0r_t+b'~'+aeind,
-        #            b's1t_taeind0~'+s1_t+b'~'+aeind,
-        #            b's1w_taeind0~'+s1_w+b'~'+aeind,
-        #            ]
+        for aeind in aeind0h :
+            fv+=[
+                    b's0_taeind0:'+q0_t+b':'+aeind,
+                    b's0_waeind0:'+q0_w+b':'+aeind,
+                    b's0lt_taeind0:'+s0l_t+b':'+aeind,
+                    b's0rt_taeind0:'+s0r_t+b':'+aeind,
+                    b's1t_taeind0:'+s1_t+b':'+aeind,
+                    b's1w_taeind0:'+s1_w+b':'+aeind,
+                    ]
         return fv
 
