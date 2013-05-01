@@ -1,0 +1,67 @@
+
+#not finished !!
+class Lattice (list) :
+    def __init__(self,l,w=None):
+        self.weights=w
+        self.extend(list(l)) # items= [ (begin,end,data) * ]
+        self.length=max(l for _,l,_ in self)
+        self.begins={}
+        for i in range(len(self)) :
+            b=self[i][0]
+            if b not in self.begins : self.begins[b]=[]
+            self.begins[b].append(i)
+    def __str__(self):
+        return ' '.join("%i:(%i,%i):%s"%(i,it[0],it[1],it[2]) for i,it in enumerate(self))
+
+
+
+class Base_Task :
+    def get_init_states(self) :
+        return [self.State.init_state]
+
+    #def reduce(self,last_ind,stat,pred_inds,predictors):
+    #    pass
+    reduce = None
+
+
+    #not finished !!
+    def actions_to_stats(self,actions,lattice):
+        state=self.State(lattice)
+        states=[self.State(lattice)]#状态序列
+        for action in actions :
+            ind,label=action
+
+            if ind >=0 : # shift
+                rst=[ns for a,ns in state.shift() if a==self.Action.encode(action)]
+                state=self.State(lattice,rst[0])
+                states.append(state)
+            else : # reduce
+                pass
+        return list(s.dumps()for s in states)
+
+    def moves_to_result(self,moves,_):
+        actions=[chr(a) for ind,state,a in moves]
+        return self.actions_to_result(actions)
+
+
+    def check(self,std_moves,rst_moves):
+        if len(std_moves)!=len(rst_moves) :return False
+        return all(
+                std_move[2]==rst_move[2]
+                for std_move,rst_move in zip(std_moves,rst_moves)
+                )
+
+    def set_oracle(self,raw,y) :
+        std_actions=self.result_to_actions(y)
+        std_states=self.actions_to_stats(std_actions,raw)
+        moves=[(i,std_states[i],self.Action.encode(std_actions[i]))for i in range(len(std_actions))]
+        return moves
+
+    early_stop=None
+
+    def update_moves(self,std_moves,rst_moves) :
+        for s,r in zip(std_moves,rst_moves) :
+            if s!= r:
+                yield s, 1
+                yield r, -1
+

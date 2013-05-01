@@ -180,6 +180,7 @@ class TaggingEval:
         self._set_based(self._to_set(std),self._to_set(rst))
         for plugin in self.plugins:
             plugin(std,rst)
+
     def eval_files(self,std_file,rst_file):
         for g,r in zip(open(std_file),open(rst_file)):
             gl=sum(len(x.partition(self.sep)[0])for x in g.split())
