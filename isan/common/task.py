@@ -24,19 +24,24 @@ class Base_Task :
     reduce = None
 
 
-    #not finished !!
     def actions_to_stats(self,actions,lattice):
         state=self.State(lattice)
+        stack=[state]
         states=[self.State(lattice)]#状态序列
         for action in actions :
             ind,label=action
-
             if ind >=0 : # shift
                 rst=[ns for a,ns in state.shift() if a==self.Action.encode(action)]
                 state=self.State(lattice,rst[0])
+                stack.append(state)
                 states.append(state)
             else : # reduce
-                pass
+                s0=stack.pop()
+                s1=stack.pop()
+                rst=[ns for a,ns in s0.reduce(s1) if a==self.Action.encode(action)]
+                state=self.State(lattice,rst[0])
+                states.append(state)
+                stack.append(state)
         return list(s.dumps()for s in states)
 
     def moves_to_result(self,moves,_):

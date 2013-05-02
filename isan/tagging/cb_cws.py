@@ -9,7 +9,7 @@ class codec:
         seq=[word for word in line.split()]
         raw=[(i,i+1,c) for i,c in enumerate(''.join(seq))]
         raw=Lattice(raw)
-        return {'raw':raw, 'y': seq }
+        return {'raw':raw, 'y': seq } # raw is lattice of input, seq is the result data structure (not actions)
 
     @staticmethod
     def encode(y):
