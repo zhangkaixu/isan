@@ -396,10 +396,6 @@ public:
         My_Map* end_map=&final;
         int step=0;
         while(true){
-            //std::cout<<"start step "<<step<<"\n";
-            //std::cout<<" ++ sequence size "<<sequence.size()<<"\n";
-            
-            
             if(step>=sequence.size()){
                 break;
             };
@@ -416,6 +412,7 @@ public:
                 //some initializations
                 STATE& last_state=beam[i].first;
                 SCORE& last_score=beam[i].second->score;
+                //std::cout<<"score "<<last_score<<"\n";
 #ifdef REDUCE
                 SCORE& last_sub_score=beam[i].second->sub_score;
                 auto& predictors=(*this->sequence[step])[last_state].predictors;

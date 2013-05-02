@@ -6,13 +6,13 @@
 #include<algorithm>
 #include<sys/mman.h>
 #include<fcntl.h>
+#include "isan/common/general_types.hpp"
 
 
 namespace isan{
 
 typedef Feature_String Dict_Item;
 typedef Feature_String Word;
-typedef int Score;
 typedef char Character;
 
 
@@ -94,7 +94,7 @@ public:
 
 class DATMaker: public DAT{
 public:
-    typedef std::pair<Word, int> KeyValue;
+    typedef std::pair<Word, Score_Type> KeyValue;
     static bool compare_words (const DATMaker::KeyValue& first, const DATMaker::KeyValue& second)
     {
         const Word& first_word=first.first;

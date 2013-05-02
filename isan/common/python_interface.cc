@@ -58,11 +58,13 @@ update_weights(PyObject *self, PyObject *arg)
 {
     Interface* interface;
     PyObject * py_state;
-    long delta=0;
+    //long delta=0;
+    double delta=0;
     long step=0;
     Action_Type action;
     //std::cout<<"in update\n";
-    PyArg_ParseTuple(arg, "LOlii", &interface,&py_state,&action,&delta,&step);
+    //PyArg_ParseTuple(arg, "LOlii", &interface,&py_state,&action,&delta,&step);
+    PyArg_ParseTuple(arg, "LOldi", &interface,&py_state,&action,&delta,&step);
     State_Type state(py_state);
     
     std::vector<Action_Type> actions;
@@ -212,7 +214,7 @@ get_states(PyObject *self, PyObject *arg)
     interface->push_down->cal_betas();
 
     std::vector<State_Type > states;
-    std::vector<Score> scores;
+    std::vector<Score_Type> scores;
 
     interface->push_down->get_states(states,scores);
 

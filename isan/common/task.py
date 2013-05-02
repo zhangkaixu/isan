@@ -40,7 +40,7 @@ class Base_Task :
         return list(s.dumps()for s in states)
 
     def moves_to_result(self,moves,_):
-        actions=[chr(a) for ind,state,a in moves]
+        actions=[self.Action.decode(a) for ind,state,a in moves]
         return self.actions_to_result(actions)
 
 
@@ -65,3 +65,39 @@ class Base_Task :
                 yield s, 1
                 yield r, -1
 
+class Early_Stop_Pointwise :
+    def set_oracle(self,raw,y) :
+        self.stop_step=None
+        std_actions=self.result_to_actions(y)
+        std_states=self.actions_to_stats(std_actions,raw)
+        moves=[(i,std_states[i],self.Action.encode(std_actions[i]))for i in range(len(std_actions))]
+
+        self.oracle={}
+        for step,state,action in moves :
+            self.oracle[step]=self.State.load(state)
+        return moves
+
+    def remove_oracle(self):
+        self.stop_step=None
+        self.oracle=None
+
+    def early_stop(self,step,next_states,moves):
+        if not moves : return False
+
+        if not hasattr(self,'oracle') or self.oracle==None : return False
+        last_steps,last_states,actions=zip(*moves)
+        self.stop_step=None
+        if step in self.oracle :
+            next_states=[self.State.load(x) for x in next_states]
+            if not (self.oracle[step]in next_states) :
+                self.stop_step=step
+                return True
+        return False
+
+    def update_moves(self,std_moves,rst_moves) :
+        for move in rst_moves :
+            if self.stop_step is not None and move[0]>=self.stop_step : break
+            yield move, -1
+        for move in std_moves :
+            if self.stop_step is not None and move[0]>=self.stop_step : break
+            yield move, 1
