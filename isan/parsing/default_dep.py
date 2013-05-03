@@ -1,108 +1,69 @@
 import pickle
-#import marshal as pickle
-import isan.parsing.dep_codec as codec
-import isan.parsing.eval as eval
-from isan.common.lattice import Lattice_Task as Base_Task
-from isan.common.lattice import Reenter_Stop as Reenter_Stop
+import isan.parsing.dep_unlabeled_eval as eval
+from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
 
-class Lattice :
-    def __init__(self,l,w):
-        self.weights=w
-        self.items=l
-        self.length=len(l)
-        self.begins={}
-        for i in range(len(l)):
-            self.begins[i]=[i]
+class codec:
+    @staticmethod
+    def decode(line):
+        sen=[]
+        for arc in line.split():
+            word,tag,head_ind,arc_type=arc.split('_')
+            head_ind=int(head_ind)
+            sen.append((word,tag,head_ind,arc_type))
+        raw=[(w,t)for w,t,*_ in sen]
+        raw=[(i,i+1,c) for i,c in enumerate(raw)]
+        raw=Lattice(raw)
+        sen=[(w,t,h) for w,t,h,_ in sen]
+        return {'raw':raw, 'y': sen }
+
+    @staticmethod
+    def encode(y):
+        return ' '.join(y)
+
 
 class Action :
-    shift_action=ord('s')
-    left_reduce=ord('l')
-    right_reduce=ord('r')
+    @staticmethod
+    def decode(action):
+        a=chr(action)
+        if a=='S' : return (0,'')
+        else : return (-1,a)
 
     @staticmethod
-    def parse_action(action):
-        if action!=Action.shift_action : 
-            return False,
+    def encode(action):
+        if action[0]==0 :
+            return ord('S')
         else :
-            return True,None
+            return ord(action[1])
 
-    @staticmethod
-    def actions_to_arcs(actions):
-        ind=0
-        stack=[]
-        arcs=[]
-        for a in actions:
-            if a==Action.shift_action:
-                stack.append(ind)
-                ind+=1
-            elif a==Action.left_reduce:
-                arcs.append((stack[-1],stack[-2]))
-                stack.pop()
-            elif a==Action.right_reduce:
-                arcs.append((stack[-2],stack[-1]))
-                stack[-2]=stack[-1]
-                stack.pop()
-        arcs.append((stack[-1],-1))
-        arcs.sort()
-        arcs=[x for _,x in arcs]
-        return arcs
 
-    @staticmethod
-    def arcs_to_actions(arcs):
-        result=arcs
-        stack=[]
-        actions=[]
-        record=[[ind,head,0] for ind,head in enumerate(result)]# [ind, ind_of_head, 是head的次数]
-        for ind,head,_ in record:
-            if head!=-1 :
-                record[head][2]+=1
-        for ind,head in enumerate(result):
-            actions.append(Action.shift_action)
-            stack.append([ind,result[ind],record[ind][2]])
-            while len(stack)>=2:
-                if stack[-1][2]==0 and stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
-                    actions.append(Action.left_reduce)
-                    stack.pop()
-                    stack[-1][2]-=1
-                elif stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
-                    actions.append(Action.right_reduce)
-                    stack[-2]=stack[-1]
-                    stack.pop()
-                    stack[-1][2]-=1
-                else:
-                    break
-        return actions
 
-class State (Action) :
+class State (list) :
     init_stat=pickle.dumps((0,(0,0),(None,None,None)))
     @staticmethod
     def load(bt):
         return pickle.loads(bt)
 
-    def __init__(self,bt,lattice):
+    def __init__(self,lattice,bt=init_stat):
         self.lattice=lattice
-        self.stat=pickle.loads(bt)
+        self.extend(pickle.loads(bt))
         self.stop_step=2*self.lattice.length-1
-        ind,self.span,stack_top=self.stat
 
-    def shift(self,_):
-        ind,span,stack_top=self.stat
+    def shift(self):
+        ind,span,stack_top=self
         ind=-ind
         next_ind=ind+1
         if next_ind==self.stop_step : next_ind=-1
-        state=(
-                -next_ind,
-                (span[1],span[1]+1), # stack top 的 span
-                ((span[1],None,None),
-                        stack_top[0],
-                        stack_top[1][0] if stack_top[1] else None)
-            )
-        return [(State.shift_action, next_ind, pickle.dumps(state))]
+        pos=self[1][1]
+        nex=self.lattice.begins.get(pos,None)
+        if not nex : return []
+        s0,s1,s2=self[2]
+        ns=(-next_ind,(pos,pos+1),((nex[0],None,None),s0,s1[0]if s1 else None))
+        return [( ord('S'), pickle.dumps(ns))]
 
-    def reduce(self,pre_state,alpha_ind):
-        ind,span,stack_top=self.stat
+    def reduce(self,predictor):
+
+        ind,span,stack_top=self
         ind=-ind
-        predictor=pre_state.stat
         s0,s1,s2=stack_top
         if s0==None or s1==None:return []
         assert(predictor[2][0]==s1)
@@ -112,63 +73,84 @@ class State (Action) :
         if next_ind==self.stop_step : next_ind=-1
 
         rtn= [
-             (self.left_reduce,next_ind,pickle.dumps((-(ind+1), # ind
+             (ord('L'),pickle.dumps((-next_ind, # ind
                 (p_span[0],span[1]), #span
                 ((s1[0],s1[1],s0[0]),predictor[2][1],predictor[2][2]))), ##
-                alpha_ind),
-             (self.right_reduce,next_ind,pickle.dumps((-(ind+1), #
+                ),
+             (ord('R'),pickle.dumps((-next_ind, #
                 (p_span[0],span[1]),
                 ((s0[0],s1[0],s0[2]),predictor[2][1],predictor[2][2]))),
-                alpha_ind),
+                ),
              ]
         return rtn
+    def dumps(self):
+        return pickle.dumps(tuple(self))
 
 
-class Dep (Reenter_Stop, Base_Task):
+
+class Dep (Early_Stop_Pointwise, Base_Task):
     name="依存句法分析"
 
     Action=Action
     State=State
     Eval=eval.Eval
     codec=codec
+
+
+    def get_init_states(self) :
+        return [self.State.init_stat]
+
+    def shift(self,last_ind,stat):
+        next_ind=last_ind+1
+        if next_ind==2*len(self.lattice)-1 : next_ind=-1 # -1 means the last step
+        state=self.State(self.lattice,stat,)
+        return [(a,next_ind,s) for a,s in state.shift()]
+
+    def reduce(self,last_ind,stat,pred_inds,predictors):
+        next_ind=last_ind+1
+        if next_ind==2*len(self.lattice)-1 : next_ind=-1 # -1 means the last step
+        state=self.State(self.lattice,stat,)
+        rtn2=[]
+        for i,predictor in enumerate(predictors) :
+            rtn2+=[(a,next_ind,s,i) for a,s in state.reduce(self.State(self.lattice,predictor,))]
+        return rtn2
     
     def __init__(self):
         # autoencoder
-        self.ae={}
+        #self.ae={}
         #for line in open("large.50.99.txt"):
         #for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
         #for line in open("/home/zkx/wordclass/dict.txt"):
         #for line in open("/home/zkx/wordtype/autoencoder/70words.9.txt"):
         #    word,*inds=line.split()
-        for line in open("/home/zkx/brown-cluster/011-c500-p1-Rwords_1000.out/paths"):
-            inds,word,*_=line.split()
-            inds=[inds]
-            inds=[x.encode() for x in inds]
-            self.ae[word]=inds
+        #for line in open("/home/zkx/brown-cluster/011-c500-p1-Rwords_1000.out/paths"):
+        #    inds,word,*_=line.split()
+        #    inds=[inds]
+        #    inds=[x.encode() for x in inds]
+        #    self.ae[word]=inds
         pass
 
     def set_raw(self,raw,Y):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
         """
-        self.lattice=Lattice(raw,None)
-        self.raw=raw
-        self.f_raw=[[w.encode()if w else b'',t.encode()if t else b''] for w,t in raw]
+        self.lattice=raw
+        self.f_raw=[[x[0].encode()if x[0] else b'',x[1].encode()if x[1] else b''] for b,e,x in self.lattice]
 
         # autoencoder
-        self.ae_inds=[]
-        for word,tag in raw :
-            #if tag[0]!='N' :
-            #    self.ae_inds.append([])
-            #    continue
-            if len(word)==1 :
-                self.ae_inds.append([b'**'])
-            else:
-                self.ae_inds.append(self.ae.get(word,[b'*']))
-        print(len(self.ae))
-        print(raw)
-        print(self.ae_inds)
-        input()
+        #self.ae_inds=[]
+        #for word,tag in raw :
+        #    #if tag[0]!='N' :
+        #    #    self.ae_inds.append([])
+        #    #    continue
+        #    if len(word)==1 :
+        #        self.ae_inds.append([b'**'])
+        #    else:
+        #        self.ae_inds.append(self.ae.get(word,[b'*']))
+        #print(len(self.ae))
+        #print(raw)
+        #print(self.ae_inds)
+        #input()
 
     def gen_features(self,span,actions):
         fvs=[]
@@ -191,10 +173,10 @@ class Dep (Reenter_Stop, Base_Task):
             s0r_t=b'~' if s0r is None else self.f_raw[s0r][1]
             s0_w=self.f_raw[s0m][0]
             s0_t=self.f_raw[s0m][1]
-            aeind0h=self.ae_inds[s0m]
+            #aeind0h=self.ae_inds[s0m]
         else:
             s0_w,s0_t,s0l_t,s0r_t=b'~',b'~',b'~',b'~'
-            aeind0h=[]
+            #aeind0h=[]
 
         if s1:
             s1m,s1l,s1r=s1
@@ -210,49 +192,85 @@ class Dep (Reenter_Stop, Base_Task):
 
         fv=[
                 #(1)
-                b'0'+s0_w,
-                b'1'+s0_t,
-                b'2'+s0_w+s0_t,
-                b'3'+s1_w,
-                b'4'+s1_t,
-                b'5'+s1_w+s1_t,
-                b'6'+q0_w,
-                b'7'+q0_t,
-                b'8'+q0_w+q0_t,
+                b'0'+s0_w, b'1'+s0_t, b'2'+s0_w+s0_t,
+                b'3'+s1_w, b'4'+s1_t, b'5'+s1_w+s1_t,
+                b'6'+q0_w, b'7'+q0_t, b'8'+q0_w+q0_t,
                 #(2)
-                b'9'+s0_w+b":"+s1_w,
-                b'0'+s0_t+s1_t,
-                b'a'+s0_t+q0_t,
-                b'b'+s0_w+s0_t+s1_t,
-                b'c'+s0_t+s1_w+s1_t,
-                b'd'+s0_w+s1_t+s1_w,
-                b'e'+s0_w+s0_t+s1_w,
+                b'9'+s0_w+b":"+s1_w, b'0'+s0_t+s1_t, b'a'+s0_t+q0_t,
+                b'b'+s0_w+s0_t+s1_t, b'c'+s0_t+s1_w+s1_t,
+                b'd'+s0_w+s1_t+s1_w, b'e'+s0_w+s0_t+s1_w,
                 b'f'+s0_w+s0_t+s1_w+s1_t,
                 #(3)
-                b'g'+s0_t+q0_t+q1_t,
-                b'h'+s0_t+s1_t+q0_t,
-                b'i'+s0_w+q0_t+q1_t,
-                b'j'+s0_w+s1_t+q0_t,
+                b'g'+s0_t+q0_t+q1_t, b'h'+s0_t+s1_t+q0_t,
+                b'i'+s0_w+q0_t+q1_t, b'j'+s0_w+s1_t+q0_t,
                 #(4)
-                b'k'+s0_t+s1_t+s1l_t,
-                b'l'+s0_t+s1_t+s1r_t,
-                b'm'+s0_t+s1_t+s0l_t,
-                b'n'+s0_t+s1_t+s0r_t,
-                b'o'+s0_w+s1_t+s0l_t,
-                b'p'+s0_w+s1_t+s0r_t,
+                b'k'+s0_t+s1_t+s1l_t, b'l'+s0_t+s1_t+s1r_t,
+                b'm'+s0_t+s1_t+s0l_t, b'n'+s0_t+s1_t+s0r_t,
+                b'o'+s0_w+s1_t+s0l_t, b'p'+s0_w+s1_t+s0r_t,
                 #(5)
                 b'q'+s0_t+s1_t+s2_t,
                 ]
 
         # autoencoder
-        for aeind in aeind0h :
-            fv+=[
-                    b's0_taeind0:'+q0_t+b':'+aeind,
-                    b's0_waeind0:'+q0_w+b':'+aeind,
-                    b's0lt_taeind0:'+s0l_t+b':'+aeind,
-                    b's0rt_taeind0:'+s0r_t+b':'+aeind,
-                    b's1t_taeind0:'+s1_t+b':'+aeind,
-                    b's1w_taeind0:'+s1_w+b':'+aeind,
-                    ]
+        #for aeind in aeind0h :
+        #    fv+=[
+        #            b's0_taeind0:'+q0_t+b':'+aeind,
+        #            b's0_waeind0:'+q0_w+b':'+aeind,
+        #            b's0lt_taeind0:'+s0l_t+b':'+aeind,
+        #            b's0rt_taeind0:'+s0r_t+b':'+aeind,
+        #            b's1t_taeind0:'+s1_t+b':'+aeind,
+        #            b's1w_taeind0:'+s1_w+b':'+aeind,
+        #            ]
         return fv
 
+
+
+
+    def result_to_actions(self,result):
+        result=[r[-1] for r in result]
+        stack=[]
+        actions=[]
+        record=[[ind,head,0] for ind,head in enumerate(result)]# [ind, ind_of_head, 是head的次数]
+        for ind,head,_ in record:
+            if head!=-1 :
+                record[head][2]+=1
+        for ind,head in enumerate(result):
+            actions.append((0,'')) # shift
+            stack.append([ind,result[ind],record[ind][2]])
+            while len(stack)>=2:
+                if stack[-1][2]==0 and stack[-1][1]!=-1 and stack[-1][1]==stack[-2][0]:
+                    actions.append((-1,'L')) # left reduce, left is the head
+                    stack.pop()
+                    stack[-1][2]-=1
+                elif stack[-2][1]!=-1 and stack[-2][1]==stack[-1][0]:
+                    actions.append((-1,'R'))
+                    stack[-2]=stack[-1]
+                    stack.pop()
+                    stack[-1][2]-=1
+                else:
+                    break
+        return actions
+
+
+    def actions_to_result(self,actions):
+        ind=0
+        stack=[]
+        arcs=[]
+        for t,l in actions:
+            if t>=0:
+                stack.append(ind)
+                ind+=1
+            elif l=='L' :
+                arcs.append((stack[-1],stack[-2]))
+                stack.pop()
+            elif l=='R' :
+                arcs.append((stack[-2],stack[-1]))
+                stack[-2]=stack[-1]
+                stack.pop()
+        arcs.append((stack[-1],-1))
+        arcs.sort()
+        arcs=[x for _,x in arcs]
+        z=[]
+        for head,it in zip(arcs,self.lattice) :
+            z.append(tuple(list(it[2])+[head]))
+        return z
