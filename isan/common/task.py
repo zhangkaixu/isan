@@ -88,7 +88,6 @@ class Early_Stop_Pointwise :
 
     def early_stop(self,step,next_states,moves):
         if not moves : return False
-
         if not hasattr(self,'oracle') or self.oracle==None : return False
         last_steps,last_states,actions=zip(*moves)
         self.stop_step=None

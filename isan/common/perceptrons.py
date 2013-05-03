@@ -311,6 +311,8 @@ class Model(object):
                 y,hat_y=self._learn_sentence(rtn)#根据（输入，输出）学习参数，顺便得到解码结果
                 eval(y,hat_y)#根据解码结果和标准输出，评价效果
             eval.print_result()#打印评测结果
+
+            #self.task.report()
             
             if dev_file:
                 print("使用开发集 %s 评价当前模型效果"%(dev_file),file=sys.stderr)

@@ -2,6 +2,23 @@ import pickle
 import isan.parsing.dep_unlabeled_eval as eval
 from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
 
+import time
+
+class Times (dict) :
+    def __call__(self,key):
+        if key not in self :
+            self[key]=[0,None]
+        data=self[key]
+        if data[1]==None :
+            data[1]=time.time()
+        else :
+            data[0]+=time.time()-data[1]
+            data[1]=None
+    def __repr__(self):
+        return '\n'.join(str(k)+":"+str(v[0]) for k,v in self.items())
+
+times=Times()
+
 class codec:
     @staticmethod
     def decode(line):
@@ -86,6 +103,8 @@ class Dep (Early_Stop_Pointwise, Base_Task):
     Eval=eval.Eval
     codec=codec
 
+    def report(self):
+        print(times)
 
     def get_init_states(self) :
         return [self.State.init_stat]
@@ -264,3 +283,4 @@ class Dep (Early_Stop_Pointwise, Base_Task):
         for head,it in zip(arcs,self.lattice) :
             z.append(tuple(list(it[2])+[head]))
         return z
+
