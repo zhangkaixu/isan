@@ -38,7 +38,7 @@ class Action :
 
 
 class State (list) :
-    init_stat=pickle.dumps((0,(0,0),(None,None,None)))
+    init_stat=pickle.dumps(((0,0),(None,None,None)))
     @staticmethod
     def load(bt):
         return pickle.loads(bt)
@@ -46,40 +46,30 @@ class State (list) :
     def __init__(self,lattice,bt=init_stat):
         self.lattice=lattice
         self.extend(pickle.loads(bt))
-        self.stop_step=2*self.lattice.length-1
 
     def shift(self):
-        ind,span,stack_top=self
-        ind=-ind
-        next_ind=ind+1
-        if next_ind==self.stop_step : next_ind=-1
-        pos=self[1][1]
+        span,stack_top=self
+        pos=span[1]
         nex=self.lattice.begins.get(pos,None)
         if not nex : return []
-        s0,s1,s2=self[2]
-        ns=(-next_ind,(pos,pos+1),((nex[0],None,None),s0,s1[0]if s1 else None))
+        s0,s1,s2=stack_top
+        ns=((pos,pos+1),((nex[0],None,None),s0,s1[0]if s1 else None))
         return [( ord('S'), pickle.dumps(ns))]
 
     def reduce(self,predictor):
-
-        ind,span,stack_top=self
-        ind=-ind
+        span,stack_top=self
         s0,s1,s2=stack_top
         if s0==None or s1==None:return []
-        assert(predictor[2][0]==s1)
-        _,p_span,_=predictor
-
-        next_ind=ind+1
-        if next_ind==self.stop_step : next_ind=-1
+        p_span,pstack=predictor
 
         rtn= [
-             (ord('L'),pickle.dumps((-next_ind, # ind
+             (ord('L'),pickle.dumps(( # ind
                 (p_span[0],span[1]), #span
-                ((s1[0],s1[1],s0[0]),predictor[2][1],predictor[2][2]))), ##
+                ((s1[0],s1[1],s0[0]),pstack[1],pstack[2]))), ##
                 ),
-             (ord('R'),pickle.dumps((-next_ind, #
+             (ord('R'),pickle.dumps(( #
                 (p_span[0],span[1]),
-                ((s0[0],s1[0],s0[2]),predictor[2][1],predictor[2][2]))),
+                ((s0[0],s1[0],s0[2]),pstack[1],pstack[2]))),
                 ),
              ]
         return rtn
@@ -162,7 +152,7 @@ class Dep (Early_Stop_Pointwise, Base_Task):
 
     def gen_features_one(self,stat):
         stat=pickle.loads(stat)
-        ind,span,stack_top=stat
+        span,stack_top=stat
         s0,s1,s2=stack_top
 
         s2_t=b'~' if s2 is None else self.f_raw[s2][1]

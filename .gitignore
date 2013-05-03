@@ -1,4 +1,5 @@
 test
+build/
 /data*
 test.*
 test*
