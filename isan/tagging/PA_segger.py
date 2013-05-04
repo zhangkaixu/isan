@@ -6,10 +6,6 @@ import json
 import random
 
 """
-You do the best, we do the rest!
-
-来看看如何建造一个中文分词模型
-只需要编写最核心的代码，其它代码我都已经编好了
 """
 class Segger(cws.Task):
     """告诉isan，这是个什么task"""

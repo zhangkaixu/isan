@@ -55,12 +55,12 @@ class Action :
 
 
 class State (list) :
-    init_stat=pickle.dumps(((0,0),(None,None,None)))
+    init_state=pickle.dumps(((0,0),(None,None,None)))
     @staticmethod
     def load(bt):
         return pickle.loads(bt)
 
-    def __init__(self,lattice,bt=init_stat):
+    def __init__(self,lattice,bt=init_state):
         self.lattice=lattice
         self.extend(pickle.loads(bt))
 
@@ -106,8 +106,6 @@ class Dep (Early_Stop_Pointwise, Base_Task):
     def report(self):
         print(times)
 
-    def get_init_states(self) :
-        return [self.State.init_stat]
 
     def shift(self,last_ind,stat):
         next_ind=last_ind+1

@@ -24,25 +24,32 @@ class Base_Task :
     reduce = None
 
 
-    def actions_to_stats(self,actions,lattice):
+    def actions_to_moves(self,actions,lattice):
         state=self.State(lattice)
         stack=[state]
-        states=[self.State(lattice)]#状态序列
-        for action in actions :
+        moves=[[None,None,action] for action in actions]
+        moves[0][0]=0
+        moves[0][1]=self.State.init_state
+        for i in range(len(moves)-1) :
+            move=moves[i]
+            step,state,action=move
             ind,label=action
             if ind >=0 : # shift
-                rst=[ns for a,ns in state.shift() if a==self.Action.encode(action)]
-                state=self.State(lattice,rst[0])
-                stack.append(state)
-                states.append(state)
-            else : # reduce
+                rst=[[nstep,ns] for a,nstep,ns in self.shift(step,state) if a==self.Action.encode(action)]
+                moves[i+1][0],moves[i+1][1]=rst[0]
+                stack.append(rst[0][1])
+            else : # reduce 
                 s0=stack.pop()
                 s1=stack.pop()
-                rst=[ns for a,ns in s0.reduce(s1) if a==self.Action.encode(action)]
-                state=self.State(lattice,rst[0])
-                states.append(state)
-                stack.append(state)
-        return list(s.dumps()for s in states)
+                rst=[[nstep,ns] for a,nstep,ns,_ in self.reduce(step,s0,[0],[s1]) if a==self.Action.encode(action)]
+                moves[i+1][0],moves[i+1][1]=rst[0]
+                stack.append(rst[0][1])
+                pass
+        for move in moves:
+            move[2]=self.Action.encode(move[2])
+
+        moves=list(map(tuple,moves))
+        return moves
 
     def moves_to_result(self,moves,_):
         actions=[self.Action.decode(a) for ind,state,a in moves]
@@ -57,9 +64,9 @@ class Base_Task :
                 )
 
     def set_oracle(self,raw,y) :
+        self.set_raw(raw,y)
         std_actions=self.result_to_actions(y)
-        std_states=self.actions_to_stats(std_actions,raw)
-        moves=[(i,std_states[i],self.Action.encode(std_actions[i]))for i in range(len(std_actions))]
+        moves=self.actions_to_moves(std_actions,raw)
         return moves
 
     early_stop=None
@@ -72,10 +79,10 @@ class Base_Task :
 
 class Early_Stop_Pointwise :
     def set_oracle(self,raw,y) :
+        self.set_raw(raw,y)
         self.stop_step=None
         std_actions=self.result_to_actions(y)
-        std_states=self.actions_to_stats(std_actions,raw)
-        moves=[(i,std_states[i],self.Action.encode(std_actions[i]))for i in range(len(std_actions))]
+        moves=self.actions_to_moves(std_actions,raw)
 
         self.oracle={}
         for step,state,action in moves :
