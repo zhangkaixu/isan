@@ -86,7 +86,7 @@ class Early_Stop_Pointwise :
 
         self.oracle={}
         for step,state,action in moves :
-            self.oracle[step]=self.State.load(state)
+            self.oracle[step]=self.State.decode(state)
         return moves
 
     def remove_oracle(self):
@@ -99,7 +99,7 @@ class Early_Stop_Pointwise :
         last_steps,last_states,actions=zip(*moves)
         self.stop_step=None
         if step in self.oracle :
-            next_states=[self.State.load(x) for x in next_states]
+            next_states=[self.State.decode(x) for x in next_states]
             if not (self.oracle[step]in next_states) :
                 self.stop_step=step
                 return True

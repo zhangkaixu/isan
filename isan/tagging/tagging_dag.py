@@ -39,14 +39,18 @@ class codec :
 class State (list):
     init_state=pickle.dumps((-1,-1))
 
+
+    decode=pickle.loads
+    encode=pickle.dumps
+
     def __init__(self,lattice,bt=init_state):
         self.extend(pickle.loads(bt))
         self.lattice=lattice
 
     def shift(self):
         begin=0 if self[1]==-1 else self.lattice[self[1]][1]
-        rtn=[[n,pickle.dumps((self[1],n))] for n in self.lattice.begins[begin]]
-        return rtn
+        return [[n,pickle.dumps((self[1],n))] 
+                for n in self.lattice.begins[begin]]
 
     def dumps(self):
         return pickle.dumps(tuple(self))
@@ -92,17 +96,13 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
 
     # states
 
-    def next_ind(self,last_ind,action):
+    def _next_ind(self,last_ind,action):
         next_ind=last_ind+len(self.lattice[action][2][0])
-        next_ind= next_ind if next_ind != self.lattice.length else -1
-        return next_ind
+        return next_ind if next_ind != self.lattice.length else -1
 
     def shift(self,last_ind,stat):
-        state=self.State(self.lattice,stat)
-        for a,s in state.shift():
-            self.next_ind(last_ind,a)
-        rtn=[(a,self.next_ind(last_ind,a),s) for a,s in state.shift()]
-        return rtn
+        return [(a,self._next_ind(last_ind,a),s) 
+                for a,s in self.State(self.lattice,stat).shift()]
 
     reduce=None
 
@@ -111,33 +111,25 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
 
     def set_raw(self,raw,Y):
         self.lattice=raw
+        self.atoms=[]
+        for ind in range(len(self.lattice)):
+            w,t,m=self.lattice[ind][2]
+            self.atoms.append((w,t,m,str(len(w))))
+        self.atoms.append(('~','~','','0'))
 
     def gen_features(self,state,actions):
         fvs=[]
         state=self.State(self.lattice,state,)
         ind1,ind2=state
-        if ind1==-1 :
-            w1,t1,m1='~','~',''
-            len1='0'
-        else :
-            w1,t1,m1=self.lattice[ind1][2]
-            len1=str(w1)
+
+        w1,t1,m1,len1=self.atoms[ind1]
         
-        if ind2==-1 :
-            w2,t2,m2='~','~',''
-            len2='0'
-        else :
-            w2,t2,m2=self.lattice[ind2][2]
-            len2=str(w2)
+        w2,t2,m2,len2=self.atoms[ind2]
 
         for action in actions :
             ind3=action
-            if ind3==-1 :
-                w3,t3,m3='~','~',''
-                len3='0'
-            else :
-                w3,t3,m3=self.lattice[ind3][2]
-                len3=str(w3)
+            
+            w3,t3,m3,len3=self.atoms[ind3]
 
             fv=((['m3~'+m3,] if m3 is not None else [])+
                     (['m3m2~'+m3+'~'+m2,] if m3 is not None  and m2 is not None else [])+
