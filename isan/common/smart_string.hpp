@@ -104,8 +104,15 @@ public:
     Smart_Chars(PyObject* py_key){
         char* buffer;
         Py_ssize_t len;
-        PyBytes_AsStringAndSize(py_key,&buffer,&len);
-        str=std::string(buffer,len);
+        if(PyBytes_Check(py_key)){
+            PyBytes_AsStringAndSize(py_key,&buffer,&len);
+            str=std::string(buffer,len);
+        }else {
+            PyObject* by=PyUnicode_AsUTF8String(py_key);
+            PyBytes_AsStringAndSize(by,&buffer,&len);
+            Py_DECREF(by);
+            str=std::string(buffer,len);
+        }
     };
     Smart_Chars(Char* buffer, size_t length){
         str=std::string((char*)buffer,length);

@@ -125,18 +125,6 @@ class Dep (Early_Stop_Pointwise, Base_Task):
         return rtn2
     
     def __init__(self):
-        # autoencoder
-        #self.ae={}
-        #for line in open("large.50.99.txt"):
-        #for line in open("/home/zkx/wordtype/autoencoder/top4.txt"):
-        #for line in open("/home/zkx/wordclass/dict.txt"):
-        #for line in open("/home/zkx/wordtype/autoencoder/70words.9.txt"):
-        #    word,*inds=line.split()
-        #for line in open("/home/zkx/brown-cluster/011-c500-p1-Rwords_1000.out/paths"):
-        #    inds,word,*_=line.split()
-        #    inds=[inds]
-        #    inds=[x.encode() for x in inds]
-        #    self.ae[word]=inds
         pass
 
     def set_raw(self,raw,Y):
@@ -144,28 +132,14 @@ class Dep (Early_Stop_Pointwise, Base_Task):
         对需要处理的句子做必要的预处理（如缓存特征）
         """
         self.lattice=raw
-        self.f_raw=[[x[0].encode()if x[0] else b'',x[1].encode()if x[1] else b''] for b,e,x in self.lattice]
+        self.f_raw=[[x[0]if x[0] else '',x[1]if x[1] else ''] for b,e,x in self.lattice]
 
-        # autoencoder
-        #self.ae_inds=[]
-        #for word,tag in raw :
-        #    #if tag[0]!='N' :
-        #    #    self.ae_inds.append([])
-        #    #    continue
-        #    if len(word)==1 :
-        #        self.ae_inds.append([b'**'])
-        #    else:
-        #        self.ae_inds.append(self.ae.get(word,[b'*']))
-        #print(len(self.ae))
-        #print(raw)
-        #print(self.ae_inds)
-        #input()
 
     def gen_features(self,span,actions):
         fvs=[]
         fv=self.gen_features_one(span)
         for action in actions:
-            action=chr(action).encode()
+            action=chr(action)
             fvs.append([action+x for x in fv])
         return fvs
 
@@ -174,66 +148,51 @@ class Dep (Early_Stop_Pointwise, Base_Task):
         span,stack_top=stat
         s0,s1,s2=stack_top
 
-        s2_t=b'~' if s2 is None else self.f_raw[s2][1]
+        s2_t='~' if s2 is None else self.f_raw[s2][1]
 
         if s0:
             s0m,s0l,s0r=s0
-            s0l_t=b'~' if s0l is None else self.f_raw[s0l][1]
-            s0r_t=b'~' if s0r is None else self.f_raw[s0r][1]
+            s0l_t='~' if s0l is None else self.f_raw[s0l][1]
+            s0r_t='~' if s0r is None else self.f_raw[s0r][1]
             s0_w=self.f_raw[s0m][0]
             s0_t=self.f_raw[s0m][1]
-            #aeind0h=self.ae_inds[s0m]
         else:
-            s0_w,s0_t,s0l_t,s0r_t=b'~',b'~',b'~',b'~'
-            #aeind0h=[]
+            s0_w,s0_t,s0l_t,s0r_t='~','~','~','~'
 
         if s1:
             s1m,s1l,s1r=s1
-            s1l_t=b'~' if s1l is None else self.f_raw[s1l][1]
-            s1r_t=b'~' if s1r is None else self.f_raw[s1r][1]
+            s1l_t='~' if s1l is None else self.f_raw[s1l][1]
+            s1r_t='~' if s1r is None else self.f_raw[s1r][1]
             s1_w=self.f_raw[s1m][0]
             s1_t=self.f_raw[s1m][1]
         else:
-            s1_w,s1_t,s1l_t,s1r_t=b'~',b'~',b'~',b'~'
+            s1_w,s1_t,s1l_t,s1r_t='~','~','~','~'
 
-        q0_w,q0_t=self.f_raw[span[1]] if span[1]<len(self.f_raw) else (b'~',b'~')
-        q1_t=self.f_raw[span[1]+1][1] if span[1]+1<len(self.f_raw) else b'~'
+        q0_w,q0_t=self.f_raw[span[1]] if span[1]<len(self.f_raw) else ('~','~')
+        q1_t=self.f_raw[span[1]+1][1] if span[1]+1<len(self.f_raw) else '~'
 
         fv=[
                 #(1)
-                b'0'+s0_w, b'1'+s0_t, b'2'+s0_w+s0_t,
-                b'3'+s1_w, b'4'+s1_t, b'5'+s1_w+s1_t,
-                b'6'+q0_w, b'7'+q0_t, b'8'+q0_w+q0_t,
+                '0'+s0_w, '1'+s0_t, '2'+s0_w+s0_t,
+                '3'+s1_w, '4'+s1_t, '5'+s1_w+s1_t,
+                '6'+q0_w, '7'+q0_t, '8'+q0_w+q0_t,
                 #(2)
-                b'9'+s0_w+b":"+s1_w, b'0'+s0_t+s1_t, b'a'+s0_t+q0_t,
-                b'b'+s0_w+s0_t+s1_t, b'c'+s0_t+s1_w+s1_t,
-                b'd'+s0_w+s1_t+s1_w, b'e'+s0_w+s0_t+s1_w,
-                b'f'+s0_w+s0_t+s1_w+s1_t,
+                '9'+s0_w+":"+s1_w, '0'+s0_t+s1_t, 'a'+s0_t+q0_t,
+                'b'+s0_w+s0_t+s1_t, 'c'+s0_t+s1_w+s1_t,
+                'd'+s0_w+s1_t+s1_w, 'e'+s0_w+s0_t+s1_w,
+                'f'+s0_w+s0_t+s1_w+s1_t,
                 #(3)
-                b'g'+s0_t+q0_t+q1_t, b'h'+s0_t+s1_t+q0_t,
-                b'i'+s0_w+q0_t+q1_t, b'j'+s0_w+s1_t+q0_t,
+                'g'+s0_t+q0_t+q1_t, 'h'+s0_t+s1_t+q0_t,
+                'i'+s0_w+q0_t+q1_t, 'j'+s0_w+s1_t+q0_t,
                 #(4)
-                b'k'+s0_t+s1_t+s1l_t, b'l'+s0_t+s1_t+s1r_t,
-                b'm'+s0_t+s1_t+s0l_t, b'n'+s0_t+s1_t+s0r_t,
-                b'o'+s0_w+s1_t+s0l_t, b'p'+s0_w+s1_t+s0r_t,
+                'k'+s0_t+s1_t+s1l_t, 
+                'l'+s0_t+s1_t+s1r_t,
+                'm'+s0_t+s1_t+s0l_t, 'n'+s0_t+s1_t+s0r_t,
+                'o'+s0_w+s1_t+s0l_t, 'p'+s0_w+s1_t+s0r_t,
                 #(5)
-                b'q'+s0_t+s1_t+s2_t,
+                'q'+s0_t+s1_t+s2_t,
                 ]
-
-        # autoencoder
-        #for aeind in aeind0h :
-        #    fv+=[
-        #            b's0_taeind0:'+q0_t+b':'+aeind,
-        #            b's0_waeind0:'+q0_w+b':'+aeind,
-        #            b's0lt_taeind0:'+s0l_t+b':'+aeind,
-        #            b's0rt_taeind0:'+s0r_t+b':'+aeind,
-        #            b's1t_taeind0:'+s1_t+b':'+aeind,
-        #            b's1w_taeind0:'+s1_w+b':'+aeind,
-        #            ]
         return fv
-
-
-
 
     def result_to_actions(self,result):
         result=[r[-1] for r in result]

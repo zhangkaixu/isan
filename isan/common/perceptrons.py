@@ -312,7 +312,8 @@ class Model(object):
                 eval(y,hat_y)#根据解码结果和标准输出，评价效果
             eval.print_result()#打印评测结果
 
-            #self.task.report()
+            if hasattr(self.task,'report'):
+                self.task.report()
             
             if dev_file:
                 print("使用开发集 %s 评价当前模型效果"%(dev_file),file=sys.stderr)

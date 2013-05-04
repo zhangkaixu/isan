@@ -85,7 +85,7 @@ class Task (Base_Task) :
     def set_raw(self,raw,Y):
         self.lattice=raw
         self.raw=''.join(c for b,e,c in raw)
-        xraw=[c.encode() for i,c in enumerate(self.raw)] + [b'#',b'#']
+        xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
         self.ngram_fv=[]
         for ind in range(len(raw)):
             m=xraw[ind]
@@ -94,21 +94,21 @@ class Task (Base_Task) :
             r1=xraw[ind+1]
             r2=xraw[ind+2]
             self.ngram_fv.append([
-                    b'1'+m, b'2'+l1, b'3'+r1,
-                    b'4'+l2+l1, b'5'+l1+m,
-                    b'6'+m+r1, b'7'+r1+r2,
+                    '1'+m, '2'+l1, '3'+r1,
+                    '4'+l2+l1, '5'+l1+m,
+                    '6'+m+r1, '7'+r1+r2,
                 ])
 
     def gen_features(self,stat,actions):
         stat=self.State(self.lattice,stat)
         ind=stat[0]
         if ind > 0 :
-            fv= [ b'T'+stat[1] ]+self.ngram_fv[ind]
+            fv= [ 'T'+stat[1].decode() ]+self.ngram_fv[ind]
         else :
             fv= self.ngram_fv[ind]
 
         fvs=[]
         for action in actions:
-            action=chr(action).encode()
+            action=chr(action)
             fvs.append([action+x for x in fv])
         return fvs

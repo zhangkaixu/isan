@@ -169,8 +169,9 @@ public:
             fvs.push_back(Feature_Vector());
             auto& fv=fvs.back();
             for(int j=0;j<fv_size;j++){
-                PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,j),&buffer,(Py_ssize_t*)&(length));
-                fv.push_back(Feature_String((Smart_Chars::Char*)buffer,length));
+                //PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,j),&buffer,(Py_ssize_t*)&(length));
+                //fv.push_back(Feature_String((Smart_Chars::Char*)buffer,length));
+                fv.push_back(Feature_String(PyList_GET_ITEM(pfv,j)));
             }
         };
         Py_DECREF(pfvs);
