@@ -1,7 +1,0 @@
-感知器
-======
-
-.. automodule:: isan.common.perceptrons
-
-.. autoclass:: isan.common.perceptrons.Task
-    :members:
