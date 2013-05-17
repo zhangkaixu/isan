@@ -12,6 +12,16 @@ class Lattice (list) :
             self.begins[b].append(i)
     def __str__(self):
         return ' '.join("%i:(%i,%i):%s"%(i,it[0],it[1],it[2]) for i,it in enumerate(self))
+    
+    def gen_sentence(self,to_str):
+        o=0
+        s=[]
+        while True :
+            if o not in self.begins : break
+            nind=self.begins[o][0]
+            b,o,x=self[nind]
+            s.append(to_str(x))
+        return ''.join(s)
 
 
 
