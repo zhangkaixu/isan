@@ -1,4 +1,5 @@
 import pickle
+import random
 import isan.parsing.dep_unlabeled_eval as eval
 from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
 
@@ -90,6 +91,7 @@ class Dep (Early_Stop_Pointwise, Base_Task):
     Eval=eval.Eval
 
     def __init__(self):
+        random.seed(123)
         pass
 
     def result_to_actions(self,result):
@@ -156,12 +158,35 @@ class Dep (Early_Stop_Pointwise, Base_Task):
             rtn+=[(a,next_ind,s,i) for a,s in state.reduce(self.State(self.lattice,predictor,))]
         return rtn
 
+    def set_oracle(self,raw,y) :
+        self.oracle={}
+        
+        self.set_raw(raw,y)
+        self.stop_step=None
+        std_actions=self.result_to_actions(y)
+        moves=self.actions_to_moves(std_actions,raw)
+
+
+        for step,state,action in moves :
+            self.oracle[step]=self.State.decode(state)
+
+        return moves
+
     def set_raw(self,raw,Y):
         """
         对需要处理的句子做必要的预处理（如缓存特征）
         """
         self.lattice=raw
-        self.f_raw=[(x[0],x[1]) for b,e,x in self.lattice]
+        self.f_raw=[[x[0],x[1]] for b,e,x in self.lattice]
+
+        if not self.oracle : return
+        return 
+        
+        for i in range(len(self.f_raw)):
+            if random.random()<0.05 :
+                self.f_raw[i][0]='^'
+            #if random.random()<0.05 :
+            #    self.f_raw[i][1]='^'
 
 
     def gen_features(self,stat,acts):
@@ -210,6 +235,7 @@ class Dep (Early_Stop_Pointwise, Base_Task):
                 #(5)
                 'q'+s0_t+s1_t+s2_t,
                 ]
+        fv=[f for f in fv if '^' not in f]
 
         fvs=[[action+x for x in fv]for action in map(chr,acts)]
         return fvs
