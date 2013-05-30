@@ -181,7 +181,7 @@ class TaggingEval:
         for plugin in self.plugins:
             plugin(std,rst)
 
-    def eval_files(self,std_file,rst_file):
+    def eval_files(self,std_file,rst_file,sep):
         for g,r in zip(open(std_file),open(rst_file)):
             gl=sum(len(x.partition(self.sep)[0])for x in g.split())
             rl=sum(len(x.partition(self.sep)[0])for x in r.split())
@@ -190,11 +190,16 @@ class TaggingEval:
                 print(g.strip())
                 print(r.strip())
             assert(gl==rl)
-            g=g.strip()
-            r=r.strip()
+            g=g.split()
+            r=r.split()
             #print(g)
             #print(r)
-            self(g.split(),r.split())
+            if all(sep in x for x in g) and all(sep in x for x in r) :
+                g=[x.split(sep) for x in g]
+                r=[x.split(sep) for x in r]
+                self(g,r)
+            else :
+                self(g,r)
 if __name__=="__main__":
     import argparse
     parser=argparse.ArgumentParser(description="用于分词词性标注的评测和比较")
@@ -208,7 +213,7 @@ if __name__=="__main__":
     if args.diff_file!=None:
         plugins.append(DiffToHTML(args.diff_file))
     eval=TaggingEval(plugins,sep=args.sep)
-    eval.eval_files(args.std,args.rst)
+    eval.eval_files(args.std,args.rst,args.sep)
     p,r,f=eval.get_prf()
     sp,sr,sf=eval.get_prf(True)
     print(eval.std,eval.rst,eval.cor,"%.4f|%.4f|%.4f"%(p,r,f),"%.4f|%.4f|%.4f"%(sp,sr,sf))

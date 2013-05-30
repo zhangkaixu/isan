@@ -8,7 +8,8 @@ class codec:
     def decode(line):
         sen=[]
         for arc in line.split():
-            word,tag,head_ind,arc_type=arc.split('_')
+            #print(arc)
+            word,tag,head_ind,arc_type=arc.rsplit('_',3)
             head_ind=int(head_ind)
             sen.append((word,tag,head_ind,arc_type))
         raw=[(w,t)for w,t,*_ in sen]
