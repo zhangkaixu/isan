@@ -131,23 +131,29 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             
             w3,t3,m3,len3=self.atoms[ind3]
 
-            fv=((['m3~'+m3,] if m3 is not None else [])+
-                    (['m3m2~'+m3+'~'+m2,] if m3 is not None  and m2 is not None else [])+
+            fv=((['m3~'+m3,
+                'm3l3~'+m3+'~'+len3,
+                'm3t3~'+m3+'~'+t3,
+                ] if m3 is not None else [])+
+                    ([
+                        'm3m2~'+m3+'~'+m2,
+                        ] if m3 is not None  and m2 is not None else [])+
             [
-                    'w3~'+w3, 't3~'+t3, 'l3~'+len3,
-                    'w3t3~'+w3+t3, 'l3t3~'+len3+t3,
+                    # ok
+                    'w3~'+w3, 't3~'+t3, 'l3~'+len3, 'w3t3~'+w3+t3, 'l3t3~'+len3+t3,
+                    # ok
+                    'w3w2~'+w3+"~"+w2, 'w3t2~'+w3+t2, 't3w2~'+t3+w2, 't3t2~'+t3+t2,
+                    'l3w2~'+len3+'~'+w2, 'w3l2~'+w3+'~'+len2, 'l3t2~'+len3+'~'+t2, 't3l2~'+t3+'~'+len2,
+                    'l3l2~'+len3+'~'+len2,
 
-                    'w3w2~'+w3+"-"+w2, 'w3t2~'+w3+t2,
-                    't3w2~'+t3+w2, 't3t2~'+t3+t2,
-
-                    'l3w2~'+len3+w2, 'w3l2~'+w3+'~'+len2,
-                    'l3t2~'+len3+t2, 'l3l2~'+len3+'~'+len2,
-
-                    'w3t3l2~'+w3+t3+'~'+len2,
-                    'w3t3w2~'+w3+t3+w2, 'w3w2t2~'+w3+t2+w2,
-                    
-                    't3t1~'+t3+t1, 't3t2t1~'+t3+t2+t1,
-                    'l3l2l1~'+len3+'~'+len2+'~'+len1,
+                    's.wq.b~'+w2+"~"+w3[0],
+                    's.wq.e~'+w2+"~"+w3[-1],
+                    # ok three
+                    #'l3t3w2~'+l3+'~'+t3+'~'+w2, 'l3t3t2~'+l3+'~'+t3+'~'+t2, 'l3t3l2~'+l3+'~'+t3+'~'+len2,
+                    #'w3t3w2~'+w3+'~'+t3+'~'+w2, 'w3t3t2~'+w3+'~'+t3+'~'+t2, 'w3t3l2~'+w3+'~'+t3+'~'+len2,
+                    # ok
+                    't3t1~'+t3+'~'+t1, 't3t2t1~'+t3+'~'+t2+'~'+t1,
+                    'l3l1~'+len3+'~'+len1, 'l3l2l1~'+len3+'~'+len2+'~'+len1,
                     ])
             fvs.append(fv)
         return fvs
