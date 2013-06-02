@@ -11,6 +11,7 @@ Isan
 
 import sys
 import argparse
+import random
 
 def make_color(s,color='36'):
     return '\033['+color+';01m%s\033[1;m'%s #blue
@@ -46,10 +47,13 @@ def command_line(Model,Task,Decoder):
             help='开发用语料库',metavar=('开发集'))
     parser.add_argument('--threshold',dest='threshold',type=int,default=0,
             help='',metavar='阈值')
+    parser.add_argument('--seed',type=int,default=None,
+            help='')
     args=parser.parse_args()
     """如果指定了训练集，就训练模型"""
     info_color='34'
 
+    random.seed(args.seed)
 
     if args.model_module:
         mod,_,cls=args.model_module.rpartition('.')
@@ -81,12 +85,12 @@ def command_line(Model,Task,Decoder):
                         make_color(args.iteration),
                         name_task,
                         make_color(args.model_file)),file=sys.stderr)
-        model=Model(args.model_file,
+        model=Model(None,
                     Task(),
                     Decoder,beam_width=int(args.beam_width),
             )
         model.train(args.train,int(args.iteration),dev_file=args.dev_file)
-        model.save()
+        model.save(args.model_file)
 
     if args.train and not args.test_file:
         exit()
@@ -94,7 +98,7 @@ def command_line(Model,Task,Decoder):
         print("使用模型文件%s进行%s"%(make_color(args.model_file),
                     name_task),file=sys.stderr)
     
-    model=Model(args.model_file,
+    model=Model(args.model_file,task=Task(),
                     Searcher=Decoder,beam_width=int(args.beam_width)
                     )
     

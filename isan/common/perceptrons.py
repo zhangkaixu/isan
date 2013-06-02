@@ -2,108 +2,13 @@
 ZHANG Kaixu
 
 
-平均感知器算法的伪代码
-
-.. code-block:: python
-    :linenos:
-    
-    for x,y in training_data:
-        z=argmax(f(x,z)*alpha))#: 向量乘法
-        if z!=y:
-            alpha=alpha+f(x,y)-f(x,z)
-
-会生成一个 :py:class:`Task.Eval` 对象，用于评测
-
-
-1. 读入一行数据，使用 :py:meth:`Task.codec.decode` 解码。 使用 :py:meth:`Task.set_oracle` 来设置标准答案，并且得到标准的动作。
-2. 开始寻找正确答案， :py:meth:`Task.set_raw` 设置输入， 调用搜索算法得到输出。 这里还可能用到 :py:meth:`Task.early_stop` 来判断是否需要提前结束搜索。
-3. 用 :py:meth:`Task.check` 判断是否是正确输出
-4. 使用 :py:meth:`Task.update_moves` 来判断哪些地方需要更新权重。 
-5. :py:meth:`Task.remove_oracle` 去掉标准答案。 最后用 :py:meth:`Task.moves_to_result` 得到输出结果，用于评测
-
-
 """
 import logging
 import sys
 import pickle
 import collections
 import random
-
-class Task:
-    """
-    task
-
-    """
-
-    """weights"""
-    weights=None
-
-    class Eval:
-        """
-        用于评测"""
-
-
-    def set_raw(self,raw,Y):
-        """
-        设置输入
-        """
-        pass
-    def set_oracle(self,raw,y,Y_b=None):
-        """
-        设置标准输出。
-
-        y 不一定需要给出，可以给出Y_b
-
-        :param raw: raw sentence
-        :param y: gold standard output
-        :param Y_b: a set (or other data structure) containing y
-        """
-        pass
-    def check(self,std_moves,rst_moves):
-        """
-        
-        :param std_moves: 标准运动
-        :param rst_moves: 解码得到的运动
-        :return: 1 表示正确，不需要更新权重， 0 表示需要更新权重。
-
-        """
-        pass
-    def remove_oracle(self):
-        """
-        need to be removed
-        """
-        pass
-    def update_moves(self,std_moves,rst_moves):
-        """
-
-        :param std_moves: 标准运动
-        :param rst_moves: 解码得到的运动
-        :return: 三元组 ``(state,action,delta)`` 的序列
-
-        """
-    def moves_to_result(self,rst_moves,raw):
-        """
-        from move to result
-        """
-
-
-    class codec:
-        """ codec """
-        @staticmethod
-        def decode(line):
-            """
-
-            :rtype: :py:func:`dict` ``{'raw': raw, 'y': y, 'Y_a':ya}``
-            """
-
-    def shift(self,last_ind,stat):
-        """ 处理 shift 动作
-
-        :param integer step: 当前步骤
-        :param bytes state: 当前状态
-        :return: list of tuples `[(action, next_step, next_state) , ...]`
-
-        """
+import gzip
 
 
 class Model(object):
@@ -123,13 +28,14 @@ class Model(object):
         self.logger=logging.getLogger(__name__)
         self.beam_width=beam_width#:搜索宽度
         self.conf=conf
-        if task==None:
-            file=open(model_file,"rb")
-            self.task=pickle.load(file)
+
+        self.task=task
+        if model_file!=None:
+            file=gzip.open(model_file,"rb")
+            self.task.weights=pickle.load(file)
             file.close()
         else:
-            self.model_file=model_file
-            self.task=task
+            #self.model_file=model_file
             self.task.weights={}
         if hasattr(self.task,'init'):
             self.task.init()
@@ -177,16 +83,19 @@ class Model(object):
         self.searcher.un_average_weights()
 
         pass
-    def save(self):
+    def save(self,model_file=None):
         """
         保存模型
         """
+
+        if model_file==None : model_file=self.model_file
+        if model_file==None : return
+
         self.searcher.average_weights(self.step)
-        #for k,v in self.searcher.export_weights():
-        #    self.task.weights.setdefault(k,{}).update(v)
         self.task.weights=self.searcher.export_weights()
-        file=open(self.model_file,'wb')
-        pickle.dump(self.task,file)
+        #file=open(model_file,'wb')
+        file=gzip.open(model_file,'wb')
+        pickle.dump(self.task.weights,file)
         file.close()
 
     def search(self,raw,Y=None):
@@ -274,7 +183,7 @@ class Model(object):
         训练
         """
         if type(training_file)==str:training_file=[training_file]
-        random.seed(123)
+        #random.seed(123)
 
         if keep_data :
             training_data=[]
@@ -283,7 +192,7 @@ class Model(object):
                     rtn=self.task.codec.decode(line.strip())#得到标准输出
                     if not rtn:continue
                     training_data.append(rtn)
-            #random.shuffle(training_data)
+            random.shuffle(training_data)
 
         def gen_data():
             if keep_data :
