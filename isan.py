@@ -43,6 +43,8 @@ def command_line(Model,Task,Decoder):
             help='学习迭代次数(default: %(default)s)',metavar='迭代次数')
     parser.add_argument('--beam_width',dest='beam_width',default=8,type=int,
             help='为0时，柱搜索算法变为动态规划算法(default: %(default)s)',metavar="柱宽度")
+    parser.add_argument('--penalty',default=0,type=int, help='',metavar="")
+    parser.add_argument('--penalty_value',default=0,type=float, help='',metavar="")
     parser.add_argument('--dev',dest='dev_file',default=None,
             help='开发用语料库',metavar=('开发集'))
     parser.add_argument('--threshold',dest='threshold',type=int,default=0,
@@ -89,6 +91,7 @@ def command_line(Model,Task,Decoder):
                     Task(),
                     Decoder,beam_width=int(args.beam_width),
             )
+        model.searcher.set_penalty(args.penalty,args.penalty_value)
         model.train(args.train,int(args.iteration),dev_file=args.dev_file)
         model.save(args.model_file)
 

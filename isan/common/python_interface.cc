@@ -173,6 +173,32 @@ set_raw(PyObject *self, PyObject *arg)
     return Py_None;
 };
 static PyObject *
+set_step(PyObject *self, PyObject *arg)
+{
+    Interface* interface;
+    PyObject *new_raw;
+    long step=0;
+    
+    PyArg_ParseTuple(arg, "LL", &interface,&step);
+    
+    interface->data->learning_step=step;
+    Py_INCREF(Py_None);
+    
+    return Py_None;
+};
+static PyObject *
+set_penalty(PyObject *self, PyObject *arg)
+{
+    Interface* interface;
+    int penalty=0;
+    double value=0;
+    PyArg_ParseTuple(arg, "Lid", &interface,&penalty,&value);
+    interface->data->weights->set_penalty(penalty,value);
+    Py_INCREF(Py_None);
+    
+    return Py_None;
+};
+static PyObject *
 do_nothing(PyObject *self, PyObject *arg)
 {
     Py_INCREF(Py_None);
@@ -257,6 +283,8 @@ static PyMethodDef interfaceMethods[] = {
     {"new",  module_new, METH_VARARGS,""},
     {"delete",  interface_delete, METH_O,""},
     {"set_raw",  set_raw, METH_VARARGS,""},
+    {"set_step",  set_step, METH_VARARGS,""},
+    {"set_penalty",  set_penalty, METH_VARARGS,""},
     {"search",  search, METH_VARARGS,""},
     {"set_action",  set_weights, METH_VARARGS,""},
     {"update_action",  update_weights, METH_VARARGS,""},

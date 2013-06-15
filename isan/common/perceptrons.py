@@ -158,6 +158,7 @@ class Model(object):
         #self.logger.debug(std_moves)
 
         #get result actions
+        self.searcher.set_step(self.step)
         rst_moves=self.search(raw,Y_a)#得到解码后动作
 
         #update

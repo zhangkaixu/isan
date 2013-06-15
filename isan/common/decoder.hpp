@@ -17,6 +17,8 @@ public:
     Reduced_State_Generator * reduced_state_generator;
     Early_Stop_Checker * early_stop_checker;
 
+    size_t learning_step;
+
     Default_Weights* weights;
     void set_weights(PyObject * py_dict){
         delete weights;
@@ -40,6 +42,7 @@ public:
         this->reduced_state_generator=reduced_state_generator;
         //std::cout<<reduced_state_generator<<"\n";
         weights=new Default_Weights();
+        learning_step=0;
     };
     ~General_Searcher_Data(){
         delete weights;
@@ -66,7 +69,7 @@ public:
             ){
         next_inds.clear();
         (*shifted_state_generator)(ind,state,next_actions,next_inds,next_states);
-        cal_weights(state,next_actions,scores);
+        cal_weights(state,next_actions,scores,learning_step);
     };
     void reduce(
             const int state_ind,
@@ -88,13 +91,14 @@ public:
                     next_states,
                     reduce_pred_alphas
                     );
-            cal_weights(state,next_actions,scores);
+            cal_weights(state,next_actions,scores,learning_step);
         }
     };
     inline void cal_weights(
             const STATE& state,
             const std::vector<ACTION>& next_actions,
-            std::vector<SCORE>& scores
+            std::vector<SCORE>& scores,
+            size_t step
             ){
         scores.resize(next_actions.size());
         std::vector<Feature_Vector> fvs;
@@ -102,7 +106,7 @@ public:
         (*feature_generator)(state,next_actions,fvs);
 
         for(int i=0;i<next_actions.size();i++){
-            scores[i]=(*weights)(fvs[i]);
+            scores[i]=(*weights)(fvs[i],step);
         };
     };
 };

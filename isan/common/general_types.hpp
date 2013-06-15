@@ -6,7 +6,7 @@
 namespace isan{
 typedef long Action_Type;
 
-typedef int Score_Type;
+typedef double Score_Type;
 
 typedef Smart_Chars State_Type;
 
