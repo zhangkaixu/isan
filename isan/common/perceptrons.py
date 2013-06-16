@@ -6,10 +6,8 @@ ZHANG Kaixu
 import logging
 import sys
 import pickle
-import collections
 import random
 import gzip
-
 
 class Model(object):
     """平均感知器模型
@@ -18,14 +16,19 @@ class Model(object):
     """
     name="平均感知器" #: 模型的名字
 
-    def __init__(self,model_file,task=None,Searcher=None,beam_width=8,**conf):
+    def __init__(self,model_file,task=None,Searcher=None,beam_width=8,logger=None,**conf):
         """
         初始化
         如果不设置，则读取已有模型。如果设置，就是学习新模型
         """
-        logging.basicConfig(level=logging.DEBUG)
-        #logging.basicConfig(level=logging.INFO)
-        self.logger=logging.getLogger(__name__)
+        if logger==None :
+            logger=logging.getLogger(__name__)
+            console=logging.StreamHandler()
+            console.setLevel(logging.INFO)
+            logger.addHandler(console)
+            logger.setLevel(logging.INFO)
+        self.result_logger=logger
+
         self.beam_width=beam_width#:搜索宽度
         self.conf=conf
 
@@ -58,7 +61,10 @@ class Model(object):
             y=arg.get('y',None)
             hat_y=self(raw,Y)
             eval(y,hat_y)
-        eval.print_result()
+        if hasattr(eval,'get_result'):
+            self.result_logger.info(eval.get_result())
+        else :
+            eval.print_result()#打印评测结果
         return eval
     
     def develop(self,dev_file):
@@ -79,7 +85,10 @@ class Model(object):
             
 
             eval(y,hat_y)
-        eval.print_result()
+        if hasattr(eval,'get_result'):
+            self.result_logger.info(eval.get_result())
+        else :
+            eval.print_result()#打印评测结果
         self.searcher.un_average_weights()
 
         pass
@@ -179,7 +188,7 @@ class Model(object):
             return
 
         
-    def train(self,training_file,iteration=5,dev_file=None,keep_data=True):
+    def train(self,training_file,iteration=5,dev_files=None,keep_data=True):
         """
         训练
         """
@@ -214,21 +223,25 @@ class Model(object):
                         yield rtn
 
         for it in range(iteration):#迭代整个语料库
-            print("训练集第 \033[33;01m%i\033[1;m 次迭代"%(it+1),file=sys.stderr)
+            self.result_logger.info("训练集第 \033[33;01m%i\033[1;m 次迭代"%(it+1))
             eval=self.task.Eval()#: 测试用的对象
 
             for rtn in gen_data():
                 y,hat_y=self._learn_sentence(rtn)#根据（输入，输出）学习参数，顺便得到解码结果
                 eval(y,hat_y)#根据解码结果和标准输出，评价效果
-            eval.print_result()#打印评测结果
+
+            if hasattr(eval,'get_result'):
+                self.result_logger.info(eval.get_result())
+            else :
+                eval.print_result()#打印评测结果
 
             if hasattr(self.task,'report'):
                 self.task.report()
             
-            if dev_file:
-                print("使用开发集 %s 评价当前模型效果"%(dev_file),file=sys.stderr)
-                self.develop(dev_file)
-            #input('end of one iteration')
+            if dev_files:
+                #self.result_logger.info("使用开发集 %s 评价当前模型效果"%(dev_file))
+                for dev_file in dev_files :
+                    self.develop(dev_file)
 
 
 class Model_PA(Model) :
