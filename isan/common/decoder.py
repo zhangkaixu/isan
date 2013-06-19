@@ -9,6 +9,8 @@ class Searcher:
         self.searcher.set_step(self.handler,step)
     def set_penalty(self,penalty,value=0):
         self.searcher.set_penalty(self.handler,penalty,value)
+    def set_weights(self,weights):
+        self.searcher.set_weights(self.handler,weights)
     def export_weights(self):
         return self.searcher.export_weights(self.handler)
     def average_weights(self,step):

@@ -2,6 +2,7 @@ from struct import Struct
 import json
 import sys
 import isan.tagging.eval as tagging_eval
+import random
 #import isan.tagging.cwstask as cwstask
 
 
@@ -202,6 +203,9 @@ class Task:
         else :
             self.actions,self.intervals=None,None
 
+        #if self.oracle :
+        #    raw=''.join(c if random.random()>0.05 else '^' for c in raw)
+
         self.raw=raw
         uni_chars=list(x.encode() for x in '###'+raw+'##')
         bi_chars=[uni_chars[i]+uni_chars[i+1]
@@ -271,6 +275,7 @@ class Task:
                 b"w2l"+w_last.encode()+w_c_len,
                 ]
                 )
+        fv=[f for f in fv if b'^' not in f]
         return fv
 
     Eval=tagging_eval.TaggingEval

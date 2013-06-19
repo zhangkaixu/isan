@@ -59,7 +59,7 @@ class Model(object):
             raw=arg.get('raw')
             Y=arg.get('Y_a',None)
             y=arg.get('y',None)
-            hat_y=self(raw,Y)
+            hat_y=self(raw)
             eval(y,hat_y)
         if hasattr(eval,'get_result'):
             self.result_logger.info(eval.get_result())
@@ -72,9 +72,6 @@ class Model(object):
         @brief 预测开发集
         """
         self.searcher.average_weights(self.step)
-        #print(self.searcher.export_weights())
-        #self.searcher.set_action({b'a0~0':100})
-        #print(self.searcher.export_weights())
         eval=self.task.Eval()
         for line in open(dev_file):
             arg=self.task.codec.decode(line.strip())
@@ -82,8 +79,6 @@ class Model(object):
             raw=arg.get('raw')
             y=arg.get('y',None)
             hat_y=self(raw)
-            
-
             eval(y,hat_y)
         if hasattr(eval,'get_result'):
             self.result_logger.info(eval.get_result())
@@ -91,7 +86,6 @@ class Model(object):
             eval.print_result()#打印评测结果
         self.searcher.un_average_weights()
 
-        pass
     def save(self,model_file=None):
         """
         保存模型

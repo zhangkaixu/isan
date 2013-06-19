@@ -74,10 +74,14 @@ class Base_Task :
                 )
 
     def set_oracle(self,raw,y) :
+        self.oracle=[None]
         self.set_raw(raw,y)
         std_actions=self.result_to_actions(y)
         moves=self.actions_to_moves(std_actions,raw)
         return moves
+
+    def remove_oracle(self):
+        self.oracle=None
 
     early_stop=None
 

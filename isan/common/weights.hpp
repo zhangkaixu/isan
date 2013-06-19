@@ -55,6 +55,7 @@ public:
 
     };
     void make_dat(){
+        
         std::vector<std::pair<KEY, VALUE> > list;
         long checksum=0;
         for(auto iter=map->begin();iter!=map->end();++iter){
@@ -100,20 +101,23 @@ public:
     };
 
     inline VALUE refresh(const KEY& key,const int step,const VALUE delta=0){
+        
         typename Map::iterator got;
         got=map->find(key);
         if (got==map->end()) return 0;
-
+        
         size_t& last_step=last_update->find(key)->second;
+
         VALUE& value=got->second;
 
-        size_t d_step=step-last_step;
-        if (!d_step){ //just add delta
+        if (step<=last_step){ //just add delta
+            
             if (!delta) return value;
             value+=delta;
             (*acc_map)[key]+=delta;
             return value;
         }
+        size_t d_step=step-last_step;
 
         /* regularization */
         switch(penalty){
@@ -219,6 +223,7 @@ public:
         backup=NULL;
     }
     Default_Weights(PyObject * dict){
+        
         PyObject *key, *value;
         Py_ssize_t pos = 0;
         

@@ -69,6 +69,7 @@ public:
             ){
         next_inds.clear();
         (*shifted_state_generator)(ind,state,next_actions,next_inds,next_states);
+        
         cal_weights(state,next_actions,scores,learning_step);
     };
     void reduce(
@@ -105,6 +106,7 @@ public:
         
         (*feature_generator)(state,next_actions,fvs);
 
+        
         for(int i=0;i<next_actions.size();i++){
             scores[i]=(*weights)(fvs[i],step);
         };

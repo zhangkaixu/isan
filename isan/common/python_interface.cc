@@ -26,9 +26,6 @@ set_weights(PyObject *self, PyObject *arg)
     Action_Type action;
     PyArg_ParseTuple(arg, "LO", &interface,&py_dict);
     
-    
-    //delete interface->data->weights;
-    //interface->data->weights=new Default_Weights(py_dict);
     interface->data->set_weights(py_dict);
 
     Py_INCREF(Py_None);
@@ -99,7 +96,7 @@ make_dat(PyObject *self, PyObject *arg)
     Interface* interface;
     PyArg_ParseTuple(arg, "L", &interface);
     
-    //interface->data->weights.make_dat();
+    interface->data->weights->make_dat();
     
     Py_INCREF(Py_None);
     return Py_None;

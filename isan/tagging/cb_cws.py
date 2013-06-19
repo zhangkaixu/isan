@@ -1,6 +1,7 @@
 from struct import Struct
 from isan.common.task import Lattice, Base_Task
 import isan.tagging.eval as tagging_eval
+import random
 
 class codec:
     @staticmethod
@@ -9,7 +10,7 @@ class codec:
         seq=[word for word in line.split()]
         raw=[(i,i+1,c) for i,c in enumerate(''.join(seq))]
         raw=Lattice(raw)
-        return {'raw':raw, 'y': seq } # raw is lattice of input, seq is the result data structure (not actions)
+        return {'raw':raw, 'y': seq, 'Y_a': 'y'} # raw is lattice of input, seq is the result data structure (not actions)
 
     @staticmethod
     def encode(y):
@@ -84,7 +85,12 @@ class Task (Base_Task) :
     
     def set_raw(self,raw,Y):
         self.lattice=raw
-        self.raw=''.join(c for b,e,c in raw)
+        #if not self.oracle:
+        if True :
+            self.raw=''.join(c for b,e,c in raw)
+        else :
+            self.raw=''.join(c if random.random()>0.05 else '~' for b,e,c in raw)
+
         xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
         self.ngram_fv=[]
         for ind in range(len(raw)):
@@ -107,8 +113,11 @@ class Task (Base_Task) :
         else :
             fv= self.ngram_fv[ind]
 
+        fv=[f for f in fv if '~' not in f]
+
         fvs=[]
         for action in actions:
             action=chr(action)
             fvs.append([action+x for x in fv])
+        #fvs=[[f for f in fv if random.random()>0.01] for fv in fvs]
         return fvs

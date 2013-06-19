@@ -119,7 +119,8 @@ def command_line(Model,Task,Decoder):
                         make_color(args.iteration),
                         name_task,
                         make_color(args.model_file)))
-        logger.info("开发集使用%s"%(make_color(' '.join(args.dev_file))))
+        if args.dev_file :
+            logger.info("开发集使用%s"%(make_color(' '.join(args.dev_file))))
 
         model.train(args.train,int(args.iteration),dev_files=args.dev_file)
         model.save(args.model_file)
