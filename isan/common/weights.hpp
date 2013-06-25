@@ -17,6 +17,7 @@ public:
     //typedef std::map<KEY,VALUE> Map;
     Map* map; //value map
     Map* acc_map; //acc map for average
+    Map* acc_l1; //acc map for average
     Map* backup; // used for average and unaverage
     _Map2* last_update;
     DATMaker* dat;
@@ -27,6 +28,7 @@ public:
     Weights(){
         map=new Map();
         acc_map=new Map();
+        acc_l1=new Map();
         last_update=new _Map2();
         backup=NULL;
         dat=NULL;
@@ -43,6 +45,8 @@ public:
                 break;
             case(1):
                 _d=d; break;
+            case(11):
+                _d=d; break;
             case(2):
                 _p=d; break;
         };
@@ -50,6 +54,7 @@ public:
     ~Weights(){
         delete map;map=NULL;
         delete acc_map;acc_map=NULL;
+        delete acc_l1;acc_l1=NULL;
         delete backup;backup=NULL;
         delete last_update;last_update=NULL;
 
@@ -85,19 +90,98 @@ public:
         };
         value=new_value+delta;
     };
+    /*
     inline void l1_penalty(const KEY& key,VALUE& value,const VALUE& delta,const size_t& d_step){
-        VALUE d_value=_d;
-        VALUE new_value=(value>0?value:-value)-d_value;
-        if(new_value<0)new_value=0;
-        if(value<0) new_value*=-1;
+
+        //VALUE d_value=d_step?(_d*d_step):0;
+        //VALUE d_value=d_step?(_d):0;
+        //VALUE d_value=_d;
+        VALUE d_value=delta?0:_d;
+        VALUE& acc_pen=(*acc_l1)[key];
+        VALUE value5=value+delta;
+        //VALUE value5=value;
+        VALUE new_value=fabs(value5)-d_value;//(value>0?value:-value)-d_value;
+        acc_pen=acc_pen+d_value-(fabs(value5)-new_value);
+        if(value5<0) new_value*=-1;
+        //new_value=new_value+delta;// value 5
+        new_value=new_value;// value 5
+        if(new_value&&acc_pen){
+            if(new_value>acc_pen){
+                new_value-=acc_pen*(new_value>0?1:-1); acc_pen=0;
+            }else{
+                acc_pen-=fabs(new_value); new_value=0;
+            };
+        };
+        VALUE& acc_value=(*acc_map)[key];
+        acc_value+=new_value-value;
+        //VALUE s=0;
+        //if(value&&d_step){
+        //    if(d_value>fabs(value)){//triangle
+        //        s=(value*value)/2/_d*(value>0?1:-1);
+        //    }else{
+        //        s=(value+value-(d_value-_d)*(value>0?1:-1))*(d_step)/2;
+        //    };
+        //}
+        //acc_value+=s;
+        acc_value+=value*d_step;
+        value=new_value;
+    };*/
+
+    /* local update
+     * acc penalty*/
+    inline void l1_acc_penalty(const KEY& key,VALUE& value,const VALUE& delta,const size_t& d_step){
+        VALUE d_value=d_step?_d:0; // a _d for every update
+        VALUE& acc_pen=(*acc_l1)[key];
+        VALUE value5=value+delta;
+        VALUE new_value=fabs(value5);
+        //acc_pen=d_value; // no acc
+        acc_pen+=d_value; // acc
+        if(new_value&&acc_pen){ //only one of these are non-zero
+            if(new_value>acc_pen){ new_value-=acc_pen; acc_pen=0;
+            }else{ acc_pen-=new_value; new_value=0; };
+        };
+        if(value5<0) new_value*=-1;
+        (*acc_map)[key]+=value*d_step+new_value-value;
+        value=new_value;
+    };
+
+    /* local update
+     * no acc penalty*/
+    inline void l1_penalty(const KEY& key,VALUE& value,const VALUE& delta,const size_t& d_step){
+        VALUE d_value=d_step?_d:0; // a _d for every update
+        VALUE value5=value;
+        VALUE new_value=fabs(value5);
+        VALUE acc_pen=d_value; // no acc
+        if(new_value&&acc_pen){ //only one of these are non-zero
+            if(new_value>acc_pen){ new_value-=acc_pen; acc_pen=0;
+            }else{ acc_pen-=new_value; new_value=0; };
+        };
+        if(value5<0) new_value*=-1;
         (*acc_map)[key]+=value*d_step+new_value-value+delta;
         value=new_value+delta;
     };
 
     inline void l2_penalty(const KEY& key,VALUE& value,const VALUE& delta,const size_t& d_step){
-        VALUE new_value=value*_p;
+        VALUE new_value=value*(d_step?_p:1);
         (*acc_map)[key]+=value*d_step+new_value-value+delta;
         value=new_value+delta;
+    };
+
+    inline void switch_penalty(const KEY& key,VALUE& value,const VALUE& delta, const size_t & d_step){
+        switch(penalty){
+            case 0 :
+                no_penalty(key,value,delta,d_step);
+                break;
+            case 1 :
+                l1_penalty(key,value,delta,d_step);
+                break;
+            case 11 :
+                l1_acc_penalty(key,value,delta,d_step);
+                break;
+            case 2 :
+                l2_penalty(key,value,delta,d_step);
+                break;
+        };
     };
 
     inline VALUE refresh(const KEY& key,const int step,const VALUE delta=0){
@@ -109,30 +193,19 @@ public:
         size_t& last_step=last_update->find(key)->second;
 
         VALUE& value=got->second;
-
-        if (step<=last_step){ //just add delta
-            
-            if (!delta) return value;
-            value+=delta;
-            (*acc_map)[key]+=delta;
-            return value;
-        }
         size_t d_step=step-last_step;
 
-        /* regularization */
-        switch(penalty){
-            case 0 :
-                no_penalty(key,value,delta,d_step);
-                break;
-            case 1 :
-                l1_penalty(key,value,delta,d_step);
-                break;
-            case 2 :
-                l2_penalty(key,value,delta,d_step);
-                break;
-        };
-        
+        if (step<=last_step){ //just add delta
+            if (!delta) return value;
+            //value+=delta;
+            //(*acc_map)[key]+=delta;
+            //return value;
+            switch_penalty(key,value,delta,d_step);
+            return value;
+        }
 
+        /* regularization */
+        switch_penalty(key,value,delta,d_step);
         last_step=step;
         return value;
     };
@@ -149,6 +222,8 @@ public:
             if(got==map->end()){// new key, insert
                 (*map)[key]=delta;
                 (*last_update)[key]=step;
+                if(penalty==11)
+                    (*acc_l1)[key]=0;
                 if(acc_map)(*acc_map)[key]=sd;
             }else{ // exist key, update
                 refresh(key,step,delta);

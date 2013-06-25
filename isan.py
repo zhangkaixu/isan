@@ -133,7 +133,8 @@ def command_line(Model,Task,Decoder):
                     name_task),file=sys.stderr)
     
     model=Model(args.model_file,task=Task(),
-                    Searcher=Decoder,beam_width=int(args.beam_width)
+                    Searcher=Decoder,beam_width=int(args.beam_width),
+                    logger=logger,
                     )
     
     """如果指定了测试集，就测试模型"""
