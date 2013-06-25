@@ -14,6 +14,7 @@ import argparse
 import random
 import logging
 import re
+import shlex
 
 def make_color(s,color='36'):
     return '\033['+color+';01m%s\033[1;m'%s #blue
@@ -55,7 +56,11 @@ def command_line(Model,Task,Decoder):
     parser.add_argument('--threshold',dest='threshold',type=int,default=0, help='',metavar='阈值')
     parser.add_argument('--seed',type=int,default=None, help='')
     parser.add_argument('--logfile',default='/dev/null',type=str, help='',metavar="")
-    args=parser.parse_args()
+
+
+    parser.add_argument('--task_args',default='',type=str, help='',metavar="")
+    a=(shlex.split(' '.join(sys.argv)))[1:]
+    args=parser.parse_args(a)
 
     info_color='34'
 
@@ -101,7 +106,7 @@ def command_line(Model,Task,Decoder):
     if args.train:
         """如果指定了训练集，就训练模型"""
         model=Model(None,
-                    Task(),
+                    Task(args=args.task_args),
                     Decoder,beam_width=int(args.beam_width),
                     logger=logger,)
 

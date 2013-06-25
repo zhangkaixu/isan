@@ -1,7 +1,9 @@
 from struct import Struct
 from isan.common.task import Lattice, Base_Task
 import isan.tagging.eval as tagging_eval
+import argparse
 import random
+import shlex
 
 class codec:
     @staticmethod
@@ -53,6 +55,18 @@ class Task (Base_Task) :
     Action=Action
     Eval=tagging_eval.TaggingEval
 
+    def __init__(self,args=''):
+        parser=argparse.ArgumentParser(
+                formatter_class=argparse.RawDescriptionHelpFormatter,
+                description=r"""用于中文自然语言理解的统计机器学习工具包  作者：张开旭""",)
+        parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
+        parser.add_argument('--corrupt_phi',default=0,type=float, help='',metavar="")
+        print(args)
+        args=parser.parse_args(shlex.split(args))
+        self.corrupt_x=args.corrupt_x
+        self.corrupt_phi=args.corrupt_phi
+        pass
+
     def actions_to_result(self,actions):
         raw=[c for _,_,c in self.lattice]
         word=[]
@@ -85,11 +99,13 @@ class Task (Base_Task) :
     
     def set_raw(self,raw,Y):
         self.lattice=raw
-        #if not self.oracle:
-        if True :
-            self.raw=''.join(c for b,e,c in raw)
+
+        if self.corrupt_x!=0 and self.oracle :
+            self.raw=''.join(c if random.random()>self.corrupt_x else '~' for b,e,c in raw)
         else :
-            self.raw=''.join(c if random.random()>0.05 else '~' for b,e,c in raw)
+            self.raw=''.join(c for b,e,c in raw)
+
+        self.feature_map={}
 
         xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
         self.ngram_fv=[]
@@ -106,6 +122,7 @@ class Task (Base_Task) :
                 ])
 
     def gen_features(self,stat,actions):
+        this_stat=stat
         stat=self.State(self.lattice,stat)
         ind=stat[0]
         if ind > 0 :
@@ -113,11 +130,23 @@ class Task (Base_Task) :
         else :
             fv= self.ngram_fv[ind]
 
-        fv=[f for f in fv if '~' not in f]
+        if self.corrupt_x!=0 and self.oracle :
+            fv=[f for f in fv if '~' not in f]
 
         fvs=[]
         for action in actions:
             action=chr(action)
             fvs.append([action+x for x in fv])
-        #fvs=[[f for f in fv if random.random()>0.01] for fv in fvs]
+        
+        if self.corrupt_phi!=0  and self.oracle :
+            for i in range(len(actions)) :
+                action,fv=actions[i],fvs[i]
+                key=(this_stat,action)
+                if key in self.feature_map:
+                    fvs[i]=self.feature_map[key]
+                else :
+                    fvs[i]=[f for f in fvs[i] if random.random()>self.corrupt_phi]
+                    
+                    self.feature_map[key]=fv
+
         return fvs
