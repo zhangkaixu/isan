@@ -137,7 +137,8 @@ def command_line(Model,Task,Decoder):
         print("使用模型文件%s进行%s"%(make_color(args.model_file),
                     name_task),file=sys.stderr)
     
-    model=Model(args.model_file,task=Task(),
+    model=Model(args.model_file,
+                    task=Task(),
                     Searcher=Decoder,beam_width=int(args.beam_width),
                     logger=logger,
                     )

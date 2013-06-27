@@ -90,8 +90,8 @@ class Dep (Early_Stop_Pointwise, Base_Task):
     State=State
     Eval=eval.Eval
 
-    def __init__(self):
-        random.seed(123)
+    def __init__(self,args=None):
+        #random.seed(123)
         pass
 
     def result_to_actions(self,result):
