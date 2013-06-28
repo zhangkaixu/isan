@@ -73,3 +73,14 @@ class Eval:
                 self.cmpl_cor/self.cmpl_std,
                 duration,
                 time.strftime("%H:%M:%S")))
+    def get_result(self):
+        duration=time.time()-self.start_time
+        #print(self.base)
+        line="word正确率:\033[32;01m%.4f\033[1;m non-root正确率:%.4f root正确率:%.4f 整句正确率:%.4f 历时:%.2f 现时:%s"%(
+                (self.root_cor+self.non_root_cor)/(self.non_root_std+self.root_std),
+                self.non_root_cor/self.non_root_std,
+                self.root_cor/self.root_std,
+                self.cmpl_cor/self.cmpl_std,
+                duration,
+                time.strftime("%H:%M:%S"))
+        return line
