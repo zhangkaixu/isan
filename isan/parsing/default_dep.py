@@ -179,7 +179,7 @@ class Dep (Early_Stop_Pointwise, Base_Task):
         self.lattice=raw
         self.f_raw=[[x[0],x[1]] for b,e,x in self.lattice]
 
-        if not self.oracle : return
+        if not hasattr(self,'oracle') or not self.oracle : return
         return 
         
         for i in range(len(self.f_raw)):

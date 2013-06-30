@@ -1,6 +1,5 @@
 #!/usr/bin/python3
-
-
+import argparse
 import gzip
 import pickle
 import math
@@ -30,8 +29,8 @@ if __name__ == '__main__':
     for k,n in numbers.items():
         if n!=0 :
             #weights[k]=round(weights[k]/max(n-0.5,1))
-            #weights[k]=round(weights[k]/n)
-            weights[k]=round(weights[k]/len(models))
+            weights[k]=round(weights[k]/n)
+            #weights[k]=round(weights[k]/len(models))
 
     pickle.dump(weights,gzip.open(dst,'wb'))
 
