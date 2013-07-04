@@ -17,10 +17,16 @@ public:
     virtual void operator()(
             const State_Type& key,
             const std::vector<Action_Type>& action,
-            std::vector<Feature_Vector>& fv)
+            std::vector<Feature_Vector>& fv,
+            std::vector<Score_Type>& scores
+            )
         =0;
 };
 
+
+/**
+ * generate states of the shift actions
+ * */
 class State_Generator{
 public:
     typedef Alpha_Type Alpha;
@@ -130,7 +136,7 @@ public:
 
 };
 
-class Python_Feature_Generator: public Feature_Generator{
+class Python_Feature_Generator : public Feature_Generator{
 public:
     PyObject * callback;
     Python_Feature_Generator(PyObject * callback){
@@ -143,7 +149,8 @@ public:
     void operator()(
             const State_Type& state, 
             const std::vector<Action_Type>& actions,
-            std::vector<Feature_Vector>& fvs){
+            std::vector<Feature_Vector>& fvs,
+            std::vector<Score_Type>& scores){
 
         PyObject * p_action_list=PyList_New(actions.size());
         for(int i=0;i<actions.size();i++){
@@ -169,9 +176,18 @@ public:
             fvs.push_back(Feature_Vector());
             auto& fv=fvs.back();
             for(int j=0;j<fv_size;j++){
-                //PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,j),&buffer,(Py_ssize_t*)&(length));
-                //fv.push_back(Feature_String((Smart_Chars::Char*)buffer,length));
-                fv.push_back(Feature_String(PyList_GET_ITEM(pfv,j)));
+                if(PyFloat_Check(PyList_GET_ITEM(pfv,j))
+                        ){//values instead of feature
+                    //scores[i]+=PyFloat_AS_DOUBLE(PyList_GET_ITEM(pfv,j));
+                    PyFloat_AS_DOUBLE(PyList_GET_ITEM(pfv,j));
+                    if(scores.size())
+                        scores[i]=PyFloat_AS_DOUBLE(PyList_GET_ITEM(pfv,j));
+
+                }else{
+                    //PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,j),&buffer,(Py_ssize_t*)&(length));
+                    //fv.push_back(Feature_String((Smart_Chars::Char*)buffer,length));
+                    fv.push_back(Feature_String(PyList_GET_ITEM(pfv,j)));
+                }
             }
         };
         Py_DECREF(pfvs);

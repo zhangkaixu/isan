@@ -67,7 +67,10 @@ update_weights(PyObject *self, PyObject *arg)
     std::vector<Action_Type> actions;
     actions.push_back(action);
     std::vector<Feature_Vector> fvs;
-    (*(interface->feature_generator))(state,actions,fvs);
+    
+    std::vector<Score_Type> scores;//useless
+
+    (*(interface->feature_generator))(state,actions,fvs,scores);
     //std::cout<<fv.size()<<" in update\n";
     auto& fv=fvs.front();
 

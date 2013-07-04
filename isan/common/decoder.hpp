@@ -4,6 +4,13 @@
 #include "isan/common/weights.hpp"
 #include "isan/common/searcher.hpp"
 
+
+
+/**
+ * searcher data
+ * provide information for searcher
+ * */
+
 namespace isan{
 
 
@@ -23,12 +30,12 @@ public:
     void set_weights(PyObject * py_dict){
         delete weights;
         weights=new Default_Weights(py_dict);
-
     };
 
     //cache for FV
     Feature_Vector fv;
 
+    // init this object
     General_Searcher_Data(
             Early_Stop_Checker * early_stop_checker,
             State_Generator *shifted_state_generator,
@@ -67,7 +74,7 @@ public:
             std::vector<State_Type>& next_states,
             std::vector<Score_Type>& scores
             ){
-        next_inds.clear();
+        next_inds.clear();// clear the vector first
         (*shifted_state_generator)(ind,state,next_actions,next_inds,next_states);
         
         cal_weights(state,next_actions,scores,learning_step);
@@ -95,6 +102,8 @@ public:
             cal_weights(state,next_actions,scores,learning_step);
         }
     };
+
+    // calculate the sum of the weights according to the list of symbolic features
     inline void cal_weights(
             const STATE& state,
             const std::vector<ACTION>& next_actions,
@@ -102,17 +111,23 @@ public:
             size_t step
             ){
         scores.resize(next_actions.size());
+        for(int i=0;i<next_actions.size();i++){
+            scores[i]=0;
+        };
         std::vector<Feature_Vector> fvs;
         
-        (*feature_generator)(state,next_actions,fvs);
+        (*feature_generator)(state,next_actions,fvs,scores);
 
         
         for(int i=0;i<next_actions.size();i++){
-            scores[i]=(*weights)(fvs[i],step);
+            scores[i]+=(*weights)(fvs[i],step);
         };
     };
 };
 
+/**
+ * interface of the whole model
+ * */
 class Interface{
     typedef Searcher<State_Info_Type > My_Searcher;
 public:

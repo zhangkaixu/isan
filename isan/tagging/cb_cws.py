@@ -121,7 +121,7 @@ class Task (Base_Task) :
                     '6'+m+r1, '7'+r1+r2,
                 ])
 
-    def gen_features(self,stat,actions):
+    def gen_features(self,stat,actions,step=0):
         this_stat=stat
         stat=self.State(self.lattice,stat)
         ind=stat[0]
@@ -137,6 +137,8 @@ class Task (Base_Task) :
         for action in actions:
             action=chr(action)
             fvs.append([action+x for x in fv])
+
+            fvs[-1].append(random.random())# for test
         
         if self.corrupt_phi!=0  and self.oracle :
             for i in range(len(actions)) :
@@ -146,7 +148,6 @@ class Task (Base_Task) :
                     fvs[i]=self.feature_map[key]
                 else :
                     fvs[i]=[f for f in fvs[i] if random.random()>self.corrupt_phi]
-                    
                     self.feature_map[key]=fv
 
         return fvs
