@@ -2,8 +2,10 @@ from struct import Struct
 import json
 import sys
 import isan.tagging.eval as tagging_eval
-import random
 #import isan.tagging.cwstask as cwstask
+import argparse
+import random
+import shlex
 
 
 class Task:
@@ -22,6 +24,19 @@ class Task:
     """
     xa,xb=3,3
     name='中文分词' ##name
+
+    def __init__(self,args=''):
+        parser=argparse.ArgumentParser(
+                formatter_class=argparse.RawDescriptionHelpFormatter,
+                description=r"""""",)
+        parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
+        #parser.add_argument('--corrupt_phi',default=0,type=float, help='',metavar="")
+        print(args)
+        args=parser.parse_args(shlex.split(args))
+        self.corrupt_x=args.corrupt_x
+        #self.corrupt_phi=args.corrupt_phi
+        self.oracle=None
+        pass
     
     class codec:
         """
@@ -176,20 +191,20 @@ class Task:
     def remove_oracle(self):
         self.oracle=None
     
-    #def early_stop(self,step,next_states,moves):
-    #    if (not hasattr(self,"oracle")) or (not self.oracle) : return False
-    #    if step>0 and step in self.oracle :
-    #        state=self.oracle[step]
-    #        for s,m in zip(next_states,moves) :
-    #            if s==state :
-    #                if m[0] not in self.oracle or self.oracle[m[0]]!=m[1]: 
-    #                    self.early_stop=step
-    #                    return True
-    #                else :
-    #                    return False
-    #        self.early_stop=step
-    #        return True
-    #    return False
+    def early_stop(self,step,next_states,moves):
+        if (not hasattr(self,"oracle")) or (not self.oracle) : return False
+        if step>0 and step in self.oracle :
+            state=self.oracle[step]
+            for s,m in zip(next_states,moves) :
+                if s==state :
+                    if m[0] not in self.oracle or self.oracle[m[0]]!=m[1]: 
+                        self.early_stop=step
+                        return True
+                    else :
+                        return False
+            self.early_stop=step
+            return True
+        return False
 
     """
     stuffs about the feature generation
@@ -203,10 +218,10 @@ class Task:
         else :
             self.actions,self.intervals=None,None
 
-        #if self.oracle :
-        #    raw=''.join(c if random.random()>0.05 else '^' for c in raw)
 
         self.raw=raw
+        if self.oracle and self.corrupt_x!=0 :
+            raw=''.join(c if random.random()>self.corrupt_x else '^' for c in raw)
         uni_chars=list(x.encode() for x in '###'+raw+'##')
         bi_chars=[uni_chars[i]+uni_chars[i+1]
                 for i in range(len(uni_chars)-1)]
