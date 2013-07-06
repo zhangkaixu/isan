@@ -116,7 +116,7 @@ public:
         };
         std::vector<Feature_Vector> fvs;
         
-        (*feature_generator)(state,next_actions,fvs,scores);
+        (*feature_generator)(state,next_actions,0,0,fvs,scores);
 
         
         for(int i=0;i<next_actions.size();i++){

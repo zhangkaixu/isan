@@ -65,6 +65,9 @@ class Task (Base_Task) :
         args=parser.parse_args(shlex.split(args))
         self.corrupt_x=args.corrupt_x
         self.corrupt_phi=args.corrupt_phi
+
+
+        self.weights={}
         pass
 
     def actions_to_result(self,actions):
@@ -121,7 +124,7 @@ class Task (Base_Task) :
                     '6'+m+r1, '7'+r1+r2,
                 ])
 
-    def gen_features(self,stat,actions,step=0):
+    def gen_features(self,stat,actions,delta=0,step=0):
         this_stat=stat
         stat=self.State(self.lattice,stat)
         ind=stat[0]
@@ -137,8 +140,6 @@ class Task (Base_Task) :
         for action in actions:
             action=chr(action)
             fvs.append([action+x for x in fv])
-
-            fvs[-1].append(random.random())# for test
         
         if self.corrupt_phi!=0  and self.oracle :
             for i in range(len(actions)) :
@@ -150,4 +151,9 @@ class Task (Base_Task) :
                     fvs[i]=[f for f in fvs[i] if random.random()>self.corrupt_phi]
                     self.feature_map[key]=fv
 
-        return fvs
+        if delta==0 :
+            return [[self.weights(fv)] for fv in fvs]
+        else :
+            for fv in fvs :
+                self.weights.update_weights(fv,delta,step)
+            return [[] for fv in fvs]

@@ -1,19 +1,15 @@
 """
 ZHANG Kaixu
-
-
 """
 import logging
 import sys
 import pickle
 import random
 import gzip
+from isan.common.weights import Weights
 
 class Model(object):
-    """平均感知器模型
-
-
-    """
+    """平均感知器模型 """
     name="平均感知器" #: 模型的名字
 
     def __init__(self,model_file,task=None,Searcher=None,beam_width=8,logger=None,**conf):
@@ -37,9 +33,9 @@ class Model(object):
             file=gzip.open(model_file,"rb")
             self.task.weights=pickle.load(file)
             file.close()
-        else:
+        else : # new model to train
             #self.model_file=model_file
-            self.task.weights={}
+            self.task.weights=Weights()
         if hasattr(self.task,'init'):
             self.task.init()
         self.searcher=Searcher(self.task,beam_width)
@@ -71,7 +67,9 @@ class Model(object):
         """
         @brief 预测开发集
         """
+
         self.searcher.average_weights(self.step)
+        self.task.weights.average_weights(self.step)
         eval=self.task.Eval()
         for line in open(dev_file):
             arg=self.task.codec.decode(line.strip())
@@ -85,6 +83,7 @@ class Model(object):
         else :
             eval.print_result()#打印评测结果
         self.searcher.un_average_weights()
+        self.task.weights.un_average_weights()
 
     def save(self,model_file=None):
         """
@@ -98,7 +97,7 @@ class Model(object):
         self.task.weights=self.searcher.export_weights()
         #file=open(model_file,'wb')
         file=gzip.open(model_file,'wb')
-        pickle.dump(self.task.weights,file)
+        pickle.dump(dict(self.task.weights),file)
         file.close()
 
     def search(self,raw,Y=None):

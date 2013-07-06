@@ -17,6 +17,8 @@ public:
     virtual void operator()(
             const State_Type& key,
             const std::vector<Action_Type>& action,
+            const double & delta,
+            const long & step,
             std::vector<Feature_Vector>& fv,
             std::vector<Score_Type>& scores
             )
@@ -149,6 +151,8 @@ public:
     void operator()(
             const State_Type& state, 
             const std::vector<Action_Type>& actions,
+            const double & delta,
+            const long & step,
             std::vector<Feature_Vector>& fvs,
             std::vector<Score_Type>& scores){
 
@@ -160,9 +164,19 @@ public:
         }
 
         PyObject * pkey=state.pack();
-        PyObject * arglist=PyTuple_Pack(2,pkey, p_action_list);
+        
+        PyObject * pstep=PyLong_FromLong(step);
+        PyObject * pdelta=PyFloat_FromDouble(delta);
+        PyObject * arglist;
+        if (delta==0){
+            arglist=PyTuple_Pack(2,pkey, p_action_list);
+        }else{
+            arglist=PyTuple_Pack(4,pkey, p_action_list,pdelta,pstep);
+        }
         PyObject * pfvs= PyObject_CallObject(this->callback, arglist);
         Py_DECREF(pkey);
+        Py_DECREF(pstep);
+        Py_DECREF(pdelta);
         Py_DECREF(arglist);
         Py_DECREF( p_action_list);
         
@@ -178,11 +192,8 @@ public:
             for(int j=0;j<fv_size;j++){
                 if(PyFloat_Check(PyList_GET_ITEM(pfv,j))
                         ){//values instead of feature
-                    //scores[i]+=PyFloat_AS_DOUBLE(PyList_GET_ITEM(pfv,j));
-                    PyFloat_AS_DOUBLE(PyList_GET_ITEM(pfv,j));
                     if(scores.size())
                         scores[i]=PyFloat_AS_DOUBLE(PyList_GET_ITEM(pfv,j));
-
                 }else{
                     //PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,j),&buffer,(Py_ssize_t*)&(length));
                     //fv.push_back(Feature_String((Smart_Chars::Char*)buffer,length));
