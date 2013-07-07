@@ -10,6 +10,15 @@ fi
 #
 # 中文分词模型
 #
+if [ $1 = 'seg_test' ] ; then
+    shift
+    ./isan.py \
+        --model isan.common.perceptrons.Model \
+        --decoder isan.common.decoder.First_Order_Linear \
+        --task isan.tagging.cb_cws_test.Task \
+        $@
+fi
+
 if [ $1 = 'seg' ] ; then
     shift
     ./isan.py \

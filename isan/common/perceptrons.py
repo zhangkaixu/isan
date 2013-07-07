@@ -31,7 +31,8 @@ class Model(object):
         self.task=task
         if model_file!=None:
             file=gzip.open(model_file,"rb")
-            self.task.weights=pickle.load(file)
+            self.task.weights=Weights()
+            self.task.weights.data.update(pickle.load(file))
             file.close()
         else : # new model to train
             #self.model_file=model_file
@@ -94,10 +95,14 @@ class Model(object):
         if model_file==None : return
 
         self.searcher.average_weights(self.step)
-        self.task.weights=self.searcher.export_weights()
+        self.task.weights.average_weights(self.step)
+
+        model_weights=self.searcher.export_weights()
+        if model_weights :
+            self.task.weights.update(model_weights)
         #file=open(model_file,'wb')
         file=gzip.open(model_file,'wb')
-        pickle.dump(dict(self.task.weights),file)
+        pickle.dump(dict(self.task.weights.items()),file)
         file.close()
 
     def search(self,raw,Y=None):

@@ -1,4 +1,4 @@
-all: common/pushdown.so common/dfabeam.so
+all: common/pushdown.so common/dfabeam.so common/first_order_linear.so
 
 gcc= g++ -I /usr/include/python3.2mu -shared -fPIC -O3 -std=c++0x -I .. -Wno-deprecated -g
 
@@ -12,7 +12,6 @@ common/dfabeam.so:   common/python_interface.cc  ${headers}
 	${gcc} common/python_interface.cc -o common/dfabeam.so \
 		-D __MODULE_NAME=dfabeam
 
-tagging/cwstask.so: tagging/cwstask.cc ${headers}
-	${gcc} tagging/cwstask.cc -o tagging/cwstask.so
-
-
+common/first_order_linear.so: common/first_order_linear/first_order_linear.cc ${headers} \
+			common/first_order_linear/decoder.h
+	${gcc} $< -o $@

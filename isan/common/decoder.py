@@ -1,5 +1,6 @@
 import isan.common.pushdown as pushdown
 import isan.common.dfabeam as dfabeam
+import isan.common.first_order_linear as first_order_linear
 
 
 class Searcher:
@@ -53,3 +54,18 @@ class DFA(Searcher):
 class Push_Down(Searcher):
     name='Shift-Reduce'
     searcher=pushdown
+class First_Order_Linear(Searcher):
+    name='first order linear'
+    searcher=first_order_linear
+    def __init__(self,schema,beam_width):
+        self.get_init_states=schema.get_init_states
+        print('x')
+        print(schema.name)
+        self.do_set_raw=True
+        self.handler=self.searcher.new(
+                4,
+                schema.emission,
+                schema.transition
+                )
+    def update_action(self,move,delta,step):
+        self.searcher.update_action(self.handler,move[2],delta,step)
