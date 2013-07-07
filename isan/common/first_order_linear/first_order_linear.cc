@@ -52,6 +52,16 @@ public:
         raw=Py_None;
 
     };
+
+    void set_tagset_size(size_t new_tagset_size){
+        delete emissions;
+        delete transitions;
+        delete alphas;
+        tagset_size=new_tagset_size;
+        emissions=new Score_Type[MAX_LEN*tagset_size];
+        alphas=new Alpha_Beta[MAX_LEN*tagset_size];
+        transitions=new Score_Type[tagset_size*tagset_size];
+    };
     
     void set_raw(PyObject * raw){
         Py_DECREF(this->raw);
@@ -71,7 +81,7 @@ public:
 };
 
 
-inline size_t get_matrix(PyObject* raw, PyObject* callable, size_t tagset_size, Score_Type*& array){
+inline size_t get_matrix(Interface* interface, PyObject* raw, PyObject* callable, size_t tagset_size, Score_Type*& array){
     PyObject * arglist;
     arglist=PyTuple_Pack(1,raw);
     PyObject * result = PyObject_CallObject(callable, arglist);
@@ -80,6 +90,12 @@ inline size_t get_matrix(PyObject* raw, PyObject* callable, size_t tagset_size, 
     PyObject * ch;
     for(int i=0;i<size;i++){
         ch=PyList_GET_ITEM(result,i);
+
+        long new_tag_set=PySequence_Size(ch);
+        if(interface->tagset_size!=new_tag_set){
+            interface->set_tagset_size(new_tag_set);
+        };
+        
         for(int j=0;j<tagset_size;j++){
             array[i*tagset_size+j]=(PyFloat_AsDouble(PyList_GET_ITEM(ch,j)));
         };
@@ -145,12 +161,13 @@ search(PyObject *self, PyObject *arg)
 
     size_t len;
 
-    len=get_matrix(interface->raw,interface->py_emission,
+    len=get_matrix(interface,interface->raw,interface->py_emission,
             interface->tagset_size,interface->emissions);
     
-    get_matrix(interface->raw,interface->py_transition,
+    get_matrix(interface,interface->raw,interface->py_transition,
             interface->tagset_size,interface->transitions);
 
+    
     Score_Type score;
     score=dp_decode(
         interface->tagset_size,

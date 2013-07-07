@@ -59,11 +59,10 @@ class First_Order_Linear(Searcher):
     searcher=first_order_linear
     def __init__(self,schema,beam_width):
         self.get_init_states=schema.get_init_states
-        print('x')
         print(schema.name)
         self.do_set_raw=True
         self.handler=self.searcher.new(
-                4,
+                1,
                 schema.emission,
                 schema.transition
                 )

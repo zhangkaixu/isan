@@ -94,13 +94,8 @@ class Model(object):
         if model_file==None : model_file=self.model_file
         if model_file==None : return
 
-        self.searcher.average_weights(self.step)
         self.task.weights.average_weights(self.step)
 
-        model_weights=self.searcher.export_weights()
-        if model_weights :
-            self.task.weights.update(model_weights)
-        #file=open(model_file,'wb')
         file=gzip.open(model_file,'wb')
         pickle.dump(dict(self.task.weights.items()),file)
         file.close()
