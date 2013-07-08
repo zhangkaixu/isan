@@ -69,7 +69,7 @@ class Task  :
     def __init__(self,args=''):
         parser=argparse.ArgumentParser(
                 formatter_class=argparse.RawDescriptionHelpFormatter,
-                description=r"""用于中文自然语言理解的统计机器学习工具包  作者：张开旭""",)
+                description=r"""""",)
         parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
         args=parser.parse_args(shlex.split(args))
         self.corrupt_x=args.corrupt_x
