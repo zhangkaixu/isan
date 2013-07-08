@@ -35,12 +35,11 @@ class Model(object):
             self.task.weights.data.update(pickle.load(file))
             file.close()
         else : # new model to train
-            #self.model_file=model_file
             self.task.weights=Weights()
         if hasattr(self.task,'init'):
             self.task.init()
         self.searcher=Searcher(self.task,beam_width)
-        self.searcher.set_action(self.task.weights)
+        #self.searcher.set_action(self.task.weights)
         self.step=0
 
     def __del__(self):
@@ -49,7 +48,6 @@ class Model(object):
         """
         测试
         """
-        self.searcher.make_dat()
         eval=self.task.Eval()
         for line in open(test_file):
             arg=self.task.codec.decode(line.strip())
@@ -69,7 +67,7 @@ class Model(object):
         @brief 预测开发集
         """
 
-        self.searcher.average_weights(self.step)
+        #self.searcher.average_weights(self.step)
         self.task.weights.average_weights(self.step)
         eval=self.task.Eval()
         for line in open(dev_file):
@@ -83,7 +81,7 @@ class Model(object):
             self.result_logger.info(eval.get_result())
         else :
             eval.print_result()#打印评测结果
-        self.searcher.un_average_weights()
+        #self.searcher.un_average_weights()
         self.task.weights.un_average_weights()
 
     def save(self,model_file=None):
@@ -176,9 +174,7 @@ class Model(object):
 
     def update(self,std_moves,rst_moves):
         if hasattr(self.task,'update_moves'):
-            for move,delta in self.task.update_moves(std_moves,rst_moves) :
-                self.searcher.update_action(move,delta,self.step)
-            return
+            self.task.update_moves(std_moves,rst_moves,self.step)
 
         
     def train(self,training_file,iteration=5,dev_files=None,keep_data=True):

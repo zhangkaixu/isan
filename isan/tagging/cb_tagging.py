@@ -1,6 +1,17 @@
-from struct import Struct
-from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
 import isan.tagging.eval as tagging_eval
+import argparse
+import random
+import shlex
+
+class Indexer(list) :
+    def __init__(self):
+        self.d=dict()
+        pass
+    def __call__(self,key):
+        if key not in self.d :
+            self.d[key]=len(self)
+            self.append(key)
+        return self.d[key]
 
 class codec:
     @staticmethod
@@ -8,109 +19,82 @@ class codec:
         if not line: return None
         seq=[word for word in line.split()]
         seq=[tuple(word.split('_')) for word in seq]
-
-        raw=[(i,i+1,c) for i,c in enumerate(''.join(w for w,_ in seq))]
-        raw=Lattice(raw)
-
-        return {'raw':raw, 'y': seq }
+        raw=''.join(x[0] for x in seq)
+        return {'raw':raw, 'y': seq, 'Y_a': 'y'}
 
     @staticmethod
     def encode(y):
         return ' '.join(y)
 
-class Action :
-    indexer=dict()
-    reverse_indexer=dict()
-    SBs=[]
-    EMs=[]
-    @staticmethod
-    def encode(action):
-        label=action[1]
-        if label not in Action.indexer :
-            v=len(Action.indexer)
-            Action.reverse_indexer[v]=label
-            if label[0] in 'SB' :
-                Action.SBs.append((v,label[1:]))
-            else :
-                Action.EMs.append((v,label[1:]))
-            Action.indexer[label]=v
-        return Action.indexer[label]
-    @staticmethod
-    def decode(action):
-        return (None,Action.reverse_indexer[action])
 
-class State (list):
-    Action=Action
-    stat_fmt=Struct('hh')
-    init_state=stat_fmt.pack(*(0,-1))
-
-    def __init__(self,_,bt=init_state):
-        self.extend(self.stat_fmt.unpack(bt))
-
-    def shift(self):
-        step=self[0]
-        next_step=step+1
-        last=self[1]
-        la=Action.reverse_indexer.get(last,'')
-
-        if not la or la[0] in 'SE' : # start a new word
-            return([ (v,self.stat_fmt.pack(next_step,v)) 
-                        for v,_ in Action.SBs ])
-        else : # in the same word
-            return([ (v,self.stat_fmt.pack(next_step,v)) 
-                        for v,tag in Action.EMs if tag==la[1:] ])
-        
-    @staticmethod
-    def load(bt):
-        return State.stat_fmt.unpack(bt)
-    def dumps(self):
-        return self.stat_fmt.pack(*self)
-
-
-class Task (Early_Stop_Pointwise, Base_Task) : ## mind the order !!
-    name="Character based POS tagging"
+class Task  :
+    name="Character-based CWS"
 
     codec=codec
-    State=State
-    Action=Action
     Eval=tagging_eval.TaggingEval
 
-    def actions_to_result(self,actions):
-        raw=[c for _,_,c in self.lattice]
-        word=[]
-        sen=[]
-        for i in range(len(actions)):
-            a=actions[i][1]
-            c=raw[i]
-            word.append(c)
-            if word and (a[0] in 'ES' or i+1==len(actions)):
-                sen.append((''.join(word),a[1:]))
-                word=[]
-        return sen
+    def get_init_states(self) :
+        return None
 
-    def result_to_actions(self,result):
-        actions=[]
-        for word,tag in result :
-            if len(word)==1 : actions.append('S'+tag)
-            else : actions.extend(['B'+tag]+['M'+tag]*(len(word)-2)+['E'+tag])
-        actions=[tuple(x) for x in enumerate(actions)]
-        ea=[Action.encode(a) for a in actions]
-        return actions
+    def moves_to_result(self,moves,_):
+        _,_,tags=moves[0]
+
+        tags=list(map(lambda x:self.indexer[x],tags))
+
+        results=[]
+        cache=[]
+        for i,t in enumerate(tags):
+            cache.append(self.raw[i])
+            p,tg=t.split('-')
+            if p in ['E','S'] :
+                results.append((''.join(cache),tg))
+                cache=[]
+        if cache : results.append((''.join(cache),tg))
+        return results
+
+
+    def check(self,std_moves,rst_moves):
+        return std_moves[0][-1]==rst_moves[0][-1]
+        return False
+
+    def update_moves(self,std_moves,rst_moves,step) :
+        self.emission(self.raw,std_moves[0][-1],1,step)
+        self.emission(self.raw,rst_moves[0][-1],-1,step)
+        self.transition(self.raw,std_moves[0][-1],1,step)
+        self.transition(self.raw,rst_moves[0][-1],-1,step)
+
+    def set_oracle(self,raw,y) :
+        tags=[]
+        for w,t in y :
+            if len(w)==1 :
+                tags.append('S'+'-'+t)
+            else :
+                tags.append('B'+'-'+t)
+                for i in range(len(w)-2):
+                    tags.append('M'+'-'+t)
+                tags.append('E'+'-'+t)
+        tags=list(map(self.indexer,tags))
+        self.oracle=[None]
+        self.set_raw(raw,y)
+        return [(0,'',tags)]
+
+    def remove_oracle(self):
+        self.oracle=None
+
+    def __init__(self,args=''):
+        parser=argparse.ArgumentParser(
+                formatter_class=argparse.RawDescriptionHelpFormatter,
+                description=r"""用于中文自然语言理解的统计机器学习工具包  作者：张开旭""",)
+        parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
+        args=parser.parse_args(shlex.split(args))
+        self.corrupt_x=args.corrupt_x
+        self.weights={}
+        self.indexer=Indexer()
+        pass
     
-
-    def shift(self,last_ind,stat):
-        next_ind=last_ind+1
-        if next_ind==len(self.lattice) : next_ind=-1 # -1 means the last step
-        state=self.State(self.lattice,stat)
-        rtn=[(a,next_ind,s) for a,s in state.shift()]
-        return rtn
-
-    
-    # haha, set_raw() and gen_features() are exactly the same with those in cb_cws.py
     def set_raw(self,raw,Y):
-        self.lattice=raw
-        self.raw=''.join(c for b,e,c in raw)
-        xraw=[c.encode() for i,c in enumerate(self.raw)] + [b'#',b'#']
+        self.raw=raw
+        xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
         self.ngram_fv=[]
         for ind in range(len(raw)):
             m=xraw[ind]
@@ -119,22 +103,29 @@ class Task (Early_Stop_Pointwise, Base_Task) : ## mind the order !!
             r1=xraw[ind+1]
             r2=xraw[ind+2]
             self.ngram_fv.append([
-                    b'1'+m, b'2'+l1, b'3'+r1,
-                    b'4'+l2+l1, b'5'+l1+m,
-                    b'6'+m+r1, b'7'+r1+r2,
+                    '1'+m, '2'+l1, '3'+r1,
+                    '4'+l2+l1, '5'+l1+m,
+                    '6'+m+r1, '7'+r1+r2,
                 ])
 
-    def gen_features(self,stat,actions):
-        stat=self.State(self.lattice,stat)
-        ind=stat[0]
-        if ind > 0 :
-            fv= [ b'T'+str(stat[1]).encode() ]+self.ngram_fv[ind]
+
+    def emission(self,raw,tags=None,delta=0,step=0):
+        if delta==0 :
+            emisions = [ [
+                self.weights([action+f for f in fv])
+                        for action in self.indexer ]
+                    for fv in self.ngram_fv]
+            return emisions
         else :
-            fv= self.ngram_fv[ind]
+            for fv,tag in zip(self.ngram_fv,tags) :
+                tag=self.indexer[tag]
+                self.weights.update_weights([tag+f for f in fv],delta,step)
 
-        fvs=[]
-        for action in actions:
-            action=str(action).encode()
-            fvs.append([action+x for x in fv])
-        return fvs
-
+    def transition(self,_,tags=None,delta=0,step=0):
+        if delta==0 :
+            trans=[[self.weights([a+b]) for b in self.indexer] for a in self.indexer]
+            return trans
+        else :
+            self.weights.update_weights([
+                self.indexer[tags[i]]+self.indexer[tags[i+1]] for i in range(len(tags)-1)
+                ],delta,step)

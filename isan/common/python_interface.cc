@@ -18,123 +18,6 @@ interface_delete(PyObject *self, PyObject *arg){
 };
 
 static PyObject *
-set_weights(PyObject *self, PyObject *arg)
-{
-    Interface* interface;
-    int step;
-    PyObject * py_dict;
-    Action_Type action;
-    PyArg_ParseTuple(arg, "LO", &interface,&py_dict);
-    
-    interface->data->set_weights(py_dict);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-};
-
-
-
-/**
- * update
- * */
-static PyObject *
-update_weights(PyObject *self, PyObject *arg)
-{
-    Interface* interface;
-    PyObject * py_state;
-    //long delta=0;
-    double delta=0;
-    long step=0;
-    Action_Type action;
-    PyArg_ParseTuple(arg, "LOldi", &interface,&py_state,&action,&delta,&step);
-    State_Type state(py_state);
-    
-    std::vector<Action_Type> actions;
-    actions.push_back(action);
-    std::vector<Feature_Vector> fvs;
-    
-    std::vector<Score_Type> scores;//useless
-
-    (*(interface->feature_generator))(state,actions,delta,step,fvs,scores);
-    
-    //std::cout<<fv.size()<<" in update\n";
-    auto& fv=fvs.front();
-
-    interface->data->weights->update(fv,delta,step);
-
-    
-    Py_INCREF(Py_None);
-    return Py_None;
-};
-static PyObject *
-average_weights(PyObject *self, PyObject *arg)
-{
-    
-    Interface* interface;
-    int step;
-    PyArg_ParseTuple(arg, "Li", &interface,&step);
-    
-    interface->data->weights->average(step);
-    Py_INCREF(Py_None);
-    return Py_None;
-};
-static PyObject *
-make_dat(PyObject *self, PyObject *arg)
-{
-    
-    Interface* interface;
-    PyArg_ParseTuple(arg, "L", &interface);
-    
-    interface->data->weights->make_dat();
-    
-    Py_INCREF(Py_None);
-    return Py_None;
-};
-static PyObject *
-un_average_weights(PyObject *self, PyObject *arg)
-{
-    
-    Interface* interface;
-    PyArg_ParseTuple(arg, "L", &interface);
-    
-    //for(auto iter=interface->data->actions.begin();
-    //        iter!=interface->data->actions.end();
-    //        ++iter){
-    //    iter->second->un_average();
-    //};
-    interface->data->weights->un_average();
-    Py_INCREF(Py_None);
-    return Py_None;
-};
-static PyObject *
-export_weights(PyObject *self, PyObject *arg)
-{
-    
-    Interface* interface;
-    PyArg_ParseTuple(arg, "L", &interface);
-    
-    
-    PyObject * list=PyList_New(0);
-    //for(auto iter=interface->data->actions.begin();
-    //        iter!=interface->data->actions.end();
-    //        ++iter){
-    //    //iter->second->average(step);
-    //    PyObject * k=PyLong_FromLong(iter->first);
-    //    PyObject * v=iter->second->to_py_dict();
-    //    PyList_Append(
-    //            list,
-    //            PyTuple_Pack(2,
-    //                k,
-    //                v
-    //                )
-    //            );
-    //    Py_DECREF(k);
-    //    Py_DECREF(v);
-    //};
-    return interface->data->weights->to_py_dict();
-    return list;
-};
-static PyObject *
 set_raw(PyObject *self, PyObject *arg)
 {
     Interface* interface;
@@ -168,18 +51,6 @@ set_step(PyObject *self, PyObject *arg)
     PyArg_ParseTuple(arg, "LL", &interface,&step);
     
     interface->data->learning_step=step;
-    Py_INCREF(Py_None);
-    
-    return Py_None;
-};
-static PyObject *
-set_penalty(PyObject *self, PyObject *arg)
-{
-    Interface* interface;
-    int penalty=0;
-    double value=0;
-    PyArg_ParseTuple(arg, "Lid", &interface,&penalty,&value);
-    interface->data->weights->set_penalty(penalty,value);
     Py_INCREF(Py_None);
     
     return Py_None;
@@ -270,14 +141,7 @@ static PyMethodDef interfaceMethods[] = {
     {"delete",  interface_delete, METH_O,""},
     {"set_raw",  set_raw, METH_VARARGS,""},
     {"set_step",  set_step, METH_VARARGS,""},
-    {"set_penalty",  set_penalty, METH_VARARGS,""},
     {"search",  search, METH_VARARGS,""},
-    {"set_action",  set_weights, METH_VARARGS,""},
-    {"update_action",  update_weights, METH_VARARGS,""},
-    {"export_weights",  export_weights, METH_VARARGS,""},
-    {"make_dat",  make_dat, METH_VARARGS,""},
-    {"average_weights", average_weights , METH_VARARGS,""},
-    {"un_average_weights", un_average_weights , METH_VARARGS,""},
     {"get_states",  get_states, METH_VARARGS,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };

@@ -8,22 +8,22 @@ class Searcher:
         self.searcher.set_action(self.handler,d)
     def set_step(self,step):
         self.searcher.set_step(self.handler,step)
-    def set_penalty(self,penalty,value=0):
-        self.searcher.set_penalty(self.handler,penalty,value)
-    def set_weights(self,weights):
-        self.searcher.set_weights(self.handler,weights)
-    def export_weights(self):
-        return self.searcher.export_weights(self.handler)
-    def average_weights(self,step):
-        self.searcher.average_weights(self.handler,step)
-    def sum_weights(self,stat,action):
-        return self.searcher.sum_weights(self.handler,stat,action)
-    def un_average_weights(self):
-        self.searcher.un_average_weights(self.handler)
-    def update_action(self,move,delta,step):
-        self.searcher.update_action(self.handler,move[1],move[2],delta,step)
-    def make_dat(self):
-        self.searcher.make_dat(self.handler)
+    #def set_penalty(self,penalty,value=0):
+    #    self.searcher.set_penalty(self.handler,penalty,value)
+    #def set_weights(self,weights):
+    #    self.searcher.set_weights(self.handler,weights)
+    #def export_weights(self):
+    #    return self.searcher.export_weights(self.handler)
+    #def average_weights(self,step):
+    #    self.searcher.average_weights(self.handler,step)
+    #def sum_weights(self,stat,action):
+    #    return self.searcher.sum_weights(self.handler,stat,action)
+    #def un_average_weights(self):
+    #    self.searcher.un_average_weights(self.handler)
+    #def update_action(self,move,delta,step):
+    #    self.searcher.update_action(self.handler,move[1],move[2],delta,step)
+    #def make_dat(self):
+    #    self.searcher.make_dat(self.handler)
     def get_states(self):
         return self.searcher.get_states(self.handler)
     def set_raw(self,raw):

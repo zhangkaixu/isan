@@ -189,7 +189,7 @@ class Dep (Early_Stop_Pointwise, Base_Task):
             #    self.f_raw[i][1]='^'
 
 
-    def gen_features(self,stat,acts):
+    def gen_features(self,stat,acts,delta=0,step=0):
         span,stack_top=self.State.decode(stat)
         s0,s1,s2=stack_top
 
@@ -238,5 +238,13 @@ class Dep (Early_Stop_Pointwise, Base_Task):
         fv=[f for f in fv if '^' not in f]
 
         fvs=[[action+x for x in fv]for action in map(chr,acts)]
+
+        if delta==0 :
+            return [[self.weights(fv)] for fv in fvs]
+        else :
+            for fv in fvs :
+                self.weights.update_weights(fv,delta,step)
+            return [[] for fv in fvs]
+
         return fvs
 

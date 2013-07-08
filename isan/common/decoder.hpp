@@ -1,7 +1,6 @@
 #pragma once
 
 #include "isan/common/common.hpp"
-#include "isan/common/weights.hpp"
 #include "isan/common/searcher.hpp"
 
 
@@ -26,15 +25,6 @@ public:
 
     size_t learning_step;
 
-    Default_Weights* weights;
-    void set_weights(PyObject * py_dict){
-        delete weights;
-        weights=new Default_Weights(py_dict);
-    };
-
-    //cache for FV
-    Feature_Vector fv;
-
     // init this object
     General_Searcher_Data(
             Early_Stop_Checker * early_stop_checker,
@@ -48,11 +38,9 @@ public:
         
         this->reduced_state_generator=reduced_state_generator;
         //std::cout<<reduced_state_generator<<"\n";
-        weights=new Default_Weights();
         learning_step=0;
     };
     ~General_Searcher_Data(){
-        delete weights;
     };
 
     virtual bool early_stop(
@@ -114,14 +102,8 @@ public:
         for(int i=0;i<next_actions.size();i++){
             scores[i]=0;
         };
-        std::vector<Feature_Vector> fvs;
         
-        (*feature_generator)(state,next_actions,0,0,fvs,scores);
-
-        
-        for(int i=0;i<next_actions.size();i++){
-            scores[i]+=(*weights)(fvs[i],step);
-        };
+        (*feature_generator)(state,next_actions,0,0,scores);
     };
 };
 

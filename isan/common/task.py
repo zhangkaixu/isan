@@ -85,11 +85,15 @@ class Base_Task :
 
     early_stop=None
 
-    def update_moves(self,std_moves,rst_moves) :
+    def _update(self,move,delta,step):
+        self.gen_features(move[1],[move[2]],delta,step)
+    def update_moves(self,std_moves,rst_moves,step) :
         for s,r in zip(std_moves,rst_moves) :
             if s!= r:
-                yield s, 1
-                yield r, -1
+                self._update(s,1,step)
+                self._update(r,-1,step)
+                #yield s, 1
+                #yield r, -1
 
 class Early_Stop_Pointwise :
     def set_oracle(self,raw,y) :
@@ -119,10 +123,12 @@ class Early_Stop_Pointwise :
                 return True
         return False
 
-    def update_moves(self,std_moves,rst_moves) :
+    def update_moves(self,std_moves,rst_moves,step) :
         for move in rst_moves :
             if self.stop_step is not None and move[0]>=self.stop_step : break
-            yield move, -1
+            self._update(move,-1,step)
+            #yield move, -1
         for move in std_moves :
             if self.stop_step is not None and move[0]>=self.stop_step : break
-            yield move, 1
+            #yield move, 1
+            self._update(move,1,step)

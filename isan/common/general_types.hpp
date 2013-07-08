@@ -10,10 +10,6 @@ typedef double Score_Type;
 
 typedef Smart_Chars State_Type;
 
-typedef Smart_Chars Feature_String;
-typedef std::vector<Feature_String> Feature_Vector;
-
-
 typedef unsigned short Chinese_Character;
 typedef Smart_String<Chinese_Character> Chinese;
 

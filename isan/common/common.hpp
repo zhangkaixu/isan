@@ -19,7 +19,6 @@ public:
             const std::vector<Action_Type>& action,
             const double & delta,
             const long & step,
-            std::vector<Feature_Vector>& fv,
             std::vector<Score_Type>& scores
             )
         =0;
@@ -153,7 +152,6 @@ public:
             const std::vector<Action_Type>& actions,
             const double & delta,
             const long & step,
-            std::vector<Feature_Vector>& fvs,
             std::vector<Score_Type>& scores){
 
         PyObject * p_action_list=PyList_New(actions.size());
@@ -180,25 +178,14 @@ public:
         Py_DECREF(arglist);
         Py_DECREF( p_action_list);
         
-        fvs.clear();
         char* buffer;
         size_t length;
         long size=PySequence_Size(pfvs);
         for(int i=0;i<size;i++){
             PyObject * pfv=PyList_GET_ITEM(pfvs,i);
             long fv_size=PySequence_Size(pfv);
-            fvs.push_back(Feature_Vector());
-            auto& fv=fvs.back();
             for(int j=0;j<fv_size;j++){
-                if(PyFloat_Check(PyList_GET_ITEM(pfv,j))
-                        ){//values instead of feature
-                    if(scores.size())
-                        scores[i]=PyFloat_AS_DOUBLE(PyList_GET_ITEM(pfv,j));
-                }else{
-                    //PyBytes_AsStringAndSize(PyList_GET_ITEM(pfv,j),&buffer,(Py_ssize_t*)&(length));
-                    //fv.push_back(Feature_String((Smart_Chars::Char*)buffer,length));
-                    fv.push_back(Feature_String(PyList_GET_ITEM(pfv,j)));
-                }
+                scores[i]=PyFloat_AS_DOUBLE(PyList_GET_ITEM(pfv,j));
             }
         };
         Py_DECREF(pfvs);

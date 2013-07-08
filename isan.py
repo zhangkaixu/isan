@@ -117,8 +117,8 @@ def command_line(Model,Task,Decoder):
         pen,*pen_values=pen.split(',')
         pen=int(pen)
         pen_values=map(float,pen_values)
-        logger.info("正则化惩罚: %s"%(make_color(args.penalty)))
-        model.searcher.set_penalty(pen,*pen_values)
+        #logger.info("正则化惩罚: %s"%(make_color(args.penalty)))
+        #model.searcher.set_penalty(pen,*pen_values)
 
         logger.info("由训练语料库%s迭代%s次，训练%s模型保存在%s。"%(make_color(' '.join(args.train)),
                         make_color(args.iteration),

@@ -9,19 +9,6 @@ import shlex
 
 
 class Task:
-    """ 介绍一下这个最基本的task--中文分词吧
-
-    来看看如何建造一个中文分词模型
-    只需要编写最核心的代码，其它代码我都已经编好了
-
-    :py:attr:`name`
-
-    :py:func:`init`
-
-    :py:func:`shift` and
-    :py:func:`reduce`
-
-    """
     xa,xb=3,3
     name='中文分词' ##name
 
@@ -140,14 +127,6 @@ class Task:
                 return [(self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
         return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
                 (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
-    #def shift(self,last_ind,stat):
-    #    """
-    #    根据当前状态，能产生什么动作，并且后续的状态是什么，就由这个函数决定了
-    #    """
-    #    ind,last,_,wordl,lwordl=self.stat_fmt.unpack(stat)
-    #    next_ind=last_ind+1 if last_ind+1 <= len(self.raw) else -1
-    #    return [(self.sep,next_ind,self.stat_fmt.pack(ind+1,b'1',last,1,wordl)),
-    #            (self.com,next_ind,self.stat_fmt.pack(ind+1,b'2',last,wordl+1,lwordl))]
     reduce=None
 
     def check(self,std_moves,rst_moves):
@@ -156,13 +135,16 @@ class Task:
                 for std_move,rst_move in zip(std_moves,rst_moves)
                 )
 
-    def update_moves(self,std_moves,rst_moves) :
+    def _update(self,move,delta,step):
+        self.gen_features(move[1],[move[2]],delta,step)
+
+    def update_moves(self,std_moves,rst_moves,step) :
         for move in std_moves :
             if self.early_stop and move[0]>=self.early_stop :
                 break
-            yield move, 1
+            self._update(move,1,step)
         for move in rst_moves :
-            yield move, -1
+            self._update(move,-1,step)
         pass
 
     def init(self):
@@ -242,13 +224,19 @@ class Task:
                 ])
 
 
-    def gen_features(self,span,actions):
+    def gen_features(self,span,actions,delta=0,step=0):
         fvs=[]
         fv=self.gen_features_one(span)
         for action in actions:
             action=chr(action).encode()
             fvs.append([action+x for x in fv])
-        return fvs
+
+        if delta==0 :
+            return [[self.weights(fv)] for fv in fvs]
+        else :
+            for fv in fvs :
+                self.weights.update_weights(fv,delta,step)
+            return [[] for fv in fvs]
 
     def gen_features_one(self,span):
         """
