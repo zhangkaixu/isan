@@ -68,7 +68,8 @@ class Model(object):
         """
 
         #self.searcher.average_weights(self.step)
-        self.task.weights.average_weights(self.step)
+        self.task.average_weights(self.step)
+        #self.task.weights.average_weights(self.step)
         eval=self.task.Eval()
         for line in open(dev_file):
             arg=self.task.codec.decode(line.strip())
@@ -82,7 +83,7 @@ class Model(object):
         else :
             eval.print_result()#打印评测结果
         #self.searcher.un_average_weights()
-        self.task.weights.un_average_weights()
+        self.task.un_average_weights()
 
     def save(self,model_file=None):
         """

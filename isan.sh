@@ -1,9 +1,7 @@
 #!/bin/sh
 
 if [ $# = 0 ]; then
-    echo '一些现成的模型'
-    echo ' * seg 基于字标注的中文分词'
-    echo ' * dep 依存句法分析'
+    echo 'isan, 我的心血呀'
     exit
 fi
 
@@ -16,6 +14,15 @@ if [ $1 = 'seg' ] ; then
         --model isan.common.perceptrons.Model \
         --decoder isan.common.decoder.First_Order_Linear \
         --task isan.tagging.cb_cws.Task \
+        $@
+fi
+
+if [ $1 = 'ssseg' ] ; then
+    shift
+    ./isan.py \
+        --model isan.common.perceptrons.Model \
+        --decoder isan.common.decoder.First_Order_Linear \
+        --task isan.tagging.ssseg.Task \
         $@
 fi
 

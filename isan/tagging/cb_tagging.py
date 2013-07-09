@@ -58,10 +58,14 @@ class Task  :
         return False
 
     def update_moves(self,std_moves,rst_moves,step) :
-        self.emission(self.raw,std_moves[0][-1],1,step)
-        self.emission(self.raw,rst_moves[0][-1],-1,step)
-        self.transition(self.raw,std_moves[0][-1],1,step)
-        self.transition(self.raw,rst_moves[0][-1],-1,step)
+        self.emission(self.raw,std_moves[0][-1],rst_moves[0][-1],1,step)
+        self.transition(self.raw,std_moves[0][-1],rst_moves[0][-1],1,step)
+
+    def average_weights(self,step):
+        self.weights.average_weights(step)
+
+    def un_average_weights(self):
+        self.weights.un_average_weights()
 
     def set_oracle(self,raw,y) :
         tags=[]
@@ -90,6 +94,7 @@ class Task  :
         self.corrupt_x=args.corrupt_x
         self.weights={}
         self.indexer=Indexer()
+        self.trans_cache=None
         pass
     
     def set_raw(self,raw,Y):
@@ -108,8 +113,7 @@ class Task  :
                     '6'+m+r1, '7'+r1+r2,
                 ])
 
-
-    def emission(self,raw,tags=None,delta=0,step=0):
+    def emission(self,raw,std_tags=None,rst_tags=None,delta=0,step=0):
         if delta==0 :
             emisions = [ [
                 self.weights([action+f for f in fv])
@@ -117,15 +121,22 @@ class Task  :
                     for fv in self.ngram_fv]
             return emisions
         else :
-            for fv,tag in zip(self.ngram_fv,tags) :
-                tag=self.indexer[tag]
+            for fv,s_tag,r_tag in zip(self.ngram_fv,std_tags,rst_tags) :
+                if s_tag==r_tag : continue
+                tag=self.indexer[s_tag]
                 self.weights.update_weights([tag+f for f in fv],delta,step)
+                tag=self.indexer[r_tag]
+                self.weights.update_weights([tag+f for f in fv],-delta,step)
 
-    def transition(self,_,tags=None,delta=0,step=0):
+    def transition(self,_,std_tags=None,rst_tags=None,delta=0,step=0):
         if delta==0 :
-            trans=[[self.weights([a+b]) for b in self.indexer] for a in self.indexer]
-            return trans
+            self.trans_cache=[[self.weights([a+b]) for b in self.indexer] for a in self.indexer]
+            return self.trans_cache
         else :
             self.weights.update_weights([
-                self.indexer[tags[i]]+self.indexer[tags[i+1]] for i in range(len(tags)-1)
+                self.indexer[std_tags[i]]+self.indexer[std_tags[i+1]] for i in range(len(std_tags)-1)
                 ],delta,step)
+            self.weights.update_weights([
+                self.indexer[rst_tags[i]]+self.indexer[rst_tags[i+1]] for i in range(len(rst_tags)-1)
+                ],-delta,step)
+            #self.trans_cache=[[self.weights([a+b]) for b in self.indexer] for a in self.indexer]
