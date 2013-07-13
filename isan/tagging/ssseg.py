@@ -8,7 +8,11 @@ import gzip
 import pickle
 
 class Mapper():
+    """
+    auto-encoder
+    """
     def __init__(self):
+        #load lookup tables for character unigrams and bigrams
         chs={}
         for line in open('data1.txt'):
             ch,*v=line.split()
@@ -23,13 +27,18 @@ class Mapper():
         self.zch=numpy.array([0.0 for i in range(20)])
         self.zb=numpy.array([0.0 for i in range(50)])
 
+        # load weights for the hidden layer
         f=gzip.open('2to3.gz','rb')
-        self.Ws=[]
-        for i in range(7): self.Ws.append(numpy.array(pickle.load(f)))
-        self.bs=[]
-        for i in range(7): self.bs.append(numpy.array(pickle.load(f)))
-        self.b_primes=[]
-        for i in range(7): self.b_primes.append(numpy.array(pickle.load(f)))
+        self.Ws=[] # Ws
+        self.sWs=[]
+        for i in range(7): 
+            self.Ws.append(numpy.array(pickle.load(f)))
+            self.sWs.append(self.Ws[-1]*0.0)
+        self.bs=[] # bs
+        self.sbs=[]
+        for i in range(7): 
+            self.bs.append(numpy.array(pickle.load(f)))
+            self.sbs.append(self.bs[-1]*0.0)
 
     def find(self,key,miss,inds,v):
         if key in self.chs :
@@ -39,7 +48,7 @@ class Mapper():
             inds.append(0)
             v.append(miss)
 
-    def __call__(self,context):
+    def get_data(self,context):
         inds=[]
         vs=[]
         self.find(context[1],self.zch,inds,vs)
@@ -49,9 +58,16 @@ class Mapper():
         self.find(context[1:3],self.zb,inds,vs)
         self.find(context[2:4],self.zb,inds,vs)
         self.find(context[3:5],self.zb,inds,vs)
+        return inds,vs
+
+
+    def __call__(self,context): # call
+        inds,vs=self.get_data(context)
+
         if all(x==0 for x in inds):
             return numpy.zeros(50)
 
+        #hidden layer
         la=[]
         for ind,v,W,b in zip(inds,vs,self.Ws,self.bs):
             if ind ==0 : continue
@@ -60,6 +76,36 @@ class Mapper():
             la.append(a)
         la=1/(1+numpy.exp(-sum(la)))
         return la[0]
+
+    def update(self,context,deltas,step):
+        inds,vs=self.get_data(context)
+        for i in range(len(inds)):
+            ind=inds[i]
+            if ind==0 : continue
+            d=numpy.array([vs[i]]).T*deltas
+            self.Ws[i]+=d
+            self.sWs[i]+=d*step
+
+            self.bs[i]+=deltas*0.1
+            self.sbs[i]+=deltas*step*0.1
+        pass
+
+    def average_weights(self,step):
+        self._backWs=[]
+        self._backbs=[]
+        for i in range(len(self.Ws)):
+            self._backWs.append(numpy.array(self.Ws[i],dtype=float))
+            self.Ws[i]-=self.sWs[i]/step
+            self._backbs.append(numpy.array(self.bs[i],dtype=float))
+            self.bs[i]-=self.sbs[i]/step
+            
+
+    def un_average_weights(self):
+        for i in range(len(self.Ws)):
+            self.Ws[i]=numpy.array(self._backWs[i])
+            self.bs[i]=numpy.array(self._backbs[i])
+        pass
+
 class Weight_List():
     def __init__(self,size):
         self.d=numpy.zeros(size,dtype=float)
@@ -160,6 +206,7 @@ class Task  :
 
         self.use_ae_features=args.use_ae
         self.use_pca_features=args.use_pca
+        self.use_hiddens=True
         self.bi={}
         size=50
 
@@ -186,6 +233,8 @@ class Task  :
             for x in self.aew :
                 for y in x:
                     y.average_weights(step)
+        if self.use_hiddens :
+            self.mapper.average_weights(step)
 
     def un_average_weights(self):
         self.weights.un_average_weights()
@@ -198,12 +247,16 @@ class Task  :
             for x in self.aew:
                 for y in x:
                     y.un_average_weights()
+        if self.use_hiddens :
+            self.mapper.un_average_weights()
+
     
     def set_raw(self,raw,Y):
         self.raw=raw
         xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
         self.ngram_fv=[]
         self.conv=[]
+        self.contexts=[]
         for ind in range(len(raw)):
             m=xraw[ind]
             l1=xraw[ind-1]
@@ -212,6 +265,7 @@ class Task  :
             r2=xraw[ind+2]
             if self.use_ae_features :
                 context=''.join([l2,l1,m,r1,r2])
+                self.contexts.append(context)
                 self.conv.append(self.mapper(context))
             self.ngram_fv.append([
                     '1'+m, '2'+l1, '3'+r1,
@@ -252,11 +306,6 @@ class Task  :
                 tag=ts[r_tag]
                 self.weights.update_weights([tag+f for f in fv],-delta,step)
 
-            if self.use_ae_features :
-                for i in range(len(self.raw)):
-                    if std_tags[i]==rst_tags[i] : continue
-                    self.aew[0][std_tags[i]].update(self.conv[i],delta,step)
-                    self.aew[0][rst_tags[i]].update(self.conv[i],-delta,step)
 
             if self.use_pca_features :
                 for i in range(len(self.raw)-1):
@@ -268,6 +317,21 @@ class Task  :
                     if std_tags[i]==rst_tags[i] : continue
                     self.ssw[1][std_tags[i]].update(self.bis[i-1],delta,step)
                     self.ssw[1][rst_tags[i]].update(self.bis[i-1],-delta,step)
+
+            if self.use_ae_features :
+                if self.use_hiddens :
+                    for i in range(len(self.raw)):
+                        if std_tags[i]==rst_tags[i] : continue
+                        deltas=(self.aew[0][std_tags[i]].d-self.aew[0][rst_tags[i]].d)*self.conv[i]*(1-self.conv[i])
+                        self.mapper.update(self.contexts[i],deltas*0.1,step)
+
+
+                for i in range(len(self.raw)):
+                    if std_tags[i]==rst_tags[i] : continue
+                    self.aew[0][std_tags[i]].update(self.conv[i],delta*0.1,step)
+                    self.aew[0][rst_tags[i]].update(self.conv[i],-delta*0.1,step)
+
+
 
     def transition(self,_,tags=None,delta=0,step=0):
         if delta==0 :
