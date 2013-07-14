@@ -170,18 +170,24 @@ class TaggingEval:
         std=sorted(list(std))
         rst=sorted(list(rst))
         std_ind=0
-        for b,w,*_ in rst :
-            e=b+len(w)
+        rst_ind=0
+        while rst_ind < len(rst):
+            b=rst[rst_ind][0]
+            e=b+len(rst[rst_ind][1])
             while std_ind < len(std) and std[std_ind][0]<b :
+                bb=std[std_ind][0]
+                ee=bb+len(std[std_ind][1])
+                if bb<b and ee>b and e >ee : # overlap bb b ee e
+                    self.overlaps+=1
                 std_ind += 1
             while std_ind < len(std) and std[std_ind][0]<e :
                 bb=std[std_ind][0]
                 ee=bb+len(std[std_ind][1])
-                if bb>b and e>bb and ee>e :
+                if bb>b and e>bb and ee>e : # overlap b bb e ee
                     self.overlaps+=1
+                    break
                 std_ind += 1
-
-        #print(std,rst)
+            rst_ind+=1
     
     def _to_set(self,seq):
         s=set()

@@ -12,20 +12,23 @@ class Mapper():
     auto-encoder
     """
     def __init__(self):
+        size=50
+        self.aew=[Weight_List(size) for i in range(4)] # [tag]
+
         #load lookup tables for character unigrams and bigrams
         chs={}
         for line in open('data1.txt'):
             ch,*v=line.split()
             v=list(map(float,v))[:20]
-            chs[ch]=numpy.array(v)
+            chs[ch]=numpy.array([v])
 
         for line in open('data2.txt'):
             b,*v=line.split()
             v=list(map(float,v))[:50]
-            chs[b]=numpy.array(v)
+            chs[b]=numpy.array([v])
         self.chs=chs
-        self.zch=numpy.array([0.0 for i in range(20)])
-        self.zb=numpy.array([0.0 for i in range(50)])
+        self.zch=numpy.array([[0.0 for i in range(20)]])
+        self.zb=numpy.array([[0.0 for i in range(50)]])
 
         # load weights for the hidden layer
         f=gzip.open('2to3.gz','rb')
@@ -63,32 +66,53 @@ class Mapper():
 
     def __call__(self,context): # call
         inds,vs=self.get_data(context)
+        self.indss.append(inds)
+        self.vss.append(vs)
 
         if all(x==0 for x in inds):
             return numpy.zeros(50)
 
         #hidden layer
         la=[]
+        la=numpy.zeros(50,dtype=float)
         for ind,v,W,b in zip(inds,vs,self.Ws,self.bs):
             if ind ==0 : continue
-            v=numpy.array([v])
-            a=numpy.dot(v,W)+b
-            la.append(a)
-        la=1/(1+numpy.exp(-sum(la)))
-        return la[0]
+            la+=numpy.dot(v,W)[0]+b
+        la=1/(1+numpy.exp(-la))
+        return la
 
-    def update(self,context,deltas,step):
-        inds,vs=self.get_data(context)
+    def update(self,std_tags,rst_tags,delta,step):
+        #hidden
+        self.dWs=[]
+        for x in self.Ws : self.dWs.append(x*0)
+        self.dbs=[]
+        for x in self.bs : self.dbs.append(x*0)
+
+        for i in range(len(self.conv)):
+            if std_tags[i]==rst_tags[i] : continue
+            deltas=(self.aew[std_tags[i]].d-self.aew[rst_tags[i]].d)*self.conv[i]*(1-self.conv[i])
+            self.update_hidden(i,deltas*0.1)
+
+        for i in range(len(self.Ws)):
+            self.Ws[i]+=self.dWs[i]
+            self.sWs[i]+=self.dWs[i]*step
+            self.bs[i]+=self.dbs[i]
+            self.sbs[i]+=self.dbs[i]*step
+
+        #output
+        for i in range(len(self.conv)):
+            if std_tags[i]==rst_tags[i] : continue
+            self.aew[std_tags[i]].update(self.conv[i],delta*0.1,step)
+            self.aew[rst_tags[i]].update(self.conv[i],-delta*0.1,step)
+
+    def update_hidden(self,j,deltas):
+        inds=self.indss[j]
+        vs=self.vss[j]
         for i in range(len(inds)):
-            ind=inds[i]
-            if ind==0 : continue
-            d=numpy.array([vs[i]]).T*deltas
-            self.Ws[i]+=d
-            self.sWs[i]+=d*step
+            if inds[i]==0 : continue
+            self.dbs[i]+=deltas
+            self.dWs[i]+=vs[i].T*deltas
 
-            self.bs[i]+=deltas*0.1
-            self.sbs[i]+=deltas*step*0.1
-        pass
 
     def average_weights(self,step):
         self._backWs=[]
@@ -98,13 +122,29 @@ class Mapper():
             self.Ws[i]-=self.sWs[i]/step
             self._backbs.append(numpy.array(self.bs[i],dtype=float))
             self.bs[i]-=self.sbs[i]/step
-            
+        for x in self.aew :
+            x.average_weights(step)
 
     def un_average_weights(self):
         for i in range(len(self.Ws)):
             self.Ws[i]=numpy.array(self._backWs[i])
             self.bs[i]=numpy.array(self._backbs[i])
+        for x in self.aew :
+            x.un_average_weights()
+
+    def set_raw(self,contexts):
+        self.contexts=contexts
+        self.conv=[]
+        self.indss=[]
+        self.vss=[]
+        for context in contexts :
+            self.conv.append(self(context))
         pass
+    def emission(self,emissions):
+        for i in range(len(self.conv)):
+            for j in range(4):
+                emissions[i][j]+=numpy.dot(self.aew[j].d,self.conv[i])
+
 
 class Weight_List():
     def __init__(self,size):
@@ -219,7 +259,6 @@ class Task  :
 
         if self.use_ae_features:
             self.mapper=Mapper()
-            self.aew=[[Weight_List(size) for i in range(4)] for j in range(1)] # [pos][tag]
         pass
 
     def average_weights(self,step):
@@ -230,9 +269,7 @@ class Task  :
                     y.average_weights(step)
 
         if self.use_ae_features:
-            for x in self.aew :
-                for y in x:
-                    y.average_weights(step)
+            pass
         if self.use_hiddens :
             self.mapper.average_weights(step)
 
@@ -244,9 +281,7 @@ class Task  :
                     y.un_average_weights()
 
         if self.use_ae_features:
-            for x in self.aew:
-                for y in x:
-                    y.un_average_weights()
+            pass
         if self.use_hiddens :
             self.mapper.un_average_weights()
 
@@ -255,7 +290,6 @@ class Task  :
         self.raw=raw
         xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
         self.ngram_fv=[]
-        self.conv=[]
         self.contexts=[]
         for ind in range(len(raw)):
             m=xraw[ind]
@@ -266,12 +300,13 @@ class Task  :
             if self.use_ae_features :
                 context=''.join([l2,l1,m,r1,r2])
                 self.contexts.append(context)
-                self.conv.append(self.mapper(context))
             self.ngram_fv.append([
                     '1'+m, '2'+l1, '3'+r1,
                     '4'+l2+l1, '5'+l1+m,
                     '6'+m+r1, '7'+r1+r2,
                 ])
+        if self.use_ae_features :
+            self.mapper.set_raw(self.contexts)
 
         self.bis=[]
         for ind in range(len(raw)-1):
@@ -293,9 +328,7 @@ class Task  :
                     for j in range(4):
                         emissions[i][j]+=self.ssw[1][j](self.bis[i-1])
             if self.use_ae_features :
-                for i in range(len(self.raw)):
-                    for j in range(4):
-                        emissions[i][j]+=self.aew[0][j](self.conv[i])
+                self.mapper.emission(emissions)
             return emissions
         else :
             ts='BMES'
@@ -319,17 +352,7 @@ class Task  :
                     self.ssw[1][rst_tags[i]].update(self.bis[i-1],-delta,step)
 
             if self.use_ae_features :
-                if self.use_hiddens :
-                    for i in range(len(self.raw)):
-                        if std_tags[i]==rst_tags[i] : continue
-                        deltas=(self.aew[0][std_tags[i]].d-self.aew[0][rst_tags[i]].d)*self.conv[i]*(1-self.conv[i])
-                        self.mapper.update(self.contexts[i],deltas*0.1,step)
-
-
-                for i in range(len(self.raw)):
-                    if std_tags[i]==rst_tags[i] : continue
-                    self.aew[0][std_tags[i]].update(self.conv[i],delta*0.1,step)
-                    self.aew[0][rst_tags[i]].update(self.conv[i],-delta*0.1,step)
+                self.mapper.update(std_tags,rst_tags,delta,step)
 
 
 
