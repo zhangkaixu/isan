@@ -1,5 +1,4 @@
 import isan.tagging.eval as tagging_eval
-from isan.common.weights import Weights
 import argparse
 import random
 import shlex
@@ -10,11 +9,23 @@ import pickle
 import json
 import sys
 
+
+class Indexer(list) :
+    def __init__(self):
+        self.d=dict()
+        pass
+    def __call__(self,key):
+        if key not in self.d :
+            self.d[key]=len(self)
+            self.append(key)
+        return self.d[key]
+
 class Mapper():
     """
     auto-encoder
     """
     def __init__(self,data=None):
+        self.added=False
         if data==None :
             size=50
             self.aew=[Weight_List(size) for i in range(4)] # [tag]
@@ -48,7 +59,18 @@ class Mapper():
                 self.sbs.append(self.bs[-1]*0.0)
         else :
             self.aew,self.chs,self.zch,self.zb,self.Ws,self.bs=data
-            
+
+    def add_model(self,model):
+        if self.added : return
+        aew,_,_,_,Ws,bs=model
+        for a,b in zip(aew,self.aew):
+            b.add_model(a)
+        for i in range(len(self.Ws)):
+            self.Ws[i]=(self.Ws[i]*self.sWs[i]+Ws[i])/(self.sWs[i]+1)
+            self.sWs[i]+=1
+            self.bs[i]=(self.bs[i]*self.sbs[i]+bs[i])/(self.sbs[i]+1)
+            self.sbs[i]+=1
+        self.added=True
 
     def dump(self):
         return [self.aew,self.chs,self.zch,self.zb,self.Ws,self.bs]
@@ -187,6 +209,9 @@ class Weight_List():
         else :
             self.d+=fv*delta
             self.s+=fv*(delta*step)
+    def add_model(self,model):
+        self.d=(self.d*self.s+model.d)/(self.s+1)
+        self.s+=1
 
     def average_weights(self,step):
         self._backup=numpy.array(self.d,dtype=float)
@@ -197,7 +222,8 @@ class Weight_List():
 
 
 class PCA :
-    def __init__(self,data=None):
+    def __init__(self,ts,data=None):
+        self.ts=ts
         if data==None :
             size=50
             self.bi={}
@@ -206,9 +232,15 @@ class PCA :
                 v=list(map(float,v))
                 self.bi[bi]=numpy.array(v) # bigram embedding
 
-            self.ssw=[[Weight_List(size) for i in range(4)] for j in range(2)] # [pos][tag]
+            self.ssw=[[Weight_List(size) for i in range(self.ts)] for j in range(2)] # [pos][tag]
         else :
             self.bi,self.ssw=data
+
+    def add_model(self,model):
+        _,ssw=model
+        for a,b in zip(self.ssw,ssw):
+            for c,d in zip(a,b):
+                c.add_model(d)
 
     def set_raw(self,raw):
         self.raw=raw
@@ -218,10 +250,10 @@ class PCA :
             self.bis.append(self.bi.get(big,None))
     def emission(self,emissions):
         for i in range(len(self.raw)-1):
-            for j in range(4):
+            for j in range(self.ts):
                 emissions[i][j]+=self.ssw[0][j](self.bis[i])
         for i in range(1,len(self.raw)):
-            for j in range(4):
+            for j in range(self.ts):
                 emissions[i][j]+=self.ssw[1][j](self.bis[i-1])
     def update(self,std_tags,rst_tags,delta,step):
         for i in range(len(self.raw)-1):
@@ -253,8 +285,16 @@ class codec:
     def decode(line):
         if not line: return None
         seq=[word for word in line.split()]
-        raw=''.join(seq)
+        seq=[(word.partition('_')) for word in seq]
+        seq=[(w,t) for w,_,t in seq]
+        raw=''.join(x[0] for x in seq)
+
         return {'raw':raw, 'y': seq, 'Y_a': 'y'}
+        """
+        seq=[word for word in line.split()]
+        raw=''.join(seq)
+        return {'raw':raw, 'y': seq, 'Y_a': 'y'}"""
+
 
     @staticmethod
     def encode(y):
@@ -262,8 +302,13 @@ class codec:
 
 
 class Character:
-    def __init__(self,model=None):
-        self.weights=Weights()
+    def __init__(self,ts,model=None,):
+        self.ts=ts
+        self.uni_d={}
+        self.bi_d={}
+        self.uni_s={}
+        self.bi_s={}
+
         if model==None :
             pass
         else :
@@ -271,47 +316,114 @@ class Character:
 
     def add_model(self,model):
         self.weights.add_model(model)
-        pass
 
     def dump(self):
-        return self.weights.data
+        return None
 
     def set_raw(self,raw):
         self.raw=raw
-        xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
-        self.ngram_fv=[]
-        for ind in range(len(raw)):
-            m=xraw[ind]
-            l1=xraw[ind-1]
-            l2=xraw[ind-2]
-            r1=xraw[ind+1]
-            r2=xraw[ind+2]
-            fv=[
-                    '1'+m, '2'+l1, '3'+r1,
-                    '4'+l2+l1, '5'+l1+m,
-                    '6'+m+r1, '7'+r1+r2,
-                ]
-            self.ngram_fv.append([f for f in fv if '^' not in f])
+        self.uni=['#']+list(raw)+['#']
+        self.bi=''.join(['#','#']+list(raw)+['#','#'])
+        self.bi=[self.bi[i:i+2] for i in range(len(self.bi)-1)]
+
     
     def emission(self,emissions):
-        for i,fv in enumerate(self.ngram_fv) :
-            for j,action  in enumerate('BMES') :
-                emissions[i][j]+=self.weights([action+f for f in fv])
+        l=len(self.raw)
+        for i,k in enumerate(self.uni) :
+            # : # x x x '#'
+            # : x x x
+            if k not in self.uni_d : continue
+            v=self.uni_d[k]
+            if i-2 >=0 : emissions[i-2]+=v[0]
+            if i-1 >=0 and i-1 < l: emissions[i-1]+=v[1]
+            if i< l: emissions[i]+=v[2]
+
+        for i,k in enumerate(self.bi) :
+            # : ## #x xx xx x# ##
+            # : x  x  x
+            if k not in self.bi_d : continue
+            v=self.bi_d[k]
+            if i-3 >=0 : emissions[i-3]+=v[0]
+            if i-2 >=0 and i-2 < l: emissions[i-2]+=v[1]
+            if i-1 >=0 and i-1 < l: emissions[i-1]+=v[2]
+            if i< l: emissions[i]+=v[3]
+
 
     def update(self,std_tags,rst_tags,delta,step):
-        ts='BMES'
-        for fv,s_tag,r_tag in zip(self.ngram_fv,std_tags,rst_tags) :
-            if s_tag==r_tag : continue
-            tag=ts[s_tag]
-            self.weights.update_weights([tag+f for f in fv],delta,step)
-            tag=ts[r_tag]
-            self.weights.update_weights([tag+f for f in fv],-delta,step)
+        l=len(self.raw)
+        for i,k in enumerate(self.uni) :
+            if k not in self.uni_d : 
+                self.uni_d[k]=[numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
+                self.uni_s[k]=[numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
+            v=self.uni_d[k]
+            s=self.uni_s[k]
+            if i-2 >=0 :
+                v[0][std_tags[i-2]]+=1
+                v[0][rst_tags[i-2]]-=1
+                s[0][std_tags[i-2]]+=step
+                s[0][rst_tags[i-2]]-=step
+            if i-1 >=0 and i-1<l: 
+                v[1][std_tags[i-1]]+=1
+                v[1][rst_tags[i-1]]-=1
+                s[1][std_tags[i-1]]+=step
+                s[1][rst_tags[i-1]]-=step
+            if i<len(self.raw) :
+                v[2][std_tags[i]]+=1
+                v[2][rst_tags[i]]-=1
+                s[2][std_tags[i]]+=step
+                s[2][rst_tags[i]]-=step
+
+        for i,k in enumerate(self.bi) :
+            if k not in self.bi_d : 
+                self.bi_d[k]=[numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float)]
+                self.bi_s[k]=[numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float)]
+            v=self.bi_d[k]
+            s=self.bi_s[k]
+            if i-3 >=0 :
+                v[0][std_tags[i-3]]+=1
+                v[0][rst_tags[i-3]]-=1
+                s[0][std_tags[i-3]]+=step
+                s[0][rst_tags[i-3]]-=step
+            if i-2 >=0 and i-2<l: 
+                v[1][std_tags[i-2]]+=1
+                v[1][rst_tags[i-2]]-=1
+                s[1][std_tags[i-2]]+=step
+                s[1][rst_tags[i-2]]-=step
+            if i-1 >=0 and i-1<l: 
+                v[2][std_tags[i-1]]+=1
+                v[2][rst_tags[i-1]]-=1
+                s[2][std_tags[i-1]]+=step
+                s[2][rst_tags[i-1]]-=step
+            if i<l :
+                v[3][std_tags[i]]+=1
+                v[3][rst_tags[i]]-=1
+                s[3][std_tags[i]]+=step
+                s[3][rst_tags[i]]-=step
+
 
     def average_weights(self,step):
-        self.weights.average_weights(step)
+        self.uni_b={}
+        for k,v in self.uni_d.items():
+            self.uni_b[k]=[numpy.copy(x)for x in v]
+            for i in range(len(self.uni_b[k])):
+                self.uni_d[k][i]-=self.uni_s[k][i]/step
+        self.bi_b={}
+        for k,v in self.bi_d.items():
+            self.bi_b[k]=[numpy.copy(x)for x in v]
+            for i in range(len(self.bi_b[k])):
+                self.bi_d[k][i]-=self.bi_s[k][i]/step
 
     def un_average_weights(self):
-        self.weights.un_average_weights()
+        for k,v in self.uni_b.items():
+            self.uni_d[k]=[numpy.copy(x)for x in v]
+        for k,v in self.bi_b.items():
+            self.bi_d[k]=[numpy.copy(x)for x in v]
 
 
 
@@ -324,9 +436,45 @@ class Task  :
     def get_init_states(self) :
         return None
 
+    def set_oracle(self,raw,y) :
+        tags=[]
+        for w,t in y :
+            if len(w)==1 :
+                tags.append('S'+'-'+t)
+            else :
+                tags.append('B'+'-'+t)
+                for i in range(len(w)-2):
+                    tags.append('M'+'-'+t)
+                tags.append('E'+'-'+t)
+        """
+        for w in y :
+            if len(w)==1 :
+                tags.append(3)
+            else :
+                tags.append(0)
+                for i in range(len(w)-2):
+                    tags.append(1)
+                tags.append(2)"""
+
+        self.oracle=[None]
+        tags=list(map(self.indexer,tags))
+        return [(0,'',tags)]
+
     def moves_to_result(self,moves,_):
         _,_,tags=moves[0]
+        tags=list(map(lambda x:self.indexer[x],tags))
 
+        results=[]
+        cache=[]
+        for i,t in enumerate(tags):
+            cache.append(self.raw[i])
+            p,tg=t.split('-')
+            if p in ['E','S'] :
+                results.append((''.join(cache),tg))
+                cache=[]
+        if cache : results.append((''.join(cache),tg))
+        return results
+        """
         results=[]
         cache=[]
         for i,t in enumerate(tags):
@@ -335,7 +483,8 @@ class Task  :
                 results.append(''.join(cache))
                 cache=[]
         if cache : results.append(''.join(cache))
-        return results
+        return results"""
+
 
 
     def check(self,std_moves,rst_moves):
@@ -346,27 +495,14 @@ class Task  :
         self.transition(self.raw,std_moves[0][-1],1,step)
         self.transition(self.raw,rst_moves[0][-1],-1,step)
 
-    def set_oracle(self,raw,y) :
-        tags=[]
-        for w in y :
-            if len(w)==1 :
-                tags.append(3)
-            else :
-                tags.append(0)
-                for i in range(len(w)-2):
-                    tags.append(1)
-                tags.append(2)
-        self.oracle=[None]
-        return [(0,'',tags)]
 
     def remove_oracle(self):
         self.oracle=None
 
     def __init__(self,model=None,args=''):
-        self.weights=Weights()
+        self.indexer=Indexer()
         self.corrupt_x=0
-        self.feature_class={'ae':Mapper,'pca':PCA,'base':Character}
-        self.feature_models={'base':Character()}
+        self.feature_class={'ae':Mapper,'pca':lambda :PCA(self.ts),'base':Character}
         if model==None :
             parser=argparse.ArgumentParser(
                     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -374,8 +510,18 @@ class Task  :
             parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
             parser.add_argument('--use_ae',default=False,action='store_true')
             parser.add_argument('--use_pca',default=False,action='store_true',help='')
+            parser.add_argument('--pre',default=None,type=str,help='')
             args=parser.parse_args(shlex.split(args))
             self.corrupt_x=args.corrupt_x
+
+            if args.pre :
+                for line in open(args.pre) :
+                    x=self.codec.decode(line)
+                    self.set_oracle(x['raw'],x['y'])[0][-1]
+            self.ts=len(self.indexer)
+            self.trans=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
+            self.trans_s=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
+            self.feature_models={'base':Character(self.ts)}
 
             if args.use_pca :
                 self.feature_models['pca']=self.feature_class['pca']()
@@ -383,27 +529,28 @@ class Task  :
                 self.feature_models['ae']=self.feature_class['ae']()
         else :
             features=model
-            self.weights.data.update(features[0])
-            for k,v in features[1].items():
+            for k,v in features.items():
                 self.feature_models[k]=self.feature_class[k](v)
 
     def add_model(self,features):
-        self.weights.add_model(features[0])
         for k,v in features[1].items() :
             self.feature_models[k].add_model(v)
 
 
     def dump_weights(self):
         others={k:v.dump() for k,v in self.feature_models.items()}
-        features=[self.weights.data,others]
+        features=[others]
         return features
 
     def average_weights(self,step):
-        self.weights.average_weights(step)
+        self.trans_d=list(list(x) for x in self.trans)
+        for i in range(self.ts):
+            for j in range(self.ts):
+                self.trans[i][j]-=self.trans_s[i][j]/step
         for sm in self.feature_models.values() : sm.average_weights(step)
 
     def un_average_weights(self):
-        self.weights.un_average_weights()
+        self.trans=list(list(x) for x in self.trans_d)
         for sm in self.feature_models.values() : sm.un_average_weights()
     
     def set_raw(self,raw,Y):
@@ -413,20 +560,17 @@ class Task  :
 
     def emission(self,raw,std_tags=None,rst_tags=None,delta=0,step=0):
         if delta==0 :
-            emissions = [ [ 0 for action  in 'BMES'] for fv in self.raw]
+            emissions = [numpy.zeros(self.ts,dtype=float) for i in range(len(self.raw))]
             for sm in self.feature_models.values() : sm.emission(emissions)
-            return emissions
+            return [x.tolist() for x in emissions]
         else :
             for sm in self.feature_models.values() : sm.update(std_tags,rst_tags,delta,step)
 
 
     def transition(self,_,tags=None,delta=0,step=0):
-        ts='BMES'
         if delta==0 :
-            trans=[[self.weights([a+b]) for b in ts] for a in ts]
-            return trans
+            return self.trans
         else :
-            ts='BMES'
-            self.weights.update_weights([
-                ts[tags[i]]+ts[tags[i+1]] for i in range(len(tags)-1)
-                ],delta,step)
+            for i in range(len(tags)-1):
+                self.trans[tags[i]][tags[i+1]]+=delta
+                self.trans_s[tags[i]][tags[i+1]]+=delta*step
