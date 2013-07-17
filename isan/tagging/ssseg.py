@@ -1,4 +1,5 @@
 import isan.tagging.eval as tagging_eval
+from isan.common.weights import Weights
 import argparse
 import random
 import shlex
@@ -6,42 +7,53 @@ import os
 import numpy
 import gzip
 import pickle
+import json
+import sys
 
 class Mapper():
     """
     auto-encoder
     """
-    def __init__(self):
-        size=50
-        self.aew=[Weight_List(size) for i in range(4)] # [tag]
+    def __init__(self,data=None):
+        if data==None :
+            size=50
+            self.aew=[Weight_List(size) for i in range(4)] # [tag]
+            #load lookup tables for character unigrams and bigrams
+            chs={}
+            #for line in open('data1.txt'):
+            for line in open('1.data4'):
+                ch,*v=line.split()
+                v=list(map(float,v))[:20]
+                chs[ch]=numpy.array([v])
 
-        #load lookup tables for character unigrams and bigrams
-        chs={}
-        for line in open('data1.txt'):
-            ch,*v=line.split()
-            v=list(map(float,v))[:20]
-            chs[ch]=numpy.array([v])
+            for line in open('2.data4'):
+                b,*v=line.split()
+                v=list(map(float,v))[:50]
+                chs[b]=numpy.array([v])
+            self.chs=chs
+            self.zch=numpy.array([[0.0 for i in range(20)]])
+            self.zb=numpy.array([[0.0 for i in range(50)]])
 
-        for line in open('data2.txt'):
-            b,*v=line.split()
-            v=list(map(float,v))[:50]
-            chs[b]=numpy.array([v])
-        self.chs=chs
-        self.zch=numpy.array([[0.0 for i in range(20)]])
-        self.zb=numpy.array([[0.0 for i in range(50)]])
+            # load weights for the hidden layer
+            f=gzip.open('2to3.gz','rb')
+            self.Ws=[] # Ws
+            self.sWs=[]
+            for i in range(7): 
+                self.Ws.append(numpy.array(pickle.load(f)))
+                self.sWs.append(self.Ws[-1]*0.0)
+            self.bs=[] # bs
+            self.sbs=[]
+            for i in range(7): 
+                self.bs.append(numpy.array(pickle.load(f)))
+                self.sbs.append(self.bs[-1]*0.0)
+        else :
+            self.aew,self.chs,self.zch,self.zb,self.Ws,self.bs=data
+            
 
-        # load weights for the hidden layer
-        f=gzip.open('2to3.gz','rb')
-        self.Ws=[] # Ws
-        self.sWs=[]
-        for i in range(7): 
-            self.Ws.append(numpy.array(pickle.load(f)))
-            self.sWs.append(self.Ws[-1]*0.0)
-        self.bs=[] # bs
-        self.sbs=[]
-        for i in range(7): 
-            self.bs.append(numpy.array(pickle.load(f)))
-            self.sbs.append(self.bs[-1]*0.0)
+    def dump(self):
+        return [self.aew,self.chs,self.zch,self.zb,self.Ws,self.bs]
+    def load(self,data):
+        self.aew,self.chs,self.zch,self.zb,self.Ws,self.bs=data
 
     def find(self,key,miss,inds,v):
         if key in self.chs :
@@ -132,8 +144,19 @@ class Mapper():
         for x in self.aew :
             x.un_average_weights()
 
-    def set_raw(self,contexts):
-        self.contexts=contexts
+
+
+    def set_raw(self,raw):
+        xraw=[c for i,c in enumerate(raw)] + ['#','#']
+        contexts=[]
+        for ind in range(len(raw)):
+            m=xraw[ind]
+            l1=xraw[ind-1]
+            l2=xraw[ind-2]
+            r1=xraw[ind+1]
+            r2=xraw[ind+2]
+            context=''.join([l2,l1,m,r1,r2])
+            contexts.append(context)
         self.conv=[]
         self.indss=[]
         self.vss=[]
@@ -172,6 +195,59 @@ class Weight_List():
     def un_average_weights(self):
         self.d=numpy.array(self._backup,dtype=float)
 
+
+class PCA :
+    def __init__(self,data=None):
+        if data==None :
+            size=50
+            self.bi={}
+            for line in open('2.data4'):
+                bi,*v=line.split()
+                v=list(map(float,v))
+                self.bi[bi]=numpy.array(v) # bigram embedding
+
+            self.ssw=[[Weight_List(size) for i in range(4)] for j in range(2)] # [pos][tag]
+        else :
+            self.bi,self.ssw=data
+
+    def set_raw(self,raw):
+        self.raw=raw
+        self.bis=[]
+        for ind in range(len(raw)-1):
+            big=raw[ind:ind+2]
+            self.bis.append(self.bi.get(big,None))
+    def emission(self,emissions):
+        for i in range(len(self.raw)-1):
+            for j in range(4):
+                emissions[i][j]+=self.ssw[0][j](self.bis[i])
+        for i in range(1,len(self.raw)):
+            for j in range(4):
+                emissions[i][j]+=self.ssw[1][j](self.bis[i-1])
+    def update(self,std_tags,rst_tags,delta,step):
+        for i in range(len(self.raw)-1):
+            if std_tags[i]==rst_tags[i] : continue
+            self.ssw[0][std_tags[i]].update(self.bis[i],delta*0.1,step)
+            self.ssw[0][rst_tags[i]].update(self.bis[i],-delta*0.1,step)
+
+        for i in range(1,len(self.raw)):
+            if std_tags[i]==rst_tags[i] : continue
+            self.ssw[1][std_tags[i]].update(self.bis[i-1],delta*0.1,step)
+            self.ssw[1][rst_tags[i]].update(self.bis[i-1],-delta*0.1,step)
+
+    def average_weights(self,step):
+        for x in self.ssw:
+            for y in x:
+                y.average_weights(step)
+
+    def un_average_weights(self):
+        for x in self.ssw:
+            for y in x:
+                y.un_average_weights()
+    def dump(self):
+        return [self.bi,self.ssw]
+    def load(self,data):
+        self.bi,self.ssw=data
+
 class codec:
     @staticmethod
     def decode(line):
@@ -183,6 +259,60 @@ class codec:
     @staticmethod
     def encode(y):
         return ' '.join(y)
+
+
+class Character:
+    def __init__(self,model=None):
+        self.weights=Weights()
+        if model==None :
+            pass
+        else :
+            self.weights.data.update(model)
+
+    def add_model(self,model):
+        self.weights.add_model(model)
+        pass
+
+    def dump(self):
+        return self.weights.data
+
+    def set_raw(self,raw):
+        self.raw=raw
+        xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
+        self.ngram_fv=[]
+        for ind in range(len(raw)):
+            m=xraw[ind]
+            l1=xraw[ind-1]
+            l2=xraw[ind-2]
+            r1=xraw[ind+1]
+            r2=xraw[ind+2]
+            fv=[
+                    '1'+m, '2'+l1, '3'+r1,
+                    '4'+l2+l1, '5'+l1+m,
+                    '6'+m+r1, '7'+r1+r2,
+                ]
+            self.ngram_fv.append([f for f in fv if '^' not in f])
+    
+    def emission(self,emissions):
+        for i,fv in enumerate(self.ngram_fv) :
+            for j,action  in enumerate('BMES') :
+                emissions[i][j]+=self.weights([action+f for f in fv])
+
+    def update(self,std_tags,rst_tags,delta,step):
+        ts='BMES'
+        for fv,s_tag,r_tag in zip(self.ngram_fv,std_tags,rst_tags) :
+            if s_tag==r_tag : continue
+            tag=ts[s_tag]
+            self.weights.update_weights([tag+f for f in fv],delta,step)
+            tag=ts[r_tag]
+            self.weights.update_weights([tag+f for f in fv],-delta,step)
+
+    def average_weights(self,step):
+        self.weights.average_weights(step)
+
+    def un_average_weights(self):
+        self.weights.un_average_weights()
+
 
 
 class Task  :
@@ -210,7 +340,6 @@ class Task  :
 
     def check(self,std_moves,rst_moves):
         return std_moves[0][-1]==rst_moves[0][-1]
-        return False
 
     def update_moves(self,std_moves,rst_moves,step) :
         self.emission(self.raw,std_moves[0][-1],rst_moves[0][-1],1,step)
@@ -233,132 +362,68 @@ class Task  :
     def remove_oracle(self):
         self.oracle=None
 
-    def __init__(self,args=''):
-        parser=argparse.ArgumentParser(
-                formatter_class=argparse.RawDescriptionHelpFormatter,
-                description=r"""""",)
-        parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
-        parser.add_argument('--use_ae',default=False,type=bool, help='',metavar="")
-        parser.add_argument('--use_pca',default=False,type=bool, help='',metavar="")
-        args=parser.parse_args(shlex.split(args))
-        self.corrupt_x=args.corrupt_x
-        self.weights={}
+    def __init__(self,model=None,args=''):
+        self.weights=Weights()
+        self.corrupt_x=0
+        self.feature_class={'ae':Mapper,'pca':PCA,'base':Character}
+        self.feature_models={'base':Character()}
+        if model==None :
+            parser=argparse.ArgumentParser(
+                    formatter_class=argparse.RawDescriptionHelpFormatter,
+                    description=r"""""",)
+            parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
+            parser.add_argument('--use_ae',default=False,action='store_true')
+            parser.add_argument('--use_pca',default=False,action='store_true',help='')
+            args=parser.parse_args(shlex.split(args))
+            self.corrupt_x=args.corrupt_x
 
-        self.use_ae_features=args.use_ae
-        self.use_pca_features=args.use_pca
-        self.use_hiddens=True
-        self.bi={}
-        size=50
+            if args.use_pca :
+                self.feature_models['pca']=self.feature_class['pca']()
+            if args.use_ae :
+                self.feature_models['ae']=self.feature_class['ae']()
+        else :
+            features=model
+            self.weights.data.update(features[0])
+            for k,v in features[1].items():
+                self.feature_models[k]=self.feature_class[k](v)
 
-        if self.use_pca_features :
-            for line in open('data2.txt'):
-                bi,*v=line.split()
-                v=list(map(float,v))
-                self.bi[bi]=numpy.array(v)
-            self.ssw=[[Weight_List(size) for i in range(4)] for j in range(2)] # [pos][tag]
+    def add_model(self,features):
+        self.weights.add_model(features[0])
+        for k,v in features[1].items() :
+            self.feature_models[k].add_model(v)
 
-        if self.use_ae_features:
-            self.mapper=Mapper()
-        pass
+
+    def dump_weights(self):
+        others={k:v.dump() for k,v in self.feature_models.items()}
+        features=[self.weights.data,others]
+        return features
 
     def average_weights(self,step):
         self.weights.average_weights(step)
-        if self.use_pca_features :
-            for x in self.ssw:
-                for y in x:
-                    y.average_weights(step)
-
-        if self.use_ae_features:
-            pass
-        if self.use_hiddens :
-            self.mapper.average_weights(step)
+        for sm in self.feature_models.values() : sm.average_weights(step)
 
     def un_average_weights(self):
         self.weights.un_average_weights()
-        if self.use_pca_features :
-            for x in self.ssw:
-                for y in x:
-                    y.un_average_weights()
-
-        if self.use_ae_features:
-            pass
-        if self.use_hiddens :
-            self.mapper.un_average_weights()
-
+        for sm in self.feature_models.values() : sm.un_average_weights()
     
     def set_raw(self,raw,Y):
         self.raw=raw
-        xraw=[c for i,c in enumerate(self.raw)] + ['#','#']
-        self.ngram_fv=[]
-        self.contexts=[]
-        for ind in range(len(raw)):
-            m=xraw[ind]
-            l1=xraw[ind-1]
-            l2=xraw[ind-2]
-            r1=xraw[ind+1]
-            r2=xraw[ind+2]
-            if self.use_ae_features :
-                context=''.join([l2,l1,m,r1,r2])
-                self.contexts.append(context)
-            self.ngram_fv.append([
-                    '1'+m, '2'+l1, '3'+r1,
-                    '4'+l2+l1, '5'+l1+m,
-                    '6'+m+r1, '7'+r1+r2,
-                ])
-        if self.use_ae_features :
-            self.mapper.set_raw(self.contexts)
-
-        self.bis=[]
-        for ind in range(len(raw)-1):
-            big=raw[ind:ind+2]
-            self.bis.append(self.bi.get(big,None))
+        for sm in self.feature_models.values() : sm.set_raw(raw)
 
 
     def emission(self,raw,std_tags=None,rst_tags=None,delta=0,step=0):
         if delta==0 :
-            emissions = [ [
-                self.weights([action+f for f in fv])
-                        for action  in 'BMES']
-                    for fv in self.ngram_fv]
-            if self.use_pca_features :
-                for i in range(len(self.raw)-1):
-                    for j in range(4):
-                        emissions[i][j]+=self.ssw[0][j](self.bis[i])
-                for i in range(1,len(self.raw)):
-                    for j in range(4):
-                        emissions[i][j]+=self.ssw[1][j](self.bis[i-1])
-            if self.use_ae_features :
-                self.mapper.emission(emissions)
+            emissions = [ [ 0 for action  in 'BMES'] for fv in self.raw]
+            for sm in self.feature_models.values() : sm.emission(emissions)
             return emissions
         else :
-            ts='BMES'
-            for fv,s_tag,r_tag in zip(self.ngram_fv,std_tags,rst_tags) :
-                if s_tag==r_tag : continue
-                tag=ts[s_tag]
-                self.weights.update_weights([tag+f for f in fv],delta,step)
-                tag=ts[r_tag]
-                self.weights.update_weights([tag+f for f in fv],-delta,step)
-
-
-            if self.use_pca_features :
-                for i in range(len(self.raw)-1):
-                    if std_tags[i]==rst_tags[i] : continue
-                    self.ssw[0][std_tags[i]].update(self.bis[i],delta,step)
-                    self.ssw[0][rst_tags[i]].update(self.bis[i],-delta,step)
-
-                for i in range(1,len(self.raw)):
-                    if std_tags[i]==rst_tags[i] : continue
-                    self.ssw[1][std_tags[i]].update(self.bis[i-1],delta,step)
-                    self.ssw[1][rst_tags[i]].update(self.bis[i-1],-delta,step)
-
-            if self.use_ae_features :
-                self.mapper.update(std_tags,rst_tags,delta,step)
-
+            for sm in self.feature_models.values() : sm.update(std_tags,rst_tags,delta,step)
 
 
     def transition(self,_,tags=None,delta=0,step=0):
+        ts='BMES'
         if delta==0 :
-            trans=[[self.weights([a+b]) for b in 'BMES'] for a in 'BMES']
+            trans=[[self.weights([a+b]) for b in ts] for a in ts]
             return trans
         else :
             ts='BMES'

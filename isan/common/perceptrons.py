@@ -12,7 +12,7 @@ class Model(object):
     """平均感知器模型 """
     name="平均感知器" #: 模型的名字
 
-    def __init__(self,model_file,task=None,Searcher=None,beam_width=8,logger=None,**conf):
+    def __init__(self,model_file,Task=None,Searcher=None,beam_width=8,logger=None,**conf):
         """
         初始化
         如果不设置，则读取已有模型。如果设置，就是学习新模型
@@ -28,18 +28,16 @@ class Model(object):
         self.beam_width=beam_width#:搜索宽度
         self.conf=conf
 
-        self.task=task
         if model_file!=None:
             file=gzip.open(model_file,"rb")
-            self.task.weights=Weights()
-            self.task.weights.data.update(pickle.load(file))
+            self.task=Task(pickle.load(file))
             file.close()
         else : # new model to train
+            self.task=Task()
             self.task.weights=Weights()
         if hasattr(self.task,'init'):
             self.task.init()
         self.searcher=Searcher(self.task,beam_width)
-        #self.searcher.set_action(self.task.weights)
         self.step=0
 
     def __del__(self):
@@ -93,10 +91,12 @@ class Model(object):
         if model_file==None : model_file=self.model_file
         if model_file==None : return
 
-        self.task.weights.average_weights(self.step)
+        self.task.average_weights(self.step)
 
         file=gzip.open(model_file,'wb')
-        pickle.dump(dict(self.task.weights.items()),file)
+        data=self.task.dump_weights()
+        pickle.dump(data,file)
+        #pickle.dump(dict(self.task.weights.items()),file)
         file.close()
 
     def search(self,raw,Y=None):

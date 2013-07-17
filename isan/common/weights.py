@@ -34,20 +34,24 @@ class Weights :
     def items(self):
         for k,v in self.data.items():
             yield k,v
+
     def __init__(self):
-        #self.d=FD()
         self.data=dict()
         self.s=dict()
-        #self.ss=FD()
-        pass
+
+    def add_model(self,model):
+        for k,v in model.items():
+            if v==0 : continue
+            if k not in self.data :
+                self.data[k]=0
+                self.s[k]=0
+            self.data[k]=(self.data[k]*self.s[k]+v)/(self.s[k]+1)
+            self.s[k]+=1
+
     def __call__(self,keys):
         return float(sum(self.data.get(k,0) for k in keys))
-        s=self.d.cal_fv(keys)
-        return s
 
     def update_weights(self,keys,delta,step):
-        #self.ss.update_fv(keys,delta)
-        #self.d.update_fv(keys,delta)
         for f in keys :
             if f not in self.data :
                 self.data[f]=0
@@ -59,23 +63,8 @@ class Weights :
         self._backup=dict(self.data)
         for k,v in self._backup.items():
             self.data[k]=self.data[k]-self.s[k]/step
-        
-        return 
-        self._backup=self.d.to_dict()
-        tmp={}
-        for k,v in self._backup.items():
-            #if(self.s[k]!=self.ss.get(k)):
-            #    print(k)
-            tmp[k]=self._backup[k]-self.s[k]/step
-            #tmp[k]=self._backup[k]-self.ss.get(k)/step
-        self.d.set_weights(tmp)
 
     def un_average_weights(self):
         self.data.clear()
         self.data.update(self._backup)
         self._backup.clear()
-        return 
-        self.d.clear()
-        self.d.set_weights(self._backup)
-        self._backup.clear()
-    pass

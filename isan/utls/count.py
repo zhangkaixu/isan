@@ -16,8 +16,7 @@ if __name__ == '__main__':
         if args.kv :
             k,_,v=line.rpartition(' ')
             c.update({k : float(v)})
-            
-            pass
+            continue
         if line:
             c.update({line:1})
 
