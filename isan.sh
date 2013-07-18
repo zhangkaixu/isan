@@ -1,8 +1,16 @@
 #!/bin/sh
 
 if [ $# = 0 ]; then
-    echo 'isan, 我的心血呀'
+    echo “举一隅不以三隅反，则不复也” ——《论语·述而》
     exit
+fi
+
+if [ $1 = 'link' ] ; then
+    echo 'link'
+    src=$(dirname $0)
+    ln -s ${src}/isan .
+    ln -s ${src}/isan.py .
+    ln -s ${src}/isan.sh .
 fi
 
 #
@@ -16,25 +24,6 @@ if [ $1 = 'seg' ] ; then
         --task isan.tagging.cb_cws.Task \
         $@
 fi
-
-if [ $1 = 'ssseg' ] ; then
-    shift
-    ./isan.py \
-        --model isan.common.perceptrons.Model \
-        --decoder isan.common.decoder.First_Order_Linear \
-        --task isan.tagging.ssseg.Task \
-        $@
-fi
-
-if [ $1 = 'tag' ] ; then
-    shift
-    ./isan.py \
-        --model isan.common.perceptrons.Model \
-        --decoder isan.common.decoder.First_Order_Linear \
-        --task isan.tagging.cb_tagging.Task \
-        $@
-fi
-
 
 if [ $1 = 'dep' ] ; then
     shift
