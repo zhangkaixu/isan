@@ -79,10 +79,13 @@ class Task  :
         self.oracle=None
 
     def __init__(self,model=None,args=''):
-        self.indexer=Indexer()
+        self.indexer=Indexer() # index of tags
+
         self.corrupt_x=0
-        self.feature_class={'ae': lambda : Mapper(self.ts) ,
-                'pca': lambda : PCA(self.ts),'base':Character}
+        self.feature_class={'ae': lambda x : Mapper(self.ts,x) ,
+                'pca': lambda x : PCA(self.ts,x),'base':lambda x : Character(self.ts,x)}
+        self.feature_models={}
+
         if model==None :
             parser=argparse.ArgumentParser(
                     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -101,14 +104,14 @@ class Task  :
             self.ts=len(self.indexer)
             self.trans=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
             self.trans_s=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
-            self.feature_models={'base':Character(self.ts)}
+            self.feature_models['base']=self.feature_class['base'](None)
 
             if args.use_pca :
                 self.feature_models['pca']=self.feature_class['pca']()
             if args.use_ae :
                 self.feature_models['ae']=self.feature_class['ae']()
         else :
-            features=model
+            self.indexer,self.ts,self.trans,features=model
             for k,v in features.items():
                 self.feature_models[k]=self.feature_class[k](v)
 
@@ -118,7 +121,7 @@ class Task  :
 
     def dump_weights(self):
         others={k:v.dump() for k,v in self.feature_models.items()}
-        features=[others]
+        features=[self.indexer,self.ts,self.trans,others]
         return features
 
     def average_weights(self,step):

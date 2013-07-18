@@ -10,13 +10,13 @@ class Character:
         if model==None :
             pass
         else :
-            self.weights.data.update(model)
+            self.uni_d,self.bi_d=model
 
     def add_model(self,model):
         self.weights.add_model(model)
 
     def dump(self):
-        return None
+        return [self.uni_d,self.bi_d]
 
     def set_raw(self,raw):
         self.raw=raw
