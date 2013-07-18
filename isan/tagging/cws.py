@@ -94,6 +94,7 @@ class Task:
         return moves
 
 
+
     stat_fmt=Struct('hcchh')
     """
     在isan中，状态是一个bytes对象，但Python中tuple好处理一些，
@@ -151,10 +152,6 @@ class Task:
         """
         分词搜索时的初始状态
         """
-        #self.init_stat,self.shift,self.gen_features=cwstask.new()
-        #self.init_stat,self.gen_actions_and_stats,_=cwstask.new()
-        #self.init_stat,_,self.gen_features=cwstask.new()
-        #self.init_stat,_,_=cwstask.new()
         pass
 
     """
@@ -223,6 +220,11 @@ class Task:
                     b"d"+bi_chars[c_ind-2]+ws_current,
                 ])
 
+    def average_weights(self,step):
+        self.weights.average_weights(step)
+
+    def un_average_weights(self):
+        self.weights.un_average_weights()
 
     def gen_features(self,span,actions,delta=0,step=0):
         fvs=[]
