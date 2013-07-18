@@ -24,11 +24,14 @@ class Mapper():
     """
     auto-encoder
     """
-    def __init__(self,data=None):
+    def __init__(self,ts,data=None):
+        self.ts=ts
         self.added=False
         if data==None :
             size=50
-            self.aew=[Weight_List(size) for i in range(4)] # [tag]
+            self.aew=[Weight_List(size) for i in range(self.ts)] # [tag]
+            self.second_d=numpy.zeros((self.ts,size))
+            self.second_s=numpy.zeros((self.ts,size))
             #load lookup tables for character unigrams and bigrams
             chs={}
             #for line in open('data1.txt'):
@@ -124,7 +127,7 @@ class Mapper():
 
         for i in range(len(self.conv)):
             if std_tags[i]==rst_tags[i] : continue
-            deltas=(self.aew[std_tags[i]].d-self.aew[rst_tags[i]].d)*self.conv[i]*(1-self.conv[i])
+            deltas=(self.second_d[std_tags[i]]-self.second_d[rst_tags[i]])*self.conv[i]*(1-self.conv[i])
             self.update_hidden(i,deltas*0.1)
 
         for i in range(len(self.Ws)):
@@ -136,8 +139,8 @@ class Mapper():
         #output
         for i in range(len(self.conv)):
             if std_tags[i]==rst_tags[i] : continue
-            self.aew[std_tags[i]].update(self.conv[i],delta*0.1,step)
-            self.aew[rst_tags[i]].update(self.conv[i],-delta*0.1,step)
+            self.second_d[std_tags[i]]+=delta*0.1*self.conv[i]
+            self.second_d[rst_tags[i]]-=delta*0.1*self.conv[i]
 
     def update_hidden(self,j,deltas):
         inds=self.indss[j]
@@ -156,15 +159,15 @@ class Mapper():
             self.Ws[i]-=self.sWs[i]/step
             self._backbs.append(numpy.array(self.bs[i],dtype=float))
             self.bs[i]-=self.sbs[i]/step
-        for x in self.aew :
-            x.average_weights(step)
+
+        self.second_b=self.second_d.copy()
+        self.second_d-=self.second_s/step
 
     def un_average_weights(self):
         for i in range(len(self.Ws)):
             self.Ws[i]=numpy.array(self._backWs[i])
             self.bs[i]=numpy.array(self._backbs[i])
-        for x in self.aew :
-            x.un_average_weights()
+        self.second_d=self.second_b.copy()
 
 
 
@@ -187,8 +190,7 @@ class Mapper():
         pass
     def emission(self,emissions):
         for i in range(len(self.conv)):
-            for j in range(4):
-                emissions[i][j]+=numpy.dot(self.aew[j].d,self.conv[i])
+            emissions[i]+=numpy.dot(self.second_d,self.conv[i])
 
 
 class Weight_List():
@@ -233,6 +235,8 @@ class PCA :
                 self.bi[bi]=numpy.array(v) # bigram embedding
 
             self.ssw=[[Weight_List(size) for i in range(self.ts)] for j in range(2)] # [pos][tag]
+            self.d=[numpy.zeros((self.ts,size)) for j in range(2)] # [pos][tag]
+            self.s=[numpy.zeros((self.ts,size)) for j in range(2)] # [pos][tag]
         else :
             self.bi,self.ssw=data
 
@@ -250,33 +254,42 @@ class PCA :
             self.bis.append(self.bi.get(big,None))
     def emission(self,emissions):
         for i in range(len(self.raw)-1):
-            for j in range(self.ts):
-                emissions[i][j]+=self.ssw[0][j](self.bis[i])
+            if self.bis[i]!=None:
+                x=numpy.dot(self.d[0],self.bis[i])
+                emissions[i]+=x
         for i in range(1,len(self.raw)):
-            for j in range(self.ts):
-                emissions[i][j]+=self.ssw[1][j](self.bis[i-1])
+            if self.bis[i-1]!=None:
+                x=numpy.dot(self.d[1],self.bis[i-1])
+                emissions[i]+=x
     def update(self,std_tags,rst_tags,delta,step):
         for i in range(len(self.raw)-1):
-            if std_tags[i]==rst_tags[i] : continue
-            self.ssw[0][std_tags[i]].update(self.bis[i],delta*0.1,step)
-            self.ssw[0][rst_tags[i]].update(self.bis[i],-delta*0.1,step)
+            if std_tags[i]==rst_tags[i] or self.bis[i]==None : continue
+            d=delta*0.1*self.bis[i]
+            self.d[0][std_tags[i]]+=d
+            self.d[0][rst_tags[i]]-=d
+            d=d*step
+            self.s[0][std_tags[i]]+=d
+            self.s[0][rst_tags[i]]-=d
 
         for i in range(1,len(self.raw)):
-            if std_tags[i]==rst_tags[i] : continue
-            self.ssw[1][std_tags[i]].update(self.bis[i-1],delta*0.1,step)
-            self.ssw[1][rst_tags[i]].update(self.bis[i-1],-delta*0.1,step)
+            if std_tags[i]==rst_tags[i] or self.bis[i-1]==None : continue
+            d=delta*0.1*self.bis[i-1]
+            self.d[1][std_tags[i]]+=d
+            self.d[1][rst_tags[i]]-=d
+            d*=step
+            self.s[1][std_tags[i]]+=d
+            self.s[1][rst_tags[i]]-=d
 
     def average_weights(self,step):
-        for x in self.ssw:
-            for y in x:
-                y.average_weights(step)
+        self.b=[x.copy()for x in self.d]
+        for d,s in zip(self.d,self.s):
+            d-=s/step
 
     def un_average_weights(self):
-        for x in self.ssw:
-            for y in x:
-                y.un_average_weights()
+        self.d=[x.copy()for x in self.b]
     def dump(self):
         return [self.bi,self.ssw]
+
     def load(self,data):
         self.bi,self.ssw=data
 
@@ -502,7 +515,8 @@ class Task  :
     def __init__(self,model=None,args=''):
         self.indexer=Indexer()
         self.corrupt_x=0
-        self.feature_class={'ae':Mapper,'pca':lambda :PCA(self.ts),'base':Character}
+        self.feature_class={'ae': lambda : Mapper(self.ts) ,
+                'pca': lambda : PCA(self.ts),'base':Character}
         if model==None :
             parser=argparse.ArgumentParser(
                     formatter_class=argparse.RawDescriptionHelpFormatter,
