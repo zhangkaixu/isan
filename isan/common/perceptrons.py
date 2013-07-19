@@ -65,9 +65,7 @@ class Model(object):
         @brief 预测开发集
         """
 
-        #self.searcher.average_weights(self.step)
         self.task.average_weights(self.step)
-        #self.task.weights.average_weights(self.step)
         eval=self.task.Eval()
         for line in open(dev_file):
             arg=self.task.codec.decode(line.strip())
@@ -80,8 +78,11 @@ class Model(object):
             self.result_logger.info(eval.get_result())
         else :
             eval.print_result()#打印评测结果
-        #self.searcher.un_average_weights()
         self.task.un_average_weights()
+
+        if hasattr(eval,'get_scaler'):
+            return eval.get_scaler()
+
 
     def save(self,model_file=None):
         """
@@ -178,10 +179,14 @@ class Model(object):
             self.task.update_moves(std_moves,rst_moves,self.step)
 
         
-    def train(self,training_file,iteration=5,dev_files=None,keep_data=True):
+    def train(self,training_file,
+            iteration=5,peek=-1,
+            dev_files=None,keep_data=True):
         """
         训练
         """
+        if iteration<=0 and peek <=0 : peek=5
+
         if type(training_file)==str:training_file=[training_file]
         #random.seed(123)
 
@@ -212,7 +217,12 @@ class Model(object):
                         if not rtn:continue
                         yield rtn
 
-        for it in range(iteration):#迭代整个语料库
+        it=0
+        best_it=None
+        best_scaler=None
+
+        while True :
+            if it == iteration : break
             self.result_logger.info("训练集第 \033[33;01m%i\033[1;m 次迭代"%(it+1))
             eval=self.task.Eval()#: 测试用的对象
 
@@ -230,8 +240,14 @@ class Model(object):
             
             if dev_files:
                 #self.result_logger.info("使用开发集 %s 评价当前模型效果"%(dev_file))
-                for dev_file in dev_files :
-                    self.develop(dev_file)
+                for dev_id,dev_file in enumerate(dev_files) :
+                    scaler=self.develop(dev_file)
+                    if dev_id==0 :
+                        if best_scaler==None or (scaler and best_scaler<scaler) :
+                            best_it=it
+                            best_scaler=scaler
+            it+=1
+            if peek>=0 and it-best_it>peek : break
 
 
 class Model_PA(Model) :

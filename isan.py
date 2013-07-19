@@ -50,6 +50,7 @@ def command_line(Model,Task,Decoder):
     parser.add_argument('--test',dest='test_file', help='测试用语料库',metavar=('测试集'))
     parser.add_argument('--iteration',dest='iteration',default=5,type=int,
             help='学习迭代次数(default: %(default)s)',metavar='迭代次数')
+    parser.add_argument('--peek',dest='peek',default=-1,type=int)
     parser.add_argument('--beam_width',dest='beam_width',default=8,type=int,
             help='为0时，柱搜索算法变为动态规划算法(default: %(default)s)',metavar="柱宽度")
     parser.add_argument('--dev',dest='dev_file',default=None,action='append',
@@ -123,7 +124,7 @@ def command_line(Model,Task,Decoder):
             if args.dev_file :
                 logger.info("开发集使用%s"%(make_color(' '.join(args.dev_file))))
 
-            model.train(args.train,int(args.iteration),dev_files=args.dev_file)
+            model.train(args.train,int(args.iteration),peek=args.peek,dev_files=args.dev_file)
             model.save(args.model_file)
 
         if args.append_model :

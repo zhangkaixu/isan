@@ -136,6 +136,21 @@ class TaggingEval:
         print(line,file=sys.stderr)
         sys.stderr.flush()
 
+    def get_scaler(self):
+
+        if self.with_tags :
+            cor=self.cor
+            p=cor/self.rst if self.rst else 0
+            r=cor/self.std if self.std else 0
+            f=2*p*r/(r+p) if (r+p) else 0
+            return f
+        else :
+            seg_cor=self.seg_cor
+            p=seg_cor/self.rst if self.rst else 0
+            r=seg_cor/self.std if self.std else 0
+            seg_f=2*p*r/(r+p) if (r+p) else 0
+            return seg_f
+
     def get_result(self):
         time_used=time.time()-self.otime
         speed=self.characters/time_used
