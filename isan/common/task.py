@@ -95,6 +95,12 @@ class Base_Task :
                 #yield s, 1
                 #yield r, -1
 
+    def average_weights(self,step):
+        self.weights.average_weights(step)
+
+    def un_average_weights(self):
+        self.weights.un_average_weights()
+
 class Early_Stop_Pointwise :
     def set_oracle(self,raw,y) :
         self.set_raw(raw,y)

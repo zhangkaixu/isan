@@ -68,6 +68,9 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     State=State
     Eval=Eval
 
+    def __init__(self,args):
+        pass
+
     class Action :
         @staticmethod
         def encode(action):
@@ -117,7 +120,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             self.atoms.append((w,t,m,str(len(w))))
         self.atoms.append(('~','~','','0'))
 
-    def gen_features(self,state,actions):
+    def gen_features(self,state,actions,delta=0,step=0):
         fvs=[]
         state=self.State(self.lattice,state,)
         ind1,ind2=state
@@ -156,5 +159,11 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                     'l3l1~'+len3+'~'+len1, 'l3l2l1~'+len3+'~'+len2+'~'+len1,
                     ])
             fvs.append(fv)
+        if delta==0 :
+            return [[self.weights(fv)] for fv in fvs]
+        else :
+            for fv in fvs :
+                self.weights.update_weights(fv,delta,step)
+            return [[] for fv in fvs]
         return fvs
 

@@ -80,7 +80,7 @@ if [ $1 = 'seg_dep' ] ; then
         $*
 fi
 
-if [ $1 = 'tag_path' ] ; then
+if [ $1 = 'tagpath' ] ; then
     shift
     ./isan.py \
         --model isan.common.perceptrons.Model \
