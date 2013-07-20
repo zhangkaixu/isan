@@ -116,9 +116,45 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         self.lattice=raw
         self.atoms=[]
         for ind in range(len(self.lattice)):
-            w,t,m=self.lattice[ind][2]
-            self.atoms.append((w,t,m,str(len(w))))
-        self.atoms.append(('~','~','','0'))
+            data=self.lattice[ind]
+            w,t,m=data[2]
+            self.atoms.append((w,t,m,str(len(w)),))
+        self.atoms.append(('~','~','','0',))
+
+
+        """
+        b=0
+        seq=[]
+        while b in self.lattice.begins :
+            ind=self.lattice.begins[b][0]
+            _,b,d=self.lattice[ind]
+            seq.append(d[0])
+        seq=''.join(seq)
+        #print(seq)
+        uni_chars=list(x for x in '##'+seq+'###')
+        bi_chars=[uni_chars[i]+uni_chars[i+1]
+                for i in range(len(uni_chars)-1)]
+        self.uni_chars=uni_chars
+        self.uni_fv=[]
+        #print(uni_chars)
+        #print(bi_chars)
+        for ind in range(len(seq)+1):
+            c_ind=ind+2
+            self.uni_fv.append([])
+            for ws_current in 'BMES':
+                self.uni_fv[-1].append([
+                    'CH1'+uni_chars[c_ind-1]+ws_current,
+                    "CH2"+uni_chars[c_ind]+ws_current,
+                    "CH3"+uni_chars[c_ind+1]+ws_current,
+                    "CHa"+bi_chars[c_ind-2]+ws_current,
+                    "CHb"+bi_chars[c_ind-1]+ws_current,
+                    "CHc"+bi_chars[c_ind]+ws_current,
+                    "CHd"+bi_chars[c_ind+1]+ws_current,
+                ])
+        """
+        #print(self.uni_fv)
+
+
 
     def gen_features(self,state,actions,delta=0,step=0):
         fvs=[]
@@ -126,13 +162,13 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         ind1,ind2=state
 
         w1,t1,m1,len1=self.atoms[ind1]
-        
         w2,t2,m2,len2=self.atoms[ind2]
 
         for action in actions :
             ind3=action
             
             w3,t3,m3,len3=self.atoms[ind3]
+
 
             fv=((['m3~'+m3,
                 'm3l3~'+m3+'~'+len3,
@@ -148,12 +184,8 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                     'w3w2~'+w3+"~"+w2, 'w3t2~'+w3+t2, 't3w2~'+t3+w2, 't3t2~'+t3+t2,
                     'l3w2~'+len3+'~'+w2, 'w3l2~'+w3+'~'+len2, 'l3t2~'+len3+'~'+t2, 't3l2~'+t3+'~'+len2,
                     'l3l2~'+len3+'~'+len2,
-
                     's.wq.b~'+w2+"~"+w3[0],
                     's.wq.e~'+w2+"~"+w3[-1],
-                    # ok three
-                    #'l3t3w2~'+l3+'~'+t3+'~'+w2, 'l3t3t2~'+l3+'~'+t3+'~'+t2, 'l3t3l2~'+l3+'~'+t3+'~'+len2,
-                    #'w3t3w2~'+w3+'~'+t3+'~'+w2, 'w3t3t2~'+w3+'~'+t3+'~'+t2, 'w3t3l2~'+w3+'~'+t3+'~'+len2,
                     # ok
                     't3t1~'+t3+'~'+t1, 't3t2t1~'+t3+'~'+t2+'~'+t1,
                     'l3l1~'+len3+'~'+len1, 'l3l2l1~'+len3+'~'+len2+'~'+len1,
