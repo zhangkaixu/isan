@@ -6,6 +6,7 @@ import sys
 from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
 from isan.tagging.eval import TaggingEval as Eval
 import numpy as np
+import gzip
 
 
 class codec :
@@ -60,14 +61,77 @@ class State (list):
     def load(bt):
         return pickle.loads(bt)
 
+class Word : 
+    def __init__(self):
+        words={}
+        for line in open('word.pca') :
+            word,*vs = line.split()
+            vs=list(map(float,vs))
+            words[word]=np.array(vs)
+        tags={}
+        for line in open('tag.pca'):
+            tag,*vs=line.split()
+            vs=list(map(float,vs))
+            tags[tag]=np.array(vs)
+        self.words=words
+        self.tags=tags
+        self.z=np.zeros(50)
+        self.tz=np.zeros(10)
+        gz=gzip.open('2to3.gz','rb')
+        self.Ws=[]
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.V=np.array(pickle.load(gz))
+        self.b=np.array(pickle.load(gz))
+        self.bp=np.array(pickle.load(gz))
+
+
+        self.d={}
+        self.d['z']=np.zeros(20)
+        self.s={k:v.copy()for k,v in self.d.items()}
+
+    def set_raw(self,atoms):
+        self.atoms=atoms
+        self.fvs=[]
+        for at in self.atoms :
+            word=at[0]
+            tag=at[1]
+            key=(word,tag)
+            wv=self.words.get(word,self.z)
+            tv=self.tags.get(tag,self.tz)
+            x=np.dot(wv,self.Ws[0])+np.dot(tv,self.Ws[1])+self.b
+            fv=np.tanh(x)
+            self.fvs.append(fv)
+
+
+    def __call__(self,ind1,ind2,ind3,delta=0,step=0) :
+        fv=self.fvs[ind3]
+        if delta==0 :
+            return np.dot(fv,self.d['z'])
+        else :
+            self.d['z']+=delta*fv
+            self.s['z']+=delta*step*fv
+            return 0
+
+    def average_weights(self,step):
+        self._b={}
+        for k in self.d :
+            self._b[k]=self.d[k].copy()
+            self.d[k]-=self.s[k]/step
+
+    def un_average_weights(self):
+        self.d={}
+        for k in self._b :
+            self.d[k]=self._b[k].copy()
 
 
 class SubSym :
     def __init__(self):
         self.words={}
         self.miss=np.zeros(50)
-        #for line in open('em.txt'):
-        for line in open('ss.pca'):
+        for line in open('em.txt'):
+        #for line in open('ss.pca'):
+        #for line in open('ae.txt'):
         #for line in open('ae_vec.txt'):
             word,*vec=line.split()
             vec=list(map(float,vec))
@@ -76,6 +140,9 @@ class SubSym :
             self.words[word]=vec
         self.d={}
         self.s={}
+
+        self.one=np.zeros(50)
+        self.one[0]=1
     def get(self,key,vec):
         if key not in self.d or vec is None : return 0
         return np.dot(self.d[key],vec)
@@ -98,20 +165,24 @@ class SubSym :
             self.d[k]=self.b[k].copy()
 
     def __call__(self,it1,it2,it3,delta=0,step=0) :
-        w1,t1,m1,len1=it1
-        w2,t2,m2,len2=it2
-        w3,t3,m3,len3=it3
+        w1,t1,m1,len1,_=it1
+        w2,t2,m2,len2,_=it2
+        w3,t3,m3,len3,ind3=it3
         if delta==0 :
             score=0
-            em3=self.words.get(w3,None)
-            for key in ['t3'+t3+('1' if len3=='1' else 'm'),
+            em3=self.words.get(w3,None) if len3!='1' else self.one
+            #em3=self.words.get(w3,None)
+            for key in [
+                    't3'+t3+('1' if len3!='1' else '0'),
                     #'t2'+t2,
                     ] :
                 score+=self.get(key,em3)
             return score
         else :
-            em3=self.words.get(w3,None)
-            for key in ['t3'+t3+('1' if len3=='1' else 'm'),
+            em3=self.words.get(w3,None) if len3!='1' else self.one
+            #em3=self.words.get(w3,None)
+            for key in [
+                    't3'+t3+('1' if len3!='1' else '0'),
                     #'t2'+t2,
                     ] :
                 self._update(key,em3,delta,step)
@@ -128,11 +199,14 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     Eval=Eval
 
     def __init__(self,args):
-        self.m_d={0:0.0}
-        self.m_s=dict(self.m_d)
 
-        self.models=[SubSym()]
-        #self.models=[]
+        self.models=[]
+        #self.models=[SubSym()]
+        self.models.append(Word())
+        self.ae={}
+        for line in open('ae_output.txt'):
+            word,*inds=line.split()
+            self.ae[word]=inds
 
     class Action :
         @staticmethod
@@ -173,6 +247,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     reduce=None
 
 
+
     # feature related
 
     def set_raw(self,raw,Y):
@@ -181,8 +256,12 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         for ind in range(len(self.lattice)):
             data=self.lattice[ind]
             w,t,m=data[2]
-            self.atoms.append((w,t,m,str(len(w)),))
-        self.atoms.append(('~','~','','0',))
+            inds=self.ae.get(w,['^']) if len(w)>1 else ['$']
+            self.atoms.append((w,t,m,str(len(w)),inds))
+        self.atoms.append(('~','~','','0',[]))
+
+        for model in self.models :
+            model.set_raw(self.atoms)
 
 
         """
@@ -225,42 +304,39 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         state=self.State(self.lattice,state,)
         ind1,ind2=state
 
-        w1,t1,m1,len1=self.atoms[ind1]
-        w2,t2,m2,len2=self.atoms[ind2]
+        w1,t1,m1,len1,ae1=self.atoms[ind1]
+        w2,t2,m2,len2,ae2=self.atoms[ind2]
 
         scores=[]
         for action in actions :
             ind3=action
-            w3,t3,m3,len3=self.atoms[ind3]
+            w3,t3,m3,len3,ae3=self.atoms[ind3]
             score=0#m3*self.m_d[0] if m3 is not None else 0
             for model in self.models :
-
-                score+=model(self.atoms[ind1],self.atoms[ind2],self.atoms[ind3],delta*0.1,step)
-
-
-
+                score+=model(ind1,ind2,ind3,delta*0.1,step)
             fv=(
                 (['m3~'+strm(m3),
-                'm3l3~'+strm(m3)+'~'+len3,
-                'm3t3~'+strm(m3)+'~'+t3,
+                #'m3l3~'+strm(m3)+'~'+len3,
+                #'m3t3~'+strm(m3)+'~'+t3,
                 ] if m3 is not None else [])
                 +
-                    ([
-                        'm3m2~'+strm(m3)+'~'+strm(m2),
-                        ] if m3 is not None  and m2 is not None else [])+
+                    ([ 'm3m2~'+strm(m3)+'~'+strm(m2), ] if m3 is not None  and m2 is not None else [])+
             [
                     # ok
                     'w3~'+w3, 't3~'+t3, 'l3~'+len3, 'w3t3~'+w3+t3, 'l3t3~'+len3+t3,
                     # ok
                     'w3w2~'+w3+"~"+w2, 'w3t2~'+w3+t2, 't3w2~'+t3+w2, 't3t2~'+t3+t2,
+
                     'l3w2~'+len3+'~'+w2, 'w3l2~'+w3+'~'+len2, 'l3t2~'+len3+'~'+t2, 't3l2~'+t3+'~'+len2,
                     'l3l2~'+len3+'~'+len2,
-                    's.wq.b~'+w2+"~"+w3[0],
-                    's.wq.e~'+w2+"~"+w3[-1],
                     # ok
                     't3t1~'+t3+'~'+t1, 't3t2t1~'+t3+'~'+t2+'~'+t1,
                     'l3l1~'+len3+'~'+len1, 'l3l2l1~'+len3+'~'+len2+'~'+len1,
                     ])
+            """
+            fv+=['AE1'+t3+ind for ind in ae3]
+            fv+=['AE2'+t2+ind for ind in ae3]
+            fv+=['AE3'+t3+ind for ind in ae2]"""
             fvs.append(fv)
             scores.append(score)
 
@@ -269,23 +345,15 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         else :
             for fv in fvs :
                 self.weights.update_weights(fv,delta,step)
-            """for score in scores :
-                if m3 is not None :
-                    self.m_d[0]+=0.1*delta*m3
-                    self.m_s[0]+=0.1*delta*m3*step"""
             return [[] for fv in fvs]
         return fvs
 
     def average_weights(self,step):
-        self.m_b=dict(self.m_d)
-        for i in self.m_d.keys():
-            self.m_d[i]-=self.m_s[i]/step
         self.weights.average_weights(step)
         for model in self.models:
             model.average_weights(step)
 
     def un_average_weights(self):
-        self.m_d=dict(self.m_b)
         self.weights.un_average_weights()
         for model in self.models:
             model.un_average_weights()

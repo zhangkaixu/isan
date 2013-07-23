@@ -62,6 +62,7 @@ class Task  :
     def check(self,std_moves,rst_moves):
         return std_moves[0][-1]==rst_moves[0][-1]
 
+    """
     def update_moves(self,std_moves,rst_moves,step) :
         std_tags=std_moves[0][-1]
         rst_tags=rst_moves[0][-1]
@@ -72,7 +73,7 @@ class Task  :
             self.trans[std_tags[i]][std_tags[i+1]]+=1
             self.trans_s[std_tags[i]][std_tags[i+1]]+=1*step
             self.trans[rst_tags[i]][rst_tags[i+1]]-=1
-            self.trans_s[rst_tags[i]][rst_tags[i+1]]-=1*step
+            self.trans_s[rst_tags[i]][rst_tags[i+1]]-=1*step"""
 
 
     def remove_oracle(self):
