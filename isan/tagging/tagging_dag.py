@@ -85,10 +85,12 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         #self.models.append(Word())
         #self.models.append(Bigram())
         #self.models.append(Trigram())
+        """
         self.ae={}
         for line in open('ae_output.txt'):
             word,*inds=line.split()
             self.ae[word]=inds
+            """
 
     class Action :
         @staticmethod
@@ -134,17 +136,62 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
 
     def set_raw(self,raw,Y):
         self.lattice=raw
+
+
+        b=0
+        seq=[]
+        while b in self.lattice.begins :
+            ind=self.lattice.begins[b][0]
+            _,b,d=self.lattice[ind]
+            seq.append(d[0])
+        seq=''.join(seq)
+        #print(seq)
+        uni_chars=list(x for x in '##'+seq+'###')
+        bi_chars=[uni_chars[i]+uni_chars[i+1]
+                for i in range(len(uni_chars)-1)]
+        self.uni_chars=uni_chars
+        self.uni_fv=[]
+        for ind in range(len(seq)+1):
+            c_ind=ind+2
+            self.uni_fv.append([])
+            for ws_current in 'BMES':
+                self.uni_fv[-1].append([
+                        #'CH1'+uni_chars[c_ind-1]+ws_current,
+                        "CH2"+uni_chars[c_ind]+ws_current,
+                        #"CH3"+uni_chars[c_ind+1]+ws_current,
+                        #"CHa"+bi_chars[c_ind-2]+ws_current,
+                        "CHb"+bi_chars[c_ind-1]+ws_current,
+                        "CHc"+bi_chars[c_ind]+ws_current,
+                        #"CHd"+bi_chars[c_ind+1]+ws_current,
+                        ])
+
         self.atoms=[]
         for ind in range(len(self.lattice)):
             data=self.lattice[ind]
+            b=data[0]
+            e=data[1]
             w,t,m=data[2]
-            inds=self.ae.get(w,['^']) if len(w)>1 else ['$']
-            self.atoms.append((w,t,m,str(len(w)),inds))
+            cb=[]
+            if b+1==e :
+                cb+=self.uni_fv[b][3]
+            else :
+                cb+=self.uni_fv[b][0]
+                for i in range(b+1,e-1):
+                    cb+=self.uni_fv[i][1]
+                cb+=self.uni_fv[e-1][2]
+            cb=[x+t for x in cb]
+            if b+1<e :
+                if b+2==e :
+                    cb+=['CHT'+t+'-BE']
+                else :
+                    cb+=['CHT'+t+'-BM']
+                    cb+=['CHT'+t+'-MM' for i in range(e-b-3)]
+                    cb+=['CHT'+t+'-ME']
+            self.atoms.append((w,t,m,str(len(w)),cb))
         self.atoms.append(('~','~','','0',[]))
 
         for model in self.models :
             model.set_raw(self.atoms)
-
 
     def gen_features(self,state,actions,delta=0,step=0):
         strm=lambda x:'x' if x=='' else str(math.floor(math.log(x*2+1)))
@@ -152,16 +199,18 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         state=self.State(self.lattice,state,)
         ind1,ind2=state
 
-        w1,t1,m1,len1,ae1=self.atoms[ind1]
-        w2,t2,m2,len2,ae2=self.atoms[ind2]
+        w1,t1,m1,len1,cb1=self.atoms[ind1]
+        w2,t2,m2,len2,cb2=self.atoms[ind2]
 
         scores=[]
         for action in actions :
             ind3=action
-            w3,t3,m3,len3,ae3=self.atoms[ind3]
+            w3,t3,m3,len3,cb3=self.atoms[ind3]
             score=0#m3*self.m_d[0] if m3 is not None else 0
             for model in self.models :
                 score+=model(ind1,ind2,ind3,delta*0.1,step)
+            fv=[]
+            #"""
             fv=(
                 (['m3~'+strm(m3), ] if m3 is not None else []) +
                     ([ 'm3m2~'+strm(m3)+'~'+strm(m2), ] if m3 is not None  and m2 is not None else [])+
@@ -175,11 +224,16 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                     
                     't3t1~'+t3+'~'+t1, 't3t2t1~'+t3+'~'+t2+'~'+t1,
                     'l3l1~'+len3+'~'+len1, 'l3l2l1~'+len3+'~'+len2+'~'+len1,
-                    ])
+                    ])#"""
             """
-            fv+=['AE1'+t3+ind for ind in ae3]
-            fv+=['AE2'+t2+ind for ind in ae3]
-            fv+=['AE3'+t3+ind for ind in ae2]"""
+            fv+=cb3
+            if len2 :
+                l2=t2+('-S' if len2=='1' else '-E')
+                l3=t3+('-S' if len3=='1' else '-B')
+                fv+=['CHT'+l2+l3]
+                #print(w2,t2,w3,t3,l2,l3)
+                #"""
+            #print(w3,t3,fv)
             fvs.append(fv)
             scores.append(score)
 
@@ -187,6 +241,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             return [[self.weights(fv)+s] for fv,s in zip(fvs,scores)]
         else :
             for fv in fvs :
+                #print(fv,delta,step)
                 self.weights.update_weights(fv,delta,step)
             return [[] for fv in fvs]
         return fvs
@@ -197,16 +252,22 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         std_moves=set(x for x in std_moves if x[0]<=max_step)
         rst_moves=set(rst_moves)
         for m in std_moves-rst_moves :
+            print(pickle.loads(m[1]),m[2],1)
             self._update(m,1,step)
         for m in rst_moves-std_moves :
+            print(pickle.loads(m[1]),m[2],-1)
             self._update(m,-1,step)
+        print(self.weights.data)"""
     """
     def update_moves(self,std_moves,rst_moves,step) :
+        #print(self.lattice)
         for s,r in zip(std_moves,rst_moves) :
+            #print(pickle.loads(s[1]),s[2],pickle.loads(r[1]),r[2])
             if s!= r:
                 self._update(s,1,step)
                 self._update(r,-1,step)
                 break
+    """
 
     def average_weights(self,step):
         self.weights.average_weights(step)
