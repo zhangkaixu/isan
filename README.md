@@ -30,12 +30,13 @@ isan
     
 试着训练和测试：
     
-    ./isan.sh seg model.gz --train sighan05/msr_test_gold.utf8 --task_args \" --pre sighan05/msr_test_gold.utf8  \"
+    ./isan.sh seg model.gz --train sighan05/msr_test_gold.utf8
     ./isan.sh seg model.gz --test sighan05/msr_test_gold.utf8
     
 如果一切顺利，将会看到测试结果能有0.99以上的F1值。接下来就可以试着真枪实弹地来一次，在MSR的训练集上迭代30次训练模型，每次迭代都将测试集作为开发集检查一下模型性能。
     
-    ./isan.sh seg model.gz --train sighan05/msr_training.utf8 --dev sighan05/msr_test_gold.utf8 --task_args \" --pre sighan05/msr_training.utf8   \" --iteration 30
+    ./isan.sh seg model.gz --train sighan05/msr_training.utf8 \
+            --dev sighan05/msr_test_gold.utf8 --iteration 30
 
 将以上基于字的分词模型 `seg` 换成基于词的分词模型  `cws` ，看看效果会更好。
     
