@@ -216,6 +216,7 @@ def isans(argss,f,np=1):
     p=multiprocessing.Pool(np)
     argss=list(map(lambda x: json.dumps(x),argss))
 
-    for i,o in map(run_isan,argss):
+    for i,o in p.imap(run_isan,argss):
         s=json.dumps([json.loads(i),json.loads(o)],ensure_ascii=False)
         print(s,file=f)
+        f.flush()
