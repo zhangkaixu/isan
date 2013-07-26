@@ -6,6 +6,7 @@ import numpy
 import gzip
 import pickle
 import sys
+import json
 from isan.utls.indexer import Indexer
 from isan.tagging.cb_subsymbolic import Mapper as Mapper
 from isan.tagging.cb_subsymbolic import PCA as PCA
@@ -76,10 +77,13 @@ class Task  :
             self.trans_s[rst_tags[i]][rst_tags[i+1]]-=1*step#"""
 
 
+
     def remove_oracle(self):
         self.oracle=None
 
-    def __init__(self,model=None,args='',**others):
+    def __init__(self,model=None,cmd_args='',**others):
+        class Args :
+            pass
         self.indexer=Indexer() # index of tags
 
         self.logger=others.get('logger',None)
@@ -90,21 +94,20 @@ class Task  :
         self.feature_models={}
 
         if model==None :
-            parser=argparse.ArgumentParser(
-                    formatter_class=argparse.RawDescriptionHelpFormatter,
-                    description=r"""""",)
-            parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
-            parser.add_argument('--use_ae',default=False,action='store_true')
-            parser.add_argument('--use_pca',default=False,action='store_true')
-            parser.add_argument('--pre',default=None,type=str,help='')
-            parser.add_argument('--eta',default=0.1,type=float,help='')
-            args=parser.parse_args(shlex.split(args))
-            self.corrupt_x=args.corrupt_x
+            args=Args()
+            args.eta=0.001
+            args.use_pca=False
+            args.use_ae=False
+            if hasattr(cmd_args,'task_seg'):
+                for k,v in cmd_args.task_seg.items():
+                    setattr(args,k,v)
 
-            if args.pre :
-                for line in open(args.pre) :
+            for train in cmd_args.train :
+                for line in open(train) :
                     x=self.codec.decode(line)
                     self.set_oracle(x['raw'],x['y'])[0][-1]
+
+
             self.ts=len(self.indexer)
             self.trans=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
             self.trans_s=[[0.0 for i in range(self.ts)] for j in range(self.ts)]

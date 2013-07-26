@@ -12,11 +12,12 @@ class Model(object):
     """平均感知器模型 """
     name="平均感知器" #: 模型的名字
 
-    def __init__(self,model_file,Task=None,Searcher=None,beam_width=8,logger=None,**conf):
+    def __init__(self,model_file,Task=None,Searcher=None,beam_width=8,logger=None,cmd_args={},**conf):
         """
         初始化
         如果不设置，则读取已有模型。如果设置，就是学习新模型
         """
+        self.seed=cmd_args.seed
         if logger==None :
             logger=logging.getLogger(__name__)
             console=logging.StreamHandler()
@@ -91,6 +92,7 @@ class Model(object):
 
         if model_file==None : model_file=self.model_file
         if model_file==None : return
+        if model_file=='/dev/null' : return
 
         self.task.average_weights(self.step)
 
@@ -185,6 +187,7 @@ class Model(object):
         """
         训练
         """
+        random.seed(self.seed)
         if iteration<=0 and peek <=0 : peek=5
 
         if type(training_file)==str:training_file=[training_file]
@@ -198,6 +201,7 @@ class Model(object):
                     if not rtn:continue
                     training_data.append(rtn)
             random.shuffle(training_data)
+
 
         def gen_data():
             if keep_data :
@@ -248,6 +252,8 @@ class Model(object):
                             best_scaler=scaler
             it+=1
             if peek>=0 and it-best_it>peek : break
+    def __del__(self):
+        del self.task
 
 
 class Model_PA(Model) :

@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <cstdio>
 #include <iostream>
+#include <cstring>
 //#include "isan/common/common.hpp"
 #include "isan/common/first_order_linear/decoder.h"
 
@@ -58,9 +59,15 @@ public:
         delete transitions;
         delete alphas;
         tagset_size=new_tagset_size;
+
         emissions=new Score_Type[MAX_LEN*tagset_size];
+        std::memset(emissions,0,sizeof(Score_Type)*MAX_LEN*tagset_size);
+
         alphas=new Alpha_Beta[MAX_LEN*tagset_size];
+        std::memset(alphas,0,sizeof(Alpha_Beta)*MAX_LEN*tagset_size);
+
         transitions=new Score_Type[tagset_size*tagset_size];
+        std::memset(transitions,0,sizeof(Score_Type)*tagset_size*tagset_size);
     };
     
     void set_raw(PyObject * raw){
