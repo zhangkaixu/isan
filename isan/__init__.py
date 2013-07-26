@@ -143,6 +143,7 @@ def isan(**args):
 
     if args.train or args.append_model :
         """如果指定了训练集，就训练模型"""
+        random.seed(args.seed)
         model=Model(None,
                     (lambda **x: Task(cmd_args=args,**x)),
                     Decoder,beam_width=int(args.beam_width),

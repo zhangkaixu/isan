@@ -17,7 +17,6 @@ class Model(object):
         初始化
         如果不设置，则读取已有模型。如果设置，就是学习新模型
         """
-        self.seed=cmd_args.seed
         if logger==None :
             logger=logging.getLogger(__name__)
             console=logging.StreamHandler()
@@ -187,7 +186,6 @@ class Model(object):
         """
         训练
         """
-        random.seed(self.seed)
         if iteration<=0 and peek <=0 : peek=5
 
         if type(training_file)==str:training_file=[training_file]
