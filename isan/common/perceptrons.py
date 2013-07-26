@@ -30,10 +30,10 @@ class Model(object):
 
         if model_file!=None:
             file=gzip.open(model_file,"rb")
-            self.task=Task(pickle.load(file))
+            self.task=Task(pickle.load(file),logger=logger)
             file.close()
         else : # new model to train
-            self.task=Task()
+            self.task=Task(logger=logger)
             self.task.weights=Weights()
         if hasattr(self.task,'init'):
             self.task.init()

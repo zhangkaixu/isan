@@ -2,6 +2,111 @@ import pickle
 import random
 import isan.parsing.dep_unlabeled_eval as eval
 from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
+import numpy as np
+import gzip
+
+
+class SoftMax :
+    def __init__(self):
+        words={}
+        for line in open('word.pca') :
+            word,*vs = line.split()
+            vs=list(map(float,vs))
+            words[word]=np.array(vs)
+        tags={}
+        for line in open('tag.pca'):
+            tag,*vs=line.split()
+            vs=list(map(float,vs))
+            tags[tag]=np.array(vs)
+        self.words=words
+        self.tags=tags
+        self.zw=np.zeros(50)
+        self.zv=np.zeros(10)
+        gz=gzip.open('2to3.gz','rb')
+
+        self.zw=np.array([0.0 for i in range(50)])
+        self.zt=np.array([0.0 for i in range(10)])
+        self.vw=lambda x : self.words.get(x,self.zw)
+        self.vt=lambda x : self.tags.get(x,self.zt)
+
+        self.Ws=[]
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.Ws.append(np.array(pickle.load(gz)))
+        self.V=np.array(pickle.load(gz))
+        self.b=np.array(pickle.load(gz))
+        self.bp=np.array(pickle.load(gz))
+
+        self.d={}
+        self.d['S']=np.zeros(100)
+        self.d['L']=np.zeros(100)
+        self.d['R']=np.zeros(100)
+        self.s={k:v.copy()for k,v in self.d.items()}
+
+    def set_raw(self,f_raw):
+        self.f_raw=f_raw
+        self.s_raw=[]
+        for w,t in self.f_raw :
+            self.s_raw.append([self.vw(w),self.vt(t)])
+        self.s_raw.append([self.zw,self.zt])
+        self.s_q0=[]
+        self.s_s1=[]
+        self.s_s0r=[]
+        self.s_s0l=[]
+        self.s_s0=[]
+        for w,t in self.s_raw :
+            self.s_q0.append(np.dot(w,self.Ws[0])+np.dot(t,self.Ws[1]))
+            self.s_s0.append(np.dot(w,self.Ws[2])+np.dot(t,self.Ws[3]))
+            self.s_s0l.append(np.dot(w,self.Ws[4])+np.dot(t,self.Ws[5]))
+            self.s_s0r.append(np.dot(w,self.Ws[6])+np.dot(t,self.Ws[7]))
+            self.s_s1.append(np.dot(w,self.Ws[8])+np.dot(t,self.Ws[9]))
+            pass
+        return
+
+
+    def __call__(self,sv,acts,scores,delta=0,step=0) :
+        if sv[1]==None : sv[1]=-1
+        if sv[2]==None : sv[2]=-1
+        if sv[3]==None : sv[3]=-1
+        if sv[4]==None : sv[4]=-1
+        x=(self.b 
+                + self.s_q0[sv[0]]
+                + self.s_s0[sv[1]]
+                + self.s_s0l[sv[2]]
+                + self.s_s0r[sv[3]]
+                + self.s_s1[sv[4]]
+                )
+
+        fv=(np.tanh(x)+1)/2
+
+        if delta==0 :
+            for score,act in zip(scores,acts) :
+                x=np.dot(self.d[chr(act)],fv)
+                score[0]+=x
+            return
+        else :
+            for act in (acts) :
+                self.d[chr(act)]+=fv*delta
+                self.s[chr(act)]+=fv*(delta*step)
+            return
+    def average_weights(self,step):
+        self._b={}
+        for k in self.d :
+            self._b[k]=self.d[k].copy()
+            #self.d[k]=self.d[k]-self.s[k]/step
+            self.d[k]-=self.s[k]/step
+
+    def un_average_weights(self):
+        self.d={}
+        for k in self._b :
+            self.d[k]=self._b[k].copy()
 
 
 class codec:
@@ -91,6 +196,8 @@ class Dep (Early_Stop_Pointwise, Base_Task):
     Eval=eval.Eval
 
     def __init__(self,args=None):
+        self.models=[]
+        #self.models.append(SoftMax())
         #random.seed(123)
         pass
 
@@ -179,15 +286,10 @@ class Dep (Early_Stop_Pointwise, Base_Task):
         self.lattice=raw
         self.f_raw=[[x[0],x[1]] for b,e,x in self.lattice]
 
+        for model in self.models :
+            model.set_raw(self.f_raw)
         if not hasattr(self,'oracle') or not self.oracle : return
-        return 
         
-        for i in range(len(self.f_raw)):
-            if random.random()<0.05 :
-                self.f_raw[i][0]='^'
-            #if random.random()<0.05 :
-            #    self.f_raw[i][1]='^'
-
 
     def gen_features(self,stat,acts,delta=0,step=0):
         span,stack_top=self.State.decode(stat)
@@ -199,9 +301,13 @@ class Dep (Early_Stop_Pointwise, Base_Task):
             s0m,s0l,s0r=s0
             s0l_t='~' if s0l is None else self.f_raw[s0l][1]
             s0r_t='~' if s0r is None else self.f_raw[s0r][1]
+            s0l_w='~' if s0l is None else self.f_raw[s0l][0]
+            s0r_w='~' if s0r is None else self.f_raw[s0r][0]
             s0_w,s0_t=self.f_raw[s0m]
         else:
+            s0m,s0l,s0r=-1,-1,-1
             s0_w,s0_t,s0l_t,s0r_t='~','~','~','~'
+            s0l_w,s0r_w='~','~'
 
         if s1:
             s1m,s1l,s1r=s1
@@ -210,6 +316,7 @@ class Dep (Early_Stop_Pointwise, Base_Task):
             s1_w,s1_t=self.f_raw[s1m]
         else:
             s1_w,s1_t,s1l_t,s1r_t='~','~','~','~'
+            s1m=-1
 
         pos=span[1]
         q0_w,q0_t=self.f_raw[pos] if pos<len(self.f_raw) else ('~','~')
@@ -240,11 +347,26 @@ class Dep (Early_Stop_Pointwise, Base_Task):
         fvs=[[action+x for x in fv]for action in map(chr,acts)]
 
         if delta==0 :
-            return [[self.weights(fv)] for fv in fvs]
+            scores=[[self.weights(fv)] for fv in fvs]
+            for model in self.models :
+                model([pos,s0m,s0l,s0r,s1m],acts,scores)
+            return scores
+        
         else :
             for fv in fvs :
                 self.weights.update_weights(fv,delta,step)
+            for model in self.models :
+                model([pos,s0m,s0l,s0r,s1m],acts,None,delta*0.1,step)
             return [[] for fv in fvs]
 
         return fvs
 
+    def average_weights(self,step):
+        self.weights.average_weights(step)
+        for model in self.models:
+            model.average_weights(step)
+
+    def un_average_weights(self):
+        self.weights.un_average_weights()
+        for model in self.models:
+            model.un_average_weights()

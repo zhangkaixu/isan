@@ -62,25 +62,27 @@ class Task  :
     def check(self,std_moves,rst_moves):
         return std_moves[0][-1]==rst_moves[0][-1]
 
-    """
+    #"""
     def update_moves(self,std_moves,rst_moves,step) :
         std_tags=std_moves[0][-1]
         rst_tags=rst_moves[0][-1]
         for sm in self.feature_models.values() : 
-            sm.update(std_tags,rst_tags,1,step)
+            sm.update(std_tags,rst_tags,self.eta,step)
 
         for i in range(len(std_tags)-1):
             self.trans[std_tags[i]][std_tags[i+1]]+=1
             self.trans_s[std_tags[i]][std_tags[i+1]]+=1*step
             self.trans[rst_tags[i]][rst_tags[i+1]]-=1
-            self.trans_s[rst_tags[i]][rst_tags[i+1]]-=1*step"""
+            self.trans_s[rst_tags[i]][rst_tags[i+1]]-=1*step#"""
 
 
     def remove_oracle(self):
         self.oracle=None
 
-    def __init__(self,model=None,args=''):
+    def __init__(self,model=None,args='',**others):
         self.indexer=Indexer() # index of tags
+
+        self.logger=others.get('logger',None)
 
         self.corrupt_x=0
         self.feature_class={'ae': lambda x : Mapper(self.ts,x) ,
@@ -93,8 +95,9 @@ class Task  :
                     description=r"""""",)
             parser.add_argument('--corrupt_x',default=0,type=float, help='',metavar="")
             parser.add_argument('--use_ae',default=False,action='store_true')
-            parser.add_argument('--use_pca',default=False,action='store_true',help='')
+            parser.add_argument('--use_pca',default=False,action='store_true')
             parser.add_argument('--pre',default=None,type=str,help='')
+            parser.add_argument('--eta',default=0.1,type=float,help='')
             args=parser.parse_args(shlex.split(args))
             self.corrupt_x=args.corrupt_x
 
@@ -107,10 +110,13 @@ class Task  :
             self.trans_s=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
             self.feature_models['base']=self.feature_class['base'](None)
 
+            self.logger.debug('eta: %f'%args.eta)
+            self.eta=args.eta
+
             if args.use_pca :
-                self.feature_models['pca']=self.feature_class['pca']()
+                self.feature_models['pca']=self.feature_class['pca'](None)
             if args.use_ae :
-                self.feature_models['ae']=self.feature_class['ae']()
+                self.feature_models['ae']=self.feature_class['ae'](None)
         else :
             self.indexer,self.ts,self.trans,features=model
             for k,v in features.items():

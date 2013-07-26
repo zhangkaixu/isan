@@ -1,3 +1,6 @@
+import numpy
+import gzip
+import pickle
 
 class Mapper():
     """
@@ -13,11 +16,13 @@ class Mapper():
             #load lookup tables for character unigrams and bigrams
             chs={}
             for line in open('1.data4'):
+            #for line in open('data1.txt'):
                 ch,*v=line.split()
                 v=list(map(float,v))[:20]
                 chs[ch]=numpy.array([v])
 
             for line in open('2.data4'):
+            #for line in open('data2.txt'):
                 b,*v=line.split()
                 v=list(map(float,v))[:50]
                 chs[b]=numpy.array([v])
@@ -26,7 +31,8 @@ class Mapper():
             self.zb=numpy.array([[0.0 for i in range(50)]])
 
             # load weights for the hidden layer
-            f=gzip.open('2to3.gz','rb')
+            #f=gzip.open('2to3.gz','rb')
+            f=gzip.open('2to32.gz','rb')
             self.Ws=[] # Ws
             self.sWs=[]
             for i in range(7): 
@@ -94,7 +100,8 @@ class Mapper():
         return la
 
     def update(self,std_tags,rst_tags,delta,step):
-        #hidden
+
+        #"""#hidden
         self.dWs=[]
         for x in self.Ws : self.dWs.append(x*0)
         self.dbs=[]
@@ -103,19 +110,20 @@ class Mapper():
         for i in range(len(self.conv)):
             if std_tags[i]==rst_tags[i] : continue
             deltas=(self.second_d[std_tags[i]]-self.second_d[rst_tags[i]])*self.conv[i]*(1-self.conv[i])
-            self.update_hidden(i,deltas*0.1)
+            self.update_hidden(i,deltas)
 
         for i in range(len(self.Ws)):
             self.Ws[i]+=self.dWs[i]
             self.sWs[i]+=self.dWs[i]*step
             self.bs[i]+=self.dbs[i]
             self.sbs[i]+=self.dbs[i]*step
+        #"""
 
         #output
         for i in range(len(self.conv)):
             if std_tags[i]==rst_tags[i] : continue
-            self.second_d[std_tags[i]]+=delta*0.1*self.conv[i]
-            self.second_d[rst_tags[i]]-=delta*0.1*self.conv[i]
+            self.second_d[std_tags[i]]+=delta*self.conv[i]
+            self.second_d[rst_tags[i]]-=delta*self.conv[i]
 
     def update_hidden(self,j,deltas):
         inds=self.indss[j]
@@ -171,15 +179,17 @@ class PCA :
     def __init__(self,ts,data=None):
         self.ts=ts
         if data==None :
-            size=50
+            #size=50
             self.bi={}
             for line in open('2.data4'):
+            #for line in open('2.100.pca'):
                 bi,*v=line.split()
                 v=list(map(float,v))
+                size=len(v)
                 self.bi[bi]=numpy.array(v) # bigram embedding
 
-            self.d=[numpy.zeros((self.ts,size)) for j in range(2)] # [pos][tag]
-            self.s=[numpy.zeros((self.ts,size)) for j in range(2)] # [pos][tag]
+            self.d=[numpy.zeros((self.ts,size)) for j in range(4)] # [pos][tag]
+            self.s=[numpy.zeros((self.ts,size)) for j in range(4)] # [pos][tag]
         else :
             self.bi,self.d=data
 
@@ -201,10 +211,20 @@ class PCA :
             if self.bis[i-1]!=None:
                 x=numpy.dot(self.d[1],self.bis[i-1])
                 emissions[i]+=x
+        """
+        for i in range(len(self.raw)-2):
+            if self.bis[i+1]!=None:
+                x=numpy.dot(self.d[2],self.bis[i+1])
+                emissions[i]+=x
+        for i in range(2,len(self.raw)):
+            if self.bis[i-2]!=None:
+                x=numpy.dot(self.d[3],self.bis[i-2])
+                emissions[i]+=x#"""
     def update(self,std_tags,rst_tags,delta,step):
+
         for i in range(len(self.raw)-1):
             if std_tags[i]==rst_tags[i] or self.bis[i]==None : continue
-            d=delta*0.1*self.bis[i]
+            d=delta*self.bis[i]
             self.d[0][std_tags[i]]+=d
             self.d[0][rst_tags[i]]-=d
             d=d*step
@@ -213,12 +233,29 @@ class PCA :
 
         for i in range(1,len(self.raw)):
             if std_tags[i]==rst_tags[i] or self.bis[i-1]==None : continue
-            d=delta*0.1*self.bis[i-1]
+            d=delta*self.bis[i-1]
             self.d[1][std_tags[i]]+=d
             self.d[1][rst_tags[i]]-=d
             d*=step
             self.s[1][std_tags[i]]+=d
             self.s[1][rst_tags[i]]-=d
+        """
+        for i in range(len(self.raw)-2):
+            if std_tags[i]==rst_tags[i] or self.bis[i+1]==None : continue
+            d=delta*self.bis[i+1]
+            self.d[2][std_tags[i]]+=d
+            self.d[2][rst_tags[i]]-=d
+            d=d*step
+            self.s[2][std_tags[i]]+=d
+            self.s[2][rst_tags[i]]-=d
+        for i in range(2,len(self.raw)):
+            if std_tags[i]==rst_tags[i] or self.bis[i-2]==None : continue
+            d=delta*self.bis[i-2]
+            self.d[3][std_tags[i]]+=d
+            self.d[3][rst_tags[i]]-=d
+            d*=step
+            self.s[3][std_tags[i]]+=d
+            self.s[3][rst_tags[i]]-=d#"""
 
     def average_weights(self,step):
         self.b=[x.copy()for x in self.d]

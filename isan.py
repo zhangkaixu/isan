@@ -77,7 +77,7 @@ def command_line(Model,Task,Decoder):
     console.setLevel(logging.INFO)
     logger.addHandler(console)
     logger.addHandler(logfile)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
 
 
@@ -109,7 +109,7 @@ def command_line(Model,Task,Decoder):
     if args.train or args.append_model :
         """如果指定了训练集，就训练模型"""
         model=Model(None,
-                    (lambda : Task(args=args.task_args)),
+                    (lambda **x: Task(args=args.task_args,**x)),
                     Decoder,beam_width=int(args.beam_width),
                     logger=logger,)
 
