@@ -18,7 +18,8 @@ Isan 一三
    :maxdepth: 2
 
    getting_started.rst
-   tasks.rst
+   basic.rst
+   tech_report.rst
    advanced.rst
    
 
