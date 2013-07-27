@@ -26,7 +26,12 @@ class Mapper():
             self.zb=numpy.array([[0.0 for i in range(50)]])
 
             # load weights for the hidden layer
+<<<<<<< HEAD
             f=gzip.open(args['hidden'],'rb')
+=======
+            f=gzip.open('2to3.gz','rb')
+            #f=gzip.open('2to32.gz','rb')
+>>>>>>> 76affa783b4021a7541dbb3ffe549f61ab85c117
             self.Ws=[] # Ws
             self.sWs=[]
             for i in range(7): 

@@ -3,20 +3,30 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to isan's documentation!
+
+Isan 一三
 ================================
 
-Contents:
+| “举一隅不以三隅反，则不复也” ——《论语·述而》
+
+中文自然语言处理实验环境， 可进行 **中文分词** 、 **词性标注** 、 **句法分析** 等任务。
+
+
+目录:
 
 .. toctree::
    :maxdepth: 2
 
+   getting_started.rst
+   basic.rst
+   tech_report.rst
+   advanced.rst
+   
 
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+.. Indices and tables
+    ==================
+    * :ref:`genindex`
+    * :ref:`modindex`
+    * :ref:`search`
