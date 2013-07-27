@@ -163,7 +163,7 @@ def isan(**args):
             model.save(args.model_file)
 
         if args.append_model :
-            task=Task(cmd_args=args)
+            task=Task(cmd_args=args,)
             for m in args.append_model :
                 print(m)
                 task.add_model(pickle.load(gzip.open(m,'rb')))
@@ -212,11 +212,14 @@ def run_isan(args):
 
 
 def isans(argss,f,np=1):
-    import multiprocessing
-    p=multiprocessing.Pool(np)
     argss=list(map(lambda x: json.dumps(x),argss))
 
-    for i,o in p.imap(run_isan,argss):
+    if np!= 1 :
+        import multiprocessing
+        p=multiprocessing.Pool(np)
+    map_func= map if np==1 else p.imap
+
+    for i,o in map_func(run_isan,argss):
         s=json.dumps([json.loads(i),json.loads(o)],ensure_ascii=False)
         print(s,file=f)
         f.flush()

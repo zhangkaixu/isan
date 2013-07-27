@@ -10,13 +10,37 @@ class Character:
         if model==None :
             pass
         else :
-            self.uni_d,self.bi_d=model
+            self.ts,self.uni_d,self.bi_d=model
 
     def add_model(self,model):
-        self.weights.add_model(model)
+        self.ts,uni,bi=model
+        for k,v in uni.items():
+            if k not in self.uni_d :
+                self.uni_d[k]=[numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
+                self.uni_s[k]=[numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
+            for j in range(3):
+                for i in range(len(self.uni_d[k][j])):
+                    if v[j][i]==0 : continue
+                    self.uni_d[k][j][i]=(self.uni_d[k][j][i]*self.uni_s[k][j][i]+v[j][i])/(self.uni_s[k][j][i]+1)
+                    self.uni_s[k][j][i]+=1
+        for k,v in bi.items():
+            if k not in self.bi_d :
+                self.bi_d[k]=[numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float)]
+                self.bi_s[k]=[numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
+                    numpy.zeros(self.ts,dtype=float)]
+            for j in range(4):
+                for i in range(len(self.bi_d[k][j])):
+                    if v[j][i]==0 : continue
+                    self.bi_d[k][j][i]=(self.bi_d[k][j][i]*self.bi_s[k][j][i]+v[j][i])/(self.bi_s[k][j][i]+1)
+                    self.bi_s[k][j][i]+=1
 
     def dump(self):
-        return [self.uni_d,self.bi_d]
+        return [self.ts,self.uni_d,self.bi_d]
 
     def set_raw(self,raw):
         self.raw=raw
@@ -50,6 +74,7 @@ class Character:
     def update(self,std_tags,rst_tags,delta,step):
         l=len(self.raw)
         for i,k in enumerate(self.uni) :
+            #if chr(0) in k : continue
             if k not in self.uni_d : 
                 self.uni_d[k]=[numpy.zeros(self.ts,dtype=float),
                     numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
@@ -74,6 +99,7 @@ class Character:
                 s[2][rst_tags[i]]-=step
 
         for i,k in enumerate(self.bi) :
+            #if chr(0) in k : continue
             if k not in self.bi_d : 
                 self.bi_d[k]=[numpy.zeros(self.ts,dtype=float),
                     numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),

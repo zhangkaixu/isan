@@ -6,23 +6,18 @@ class Mapper():
     """
     auto-encoder
     """
-    def __init__(self,ts,data=None):
+    def __init__(self,ts,data=None,args={}):
         self.ts=ts
         self.added=False
         if data==None :
-            size=50
-            self.second_d=numpy.zeros((self.ts,size))
-            self.second_s=numpy.zeros((self.ts,size))
             #load lookup tables for character unigrams and bigrams
             chs={}
-            for line in open('1.data4'):
-            #for line in open('data1.txt'):
+            for line in open(args['unigram']):
                 ch,*v=line.split()
                 v=list(map(float,v))[:20]
                 chs[ch]=numpy.array([v])
 
-            for line in open('2.data4'):
-            #for line in open('data2.txt'):
+            for line in open(args['bigram']):
                 b,*v=line.split()
                 v=list(map(float,v))[:50]
                 chs[b]=numpy.array([v])
@@ -31,8 +26,7 @@ class Mapper():
             self.zb=numpy.array([[0.0 for i in range(50)]])
 
             # load weights for the hidden layer
-            #f=gzip.open('2to3.gz','rb')
-            f=gzip.open('2to32.gz','rb')
+            f=gzip.open(args['hidden'],'rb')
             self.Ws=[] # Ws
             self.sWs=[]
             for i in range(7): 
@@ -43,6 +37,10 @@ class Mapper():
             for i in range(7): 
                 self.bs.append(numpy.array(pickle.load(f)))
                 self.sbs.append(self.bs[-1]*0.0)
+
+            size=self.bs[0].shape[0]
+            self.second_d=numpy.zeros((self.ts,size))
+            self.second_s=numpy.zeros((self.ts,size))
         else :
             self.second_d,self.chs,self.zch,self.zb,self.Ws,self.bs=data
 
@@ -176,13 +174,11 @@ class Mapper():
             emissions[i]+=numpy.dot(self.second_d,self.conv[i])
 
 class PCA :
-    def __init__(self,ts,data=None):
+    def __init__(self,ts,data=None,args={}):
         self.ts=ts
         if data==None :
-            #size=50
             self.bi={}
-            for line in open('2.data4'):
-            #for line in open('2.100.pca'):
+            for line in open(args['bigram']):
                 bi,*v=line.split()
                 v=list(map(float,v))
                 size=len(v)
@@ -191,10 +187,23 @@ class PCA :
             self.d=[numpy.zeros((self.ts,size)) for j in range(4)] # [pos][tag]
             self.s=[numpy.zeros((self.ts,size)) for j in range(4)] # [pos][tag]
         else :
-            self.bi,self.d=data
+            self.ts,self.bi,self.d=data
+
+    def dump(self):
+        return [self.ts,self.bi,self.d]
+
+    def load(self,data):
+        self.ts,self.bi,self.d=data
 
     def add_model(self,model):
-        _,self.d=model
+        self.ts,_,d=model
+        if type(self.s)==list :
+            self.d=d
+            self.s=1
+        else :
+            for i in range(len(self.d)):
+                self.d[i]=(self.d[i]*self.s+d[i])/(self.s+1)
+            self.s+=1
 
     def set_raw(self,raw):
         self.raw=raw
@@ -264,8 +273,3 @@ class PCA :
 
     def un_average_weights(self):
         self.d=[x.copy()for x in self.b]
-    def dump(self):
-        return [self.bi,self.d]
-
-    def load(self,data):
-        self.bi,self.d=data

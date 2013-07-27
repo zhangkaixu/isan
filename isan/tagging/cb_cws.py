@@ -89,8 +89,10 @@ class Task  :
         self.logger=others.get('logger',None)
 
         self.corrupt_x=0
-        self.feature_class={'ae': lambda x : Mapper(self.ts,x) ,
-                'pca': lambda x : PCA(self.ts,x),'base':lambda x : Character(self.ts,x)}
+        self.feature_class={
+                'ae': lambda x,args={} : Mapper(self.ts,x,args) ,
+                'pca': lambda x,args={} : PCA(self.ts,x,args),
+                'base':lambda x : Character(self.ts,x)}
         self.feature_models={}
 
         if model==None :
@@ -101,6 +103,10 @@ class Task  :
             if hasattr(cmd_args,'task_seg'):
                 for k,v in cmd_args.task_seg.items():
                     setattr(args,k,v)
+            
+            dargs=vars(args)
+
+
 
             for train in cmd_args.train :
                 for line in open(train) :
@@ -108,25 +114,37 @@ class Task  :
                     self.set_oracle(x['raw'],x['y'])[0][-1]
 
 
+            self.corrupt_x=dargs.get('noise_rate',0)
             self.ts=len(self.indexer)
             self.trans=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
             self.trans_s=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
             self.feature_models['base']=self.feature_class['base'](None)
 
-            self.logger.debug('eta: %f'%args.eta)
+            if self.logger :
+                self.logger.debug('eta: %f'%args.eta)
             self.eta=args.eta
 
             if args.use_pca :
-                self.feature_models['pca']=self.feature_class['pca'](None)
+                self.feature_models['pca']=self.feature_class['pca'](None,args=args.use_pca)
             if args.use_ae :
-                self.feature_models['ae']=self.feature_class['ae'](None)
+                self.feature_models['ae']=self.feature_class['ae'](None,args=args.use_ae)
         else :
+            self.oracle=None
             self.indexer,self.ts,self.trans,features=model
             for k,v in features.items():
                 self.feature_models[k]=self.feature_class[k](v)
 
     def add_model(self,features):
-        for k,v in features[1].items() :
+        self.indexer,self.ts,trans,others=features
+        if len(self.trans)==0 :
+            self.trans=trans
+            self.trans_s=1
+        else :
+            for i,a in enumerate(self.trans):
+                for j,b in enumerate(a):
+                    self.trans[i][j]=(self.trans[i][j]*self.trans_s+trans[i][j])/(self.trans_s+1)
+            self.trans_s+=1
+        for k,v in others.items() :
             self.feature_models[k].add_model(v)
 
     def dump_weights(self):
@@ -146,6 +164,9 @@ class Task  :
         for sm in self.feature_models.values() : sm.un_average_weights()
     
     def set_raw(self,raw,Y):
+        raw=raw[:]
+        if self.oracle and self.corrupt_x :
+            raw=''.join(c if random.random()>self.corrupt_x else chr(0)  for c in raw)
         self.raw=raw
         for sm in self.feature_models.values() : sm.set_raw(raw)
 
