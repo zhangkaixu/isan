@@ -198,13 +198,13 @@ def isan(**args):
             print("输出分数差距在 %s 之内的候选词"%(make_color(threshold*1000)),file=sys.stderr)
         for line in sys.stdin:
             line=line.strip()
-            line=model.schema.codec.decode(line)
+            line=model.task.codec.decode(line)
             raw=line.get('raw','')
             Y=line.get('Y_a',None)
             if threshold :
-                print(model.schema.codec.candidates_encode(model(raw,Y,threshold=threshold)))
+                print(model.task.codec.candidates_encode(model(raw,Y,threshold=threshold)))
             else :
-                print(model.schema.codec.encode(model(raw,Y)))
+                print(model.task.codec.encode(model(raw,Y)))
     return list(rec)
 
 def run_isan(args):

@@ -23,7 +23,7 @@ class codec:
         return {'raw':raw, 'y': seq, 'Y_a': 'y'}
     @staticmethod
     def encode(y):
-        return ' '.join(y)
+        return ' '.join(x[0] for x in y)
 
 class Task  :
     name="sub-symbolic Character-based CWS"
