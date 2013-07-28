@@ -26,12 +26,7 @@ class Mapper():
             self.zb=numpy.array([[0.0 for i in range(50)]])
 
             # load weights for the hidden layer
-<<<<<<< HEAD
             f=gzip.open(args['hidden'],'rb')
-=======
-            f=gzip.open('2to3.gz','rb')
-            #f=gzip.open('2to32.gz','rb')
->>>>>>> 76affa783b4021a7541dbb3ffe549f61ab85c117
             self.Ws=[] # Ws
             self.sWs=[]
             for i in range(7): 
@@ -44,6 +39,7 @@ class Mapper():
                 self.sbs.append(self.bs[-1]*0.0)
 
             size=self.bs[0].shape[0]
+            self.size=size
             self.second_d=numpy.zeros((self.ts,size))
             self.second_s=numpy.zeros((self.ts,size))
         else :
@@ -82,6 +78,11 @@ class Mapper():
         self.find(context[1:3],self.zb,inds,vs)
         self.find(context[2:4],self.zb,inds,vs)
         self.find(context[3:5],self.zb,inds,vs)
+        inds[0]=0
+        inds[1]=0
+        inds[2]=0
+        inds[3]=0
+        inds[6]=0
         return inds,vs
 
 
@@ -91,11 +92,11 @@ class Mapper():
         self.vss.append(vs)
 
         if all(x==0 for x in inds):
-            return numpy.zeros(50)
+            return numpy.zeros(self.size)
 
         #hidden layer
         la=[]
-        la=numpy.zeros(50,dtype=float)
+        la=numpy.zeros(self.size,dtype=float)
         for ind,v,W,b in zip(inds,vs,self.Ws,self.bs):
             if ind ==0 : continue
             la+=numpy.dot(v,W)[0]+b
@@ -185,7 +186,7 @@ class PCA :
             self.bi={}
             for line in open(args['bigram']):
                 bi,*v=line.split()
-                v=list(map(float,v))
+                v=list(map(float,v))[:30]
                 size=len(v)
                 self.bi[bi]=numpy.array(v) # bigram embedding
 
