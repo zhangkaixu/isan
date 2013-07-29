@@ -21,10 +21,11 @@ class Character:
                 self.uni_s[k]=[numpy.zeros(self.ts,dtype=float),
                     numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
             for j in range(3):
-                for i in range(len(self.uni_d[k][j])):
-                    if v[j][i]==0 : continue
-                    self.uni_d[k][j][i]=(self.uni_d[k][j][i]*self.uni_s[k][j][i]+v[j][i])/(self.uni_s[k][j][i]+1)
-                    self.uni_s[k][j][i]+=1
+                ind=numpy.abs(numpy.sign(v[j]))
+                self.uni_d[k][j]=numpy.where(ind,
+                        (self.uni_d[k][j]*self.uni_s[k][j]+v[j])/(self.uni_s[k][j]+1),
+                        self.uni_d[k][j],)
+                self.uni_s[k][j]+=ind
         for k,v in bi.items():
             if k not in self.bi_d :
                 self.bi_d[k]=[numpy.zeros(self.ts,dtype=float),
@@ -34,10 +35,11 @@ class Character:
                     numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
                     numpy.zeros(self.ts,dtype=float)]
             for j in range(4):
-                for i in range(len(self.bi_d[k][j])):
-                    if v[j][i]==0 : continue
-                    self.bi_d[k][j][i]=(self.bi_d[k][j][i]*self.bi_s[k][j][i]+v[j][i])/(self.bi_s[k][j][i]+1)
-                    self.bi_s[k][j][i]+=1
+                ind=numpy.abs(numpy.sign(v[j]))
+                self.bi_d[k][j]=numpy.where(ind,
+                        (self.bi_d[k][j]*self.bi_s[k][j]+v[j])/(self.bi_s[k][j]+1),
+                        self.bi_d[k][j],)
+                self.bi_s[k][j]+=ind
 
     def dump(self):
         return [self.ts,self.uni_d,self.bi_d]

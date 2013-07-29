@@ -23,7 +23,14 @@ class codec:
         return {'raw':raw, 'y': seq, 'Y_a': 'y'}
     @staticmethod
     def encode(y):
-        return ' '.join(x[0] for x in y)
+        return ' '.join(x[0]+ '_'+x[1] if x[1] else '' for x in y)
+
+    @staticmethod
+    def encode_candidates(x):
+        raw,candidates=x
+        return(' '.join(("%d,%d,%s,%s,%0.4f"%(b,e,raw[b:e],t,m))for b,e,t,m in candidates))
+            
+        pass
 
 class Task  :
     name="sub-symbolic Character-based CWS"
@@ -59,6 +66,42 @@ class Task  :
         if cache : results.append((''.join(cache),tg))
         return results
 
+    def gen_candidates(self,margins,threshold):
+        score,margins=margins
+        candidates=[]
+        cands=[]
+        for i,ml in enumerate(margins):
+            cands.append([])
+            for j,it in enumerate(ml):
+                a,e,b=it
+                if(a+b+e+threshold < score ) : continue
+                cands[-1].append((j,a,e,b))
+
+        for i,column in enumerate(cands):
+            for a_tid,a_alpha,a_e,a_beta in column :
+                a_t=self.indexer[a_tid]
+                if a_t[0]=='S' or (i==0 and a_t[0]=='E') or (i+1==len(cands) and a_t[0]=='B'):
+                    candidates.append((i,i+1,a_t[2:],score-(a_alpha+a_beta+a_e)))
+                elif a_t[0]=='B' or (i==0 and a_t[0]=='M'):
+                    value=a_alpha+a_e
+                    tag=a_t[2:]
+                    last_tid=a_tid
+                    for j in range(i+1,len(margins)):
+                        flag=False
+                        for b_tid,b_alpha,b_e,b_beta in cands[j]:
+                            b_t=self.indexer[b_tid]
+                            if b_t[2:]!=tag : continue
+                            if b_t[0]=='E' or (j+1==len(cands) and b_t[0]=='M'):
+                                s=value+b_e+b_beta+self.trans[last_tid][b_tid]
+                                if s+threshold >= score :
+                                    candidates.append((i,j+1,tag,score-s))
+                            if b_t[0]=='M' :
+                                value+=b_e+self.trans[last_tid][b_tid]
+                                last_tid=b_tid
+                                flag=True
+                        if flag==False : break
+
+        return self.raw,candidates
 
     def check(self,std_moves,rst_moves):
         return std_moves[0][-1]==rst_moves[0][-1]

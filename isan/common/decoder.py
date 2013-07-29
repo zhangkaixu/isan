@@ -41,6 +41,8 @@ class Push_Down(Searcher):
 class First_Order_Linear(Searcher):
     name='first order linear'
     searcher=first_order_linear
+    def cal_margins(self):
+        return self.searcher.cal_margins(self.handler)
     def __init__(self,schema,beam_width):
         self.get_init_states=schema.get_init_states
         print(schema.name)

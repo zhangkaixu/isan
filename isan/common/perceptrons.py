@@ -129,12 +129,13 @@ class Model(object):
         解码，读入生句子，返回词的数组
         """
         rst_moves=self.search(raw,Y)
+
         hat_y=self.task.moves_to_result(rst_moves,raw)
         if threshold==0 : 
             return hat_y
         else:
-            states=self.searcher.get_states()
-            return self.task.gen_candidates(states,threshold)
+            margins=self.searcher.cal_margins()
+            return self.task.gen_candidates(margins,threshold)
 
     def _learn_sentence(self,arg):
         """

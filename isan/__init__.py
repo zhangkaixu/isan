@@ -47,7 +47,7 @@ def get_args(string=None):
             help='相应的.sh文件中已设置好（如有向图解码、Shift-Reduce解码）',metavar='解码算法')
     meta_group.add_argument('--task',dest='task',default=None,
             help='相应的.sh文件中已设置好（如分词、句法分析）',metavar='任务')
-    parser.add_argument('--train',action='append', help='训练语料库',metavar=('训练集'))
+    parser.add_argument('--train',default=[],action='append', help='训练语料库',metavar=('训练集'))
     parser.add_argument('--test',dest='test_file', help='测试用语料库',metavar=('测试集'))
     parser.add_argument('--iteration',dest='iteration',default=5,type=int,
             help='学习迭代次数(default: %(default)s)',metavar='迭代次数')
@@ -195,14 +195,14 @@ def isan(**args):
         threshold=args.threshold
         print("以 %s 作为输入，以 %s 作为输出"%(make_color('标准输入流'),make_color('标准输出流')),file=sys.stderr)
         if threshold :
-            print("输出分数差距在 %s 之内的候选词"%(make_color(threshold*1000)),file=sys.stderr)
+            print("输出分数差距在 %s 之内的候选词"%(make_color(threshold)),file=sys.stderr)
         for line in sys.stdin:
             line=line.strip()
             line=model.task.codec.decode(line)
             raw=line.get('raw','')
             Y=line.get('Y_a',None)
             if threshold :
-                print(model.task.codec.candidates_encode(model(raw,Y,threshold=threshold)))
+                print(model.task.codec.encode_candidates(model(raw,Y,threshold=threshold)))
             else :
                 print(model.task.codec.encode(model(raw,Y)))
     return list(rec)
