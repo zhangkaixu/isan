@@ -78,13 +78,23 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     State=State
     Eval=Eval
 
-    def __init__(self,args):
+    def __init__(self,cmd_args,logger=None):
 
         self.models=[]
         #self.models=[SubSym()]
         #self.models.append(Word())
         #self.models.append(Bigram())
         #self.models.append(Trigram())
+
+        if(hasattr(cmd_args,'debug')): self.debug=True
+        if hasattr(self,'debug'):
+            self.char_weights={}
+            for line in open('weights.txt'):
+                line=line.split()
+                if len(line)!=3 : 
+                    line[-2]=int(line[-2])
+                self.char_weights[tuple(line[:-1])]=float(line[-1])
+
         """
         self.ae={}
         for line in open('ae_output.txt'):
@@ -156,13 +166,13 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             self.uni_fv.append([])
             for ws_current in 'BMES':
                 self.uni_fv[-1].append([
-                        #'CH1'+uni_chars[c_ind-1]+ws_current,
-                        "CH2"+uni_chars[c_ind]+ws_current,
-                        #"CH3"+uni_chars[c_ind+1]+ws_current,
-                        #"CHa"+bi_chars[c_ind-2]+ws_current,
-                        "CHb"+bi_chars[c_ind-1]+ws_current,
-                        "CHc"+bi_chars[c_ind]+ws_current,
-                        #"CHd"+bi_chars[c_ind+1]+ws_current,
+                        [uni_chars[c_ind-1],2,ws_current],
+                        [uni_chars[c_ind],1,ws_current],
+                        [uni_chars[c_ind+1],0,ws_current],
+                        [bi_chars[c_ind-2],3,ws_current],
+                        [bi_chars[c_ind-1],2,ws_current],
+                        [bi_chars[c_ind],1,ws_current],
+                        [bi_chars[c_ind+1],0,ws_current],
                         ])
 
         self.atoms=[]
@@ -179,16 +189,22 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                 for i in range(b+1,e-1):
                     cb+=self.uni_fv[i][1]
                 cb+=self.uni_fv[e-1][2]
-            cb=[x+t for x in cb]
+            cb=[(p+'-'+t,k,ind) for k,ind,p in cb]
             if b+1<e :
                 if b+2==e :
-                    cb+=['CHT'+t+'-BE']
+                    cb+=[('B-'+t,'E-'+t)]
                 else :
-                    cb+=['CHT'+t+'-BM']
-                    cb+=['CHT'+t+'-MM' for i in range(e-b-3)]
-                    cb+=['CHT'+t+'-ME']
+                    cb+=[('B-'+t,'M-'+t)]
+                    cb+=[('M-'+t,'M-'+t) for i in range(e-b-3)]
+                    cb+=[('M-'+t,'E-'+t)]
+            if hasattr(self,'debug'):
+                if cb :
+                    cb=sum(self.char_weights[x] for x in cb if x in self.char_weights)
+                else :
+                    cb=0
+                pass
             self.atoms.append((w,t,m,str(len(w)),cb))
-        self.atoms.append(('~','~','','0',[]))
+        self.atoms.append(('~','~','','0',0))
 
         for model in self.models :
             model.set_raw(self.atoms)
@@ -209,6 +225,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             score=0#m3*self.m_d[0] if m3 is not None else 0
             for model in self.models :
                 score+=model(ind1,ind2,ind3,delta*0.1,step)
+            score+=cb3
             fv=[]
             #"""
             fv=(
@@ -225,12 +242,12 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                     't3t1~'+t3+'~'+t1, 't3t2t1~'+t3+'~'+t2+'~'+t1,
                     'l3l1~'+len3+'~'+len1, 'l3l2l1~'+len3+'~'+len2+'~'+len1,
                     ])#"""
-            """
-            fv+=cb3
-            if len2 :
-                l2=t2+('-S' if len2=='1' else '-E')
-                l3=t3+('-S' if len3=='1' else '-B')
-                fv+=['CHT'+l2+l3]
+            #"""
+            if hasattr(self,'debug'):
+                if len2 :
+                    l2=('S-' if len2=='1' else 'E-')+t2
+                    l3=('S-' if len3=='1' else 'B-')+t3
+                    score+=self.char_weights.get((l2,l3),0)
                 #print(w2,t2,w3,t3,l2,l3)
                 #"""
             #print(w3,t3,fv)
