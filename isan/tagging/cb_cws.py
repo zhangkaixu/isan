@@ -25,6 +25,13 @@ class codec:
     def encode(y):
         return ' '.join(x[0] for x in y)
 
+    @staticmethod
+    def encode_candidates(x):
+        raw,candidates=x
+        print(raw)
+        print(candidates)
+        pass
+
 class Task  :
     name="sub-symbolic Character-based CWS"
 
@@ -59,6 +66,39 @@ class Task  :
         if cache : results.append((''.join(cache),tg))
         return results
 
+    def gen_candidates(self,margins,threshold):
+        score,margins=margins
+        print(self.raw,threshold)
+        candidates=[]
+        cands=[]
+        for i,ml in enumerate(margins):
+            cands.append([])
+            for j,it in enumerate(ml):
+                a,e,b=it
+                if(a+b+e+threshold < score ) : continue
+                cands[-1].append((j,a,e,b))
+
+        for i,column in enumerate(cands):
+            for a_tid,a_alpha,a_e,a_beta in column :
+                a_t=self.indexer[a_tid]
+                if a_t[0]=='S' :
+                    print(self.raw[i:i+1],a_t)
+                    candidates.append((i,i+1,a_t))
+                if a_t[0]=='B' :
+                    tag=a_t[2:]
+
+                continue
+                if b[0]=='B' :
+                    tag=b[2:]
+                    for j in range(i+1,len(margins)):
+                        flag=False
+                        for e in margins[j] :
+                            if tag!=e[2:] : continue
+                            if e[0]=='E' :
+                                candidates.append((i,j+1,tag))
+                            if e[0]=='M' : flag=True
+                        if flag==False : break
+        return self.raw,candidates
 
     def check(self,std_moves,rst_moves):
         return std_moves[0][-1]==rst_moves[0][-1]

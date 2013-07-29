@@ -23,6 +23,7 @@ class Interface{
     //typedef Searcher<State_Info_Type > My_Searcher;
 public:
     size_t tagset_size;
+    size_t length;
     
     PyObject * py_emission; // call to get the emission score
     PyObject * py_transition; // call to get the transition score
@@ -32,7 +33,11 @@ public:
     Score_Type* emissions;
     Score_Type* transitions;
     Alpha_Beta* alphas;
+    Alpha_Beta* betas;
     Tag_Type* tags;
+    Score_Type score;
+
+public:
 
     Interface(size_t tagset_size, // size of the tag set
             PyObject * py_emission, // call to get the emission score
@@ -40,6 +45,7 @@ public:
             ){
         emissions=new Score_Type[MAX_LEN*tagset_size];
         alphas=new Alpha_Beta[MAX_LEN*tagset_size];
+        betas=new Alpha_Beta[MAX_LEN*tagset_size];
         transitions=new Score_Type[tagset_size*tagset_size];
         tags=new Tag_Type[MAX_LEN];
         
@@ -48,6 +54,7 @@ public:
         this->tagset_size=tagset_size;
         this->py_emission=py_emission;
         this->py_transition=py_transition;
+        length=0;
 
         Py_INCREF(Py_None);
         raw=Py_None;
@@ -58,6 +65,7 @@ public:
         delete emissions;
         delete transitions;
         delete alphas;
+        delete betas,
         tagset_size=new_tagset_size;
 
         emissions=new Score_Type[MAX_LEN*tagset_size];
@@ -65,6 +73,9 @@ public:
 
         alphas=new Alpha_Beta[MAX_LEN*tagset_size];
         std::memset(alphas,0,sizeof(Alpha_Beta)*MAX_LEN*tagset_size);
+
+        betas=new Alpha_Beta[MAX_LEN*tagset_size];
+        std::memset(betas,0,sizeof(Alpha_Beta)*MAX_LEN*tagset_size);
 
         transitions=new Score_Type[tagset_size*tagset_size];
         std::memset(transitions,0,sizeof(Score_Type)*tagset_size*tagset_size);
@@ -82,6 +93,7 @@ public:
         Py_DECREF(py_transition);
         delete emissions;
         delete alphas;
+        delete betas,
         delete tags;
         delete transitions;
     };
@@ -166,9 +178,8 @@ search(PyObject *self, PyObject *arg)
     PyArg_ParseTuple(arg, "LO", &interface,&py_init_states);
 
 
-    size_t len;
 
-    len=get_matrix(interface,interface->raw,interface->py_emission,
+    interface->length=get_matrix(interface,interface->raw,interface->py_emission,
             interface->tagset_size,interface->emissions);
     
     get_matrix(interface,interface->raw,interface->py_transition,
@@ -178,28 +189,95 @@ search(PyObject *self, PyObject *arg)
     Score_Type score;
     score=dp_decode(
         interface->tagset_size,
-        len,
+        interface->length,
         interface->transitions,
         interface->emissions,
         interface->alphas,
         interface->tags
         );
+    interface->score=score;
 
+    // a list of tags
+
+    //std::cout<<score<<"\n";
+    
     PyObject * result_list;
-    result_list=PyList_New(len);
-
-    for(int i=0;i<len;i++){
+    result_list=PyList_New(interface->length);
+    for(int i=0;i<interface->length;i++){
         PyObject* ind=PyLong_FromLong(interface->tags[i]);
         PyList_SetItem(result_list,i,ind);
+
+        /*
+
+        for(int j=0;j<interface->tagset_size;j++){
+            //std::cout<<interface->alphas[i*interface->tagset_size + j].value<<" ";
+            //std::cout<<interface->betas[i*interface->tagset_size + j].value<<" ";
+            std::cout<<interface->alphas[i*interface->tagset_size + j].value+
+                    interface->betas[i*interface->tagset_size + j].value-
+                    interface->emissions[i*interface->tagset_size + j]-
+                    score
+                    <<" ";
+        }
+        std::cout<<"\n";*/
+        
     };
 
     
+    // put the list into a tuple, then a list
     PyObject * rtn_list=PyList_New(1);
-    
     PyObject * py_move=PyTuple_Pack(3,Py_None,Py_None,result_list);
     PyList_SetItem(rtn_list,0,py_move);
     Py_DECREF(result_list);
     return rtn_list;
+};
+
+static PyObject *
+cal_margins(PyObject *self, PyObject *arg)
+{
+
+    Interface* interface;
+    PyArg_ParseTuple(arg, "L", &interface);
+
+    dp_cal_beta(
+        interface->tagset_size,
+        interface->length,
+        interface->transitions,
+        interface->emissions,
+        interface->betas
+        );
+
+
+    PyObject * result_list;
+    result_list=PyList_New(interface->length);
+
+    for(int i=0;i<interface->length;i++){
+        PyObject * step_list=PyList_New(interface->tagset_size);
+
+        for(int j=0;j<interface->tagset_size;j++){
+            PyObject * item_list=PyList_New(3);
+            PyList_SetItem(item_list,0,PyFloat_FromDouble(
+                        interface->alphas[i*interface->tagset_size + j].value
+                        -interface->emissions[i*interface->tagset_size + j]
+                        ));
+            PyList_SetItem(item_list,1,PyFloat_FromDouble(
+                        interface->emissions[i*interface->tagset_size + j]
+                        ));
+            PyList_SetItem(item_list,2,PyFloat_FromDouble(
+                        interface->betas[i*interface->tagset_size + j].value
+                        -interface->emissions[i*interface->tagset_size + j]
+                        ));
+
+            PyList_SetItem(step_list,j,item_list);
+
+        }
+        PyList_SetItem(result_list,i,step_list);
+    };
+
+    PyObject * final_list=PyList_New(2);
+    PyList_SetItem(final_list,0,PyFloat_FromDouble(interface->score));
+    PyList_SetItem(final_list,1,result_list);
+    return final_list;
+    
 };
 
 static PyObject *
@@ -257,7 +335,7 @@ static PyMethodDef interfaceMethods[] = {
     {"make_dat",  do_nothing, METH_VARARGS,""},
     {"average_weights", do_nothing , METH_VARARGS,""},
     {"un_average_weights", do_nothing , METH_VARARGS,""},
-    {"get_states",  do_nothing, METH_VARARGS,""},
+    {"cal_margins",  cal_margins, METH_VARARGS,""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
