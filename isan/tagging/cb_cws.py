@@ -23,13 +23,13 @@ class codec:
         return {'raw':raw, 'y': seq, 'Y_a': 'y'}
     @staticmethod
     def encode(y):
-        return ' '.join(x[0] for x in y)
+        return ' '.join(x[0]+ '_'+x[1] if x[1] else '' for x in y)
 
     @staticmethod
     def encode_candidates(x):
         raw,candidates=x
-        print(raw)
-        print(candidates)
+        return(' '.join(("%d,%d,%s,%s,%0.4f"%(b,e,raw[b:e],t,m))for b,e,t,m in candidates))
+            
         pass
 
 class Task  :
@@ -68,7 +68,6 @@ class Task  :
 
     def gen_candidates(self,margins,threshold):
         score,margins=margins
-        print(self.raw,threshold)
         candidates=[]
         cands=[]
         for i,ml in enumerate(margins):
@@ -81,23 +80,27 @@ class Task  :
         for i,column in enumerate(cands):
             for a_tid,a_alpha,a_e,a_beta in column :
                 a_t=self.indexer[a_tid]
-                if a_t[0]=='S' :
-                    print(self.raw[i:i+1],a_t)
-                    candidates.append((i,i+1,a_t))
-                if a_t[0]=='B' :
+                if a_t[0]=='S' or (i==0 and a_t[0]=='E') or (i+1==len(cands) and a_t[0]=='B'):
+                    candidates.append((i,i+1,a_t[2:],score-(a_alpha+a_beta+a_e)))
+                elif a_t[0]=='B' or (i==0 and a_t[0]=='M'):
+                    value=a_alpha+a_e
                     tag=a_t[2:]
-
-                continue
-                if b[0]=='B' :
-                    tag=b[2:]
+                    last_tid=a_tid
                     for j in range(i+1,len(margins)):
                         flag=False
-                        for e in margins[j] :
-                            if tag!=e[2:] : continue
-                            if e[0]=='E' :
-                                candidates.append((i,j+1,tag))
-                            if e[0]=='M' : flag=True
+                        for b_tid,b_alpha,b_e,b_beta in cands[j]:
+                            b_t=self.indexer[b_tid]
+                            if b_t[2:]!=tag : continue
+                            if b_t[0]=='E' or (j+1==len(cands) and b_t[0]=='M'):
+                                s=value+b_e+b_beta+self.trans[last_tid][b_tid]
+                                if s+threshold >= score :
+                                    candidates.append((i,j+1,tag,score-s))
+                            if b_t[0]=='M' :
+                                value+=b_e+self.trans[last_tid][b_tid]
+                                last_tid=b_tid
+                                flag=True
                         if flag==False : break
+
         return self.raw,candidates
 
     def check(self,std_moves,rst_moves):
