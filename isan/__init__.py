@@ -47,7 +47,7 @@ def get_args(string=None):
             help='相应的.sh文件中已设置好（如有向图解码、Shift-Reduce解码）',metavar='解码算法')
     meta_group.add_argument('--task',dest='task',default=None,
             help='相应的.sh文件中已设置好（如分词、句法分析）',metavar='任务')
-    parser.add_argument('--train',action='append', help='训练语料库',metavar=('训练集'))
+    parser.add_argument('--train',default=[],action='append', help='训练语料库',metavar=('训练集'))
     parser.add_argument('--test',dest='test_file', help='测试用语料库',metavar=('测试集'))
     parser.add_argument('--iteration',dest='iteration',default=5,type=int,
             help='学习迭代次数(default: %(default)s)',metavar='迭代次数')
