@@ -43,3 +43,10 @@
 
     ./isan.sh seg ctb.seg.gz < input_file > output_file
 
+已训练模型列表
+--------------------------
+
+
+ctb.seg.gz http://t.cn/zQxy95O
+
+ctb.tag.gz http://t.cn/zQxg4lX
