@@ -181,12 +181,14 @@ class Task  :
         self.indexer,self.ts,trans,others=features
         if len(self.trans)==0 :
             self.trans=trans
-            self.trans_s=1
+            self.trans_s=[[0.0 for y in x]for x in trans]
         else :
             for i,a in enumerate(self.trans):
                 for j,b in enumerate(a):
-                    self.trans[i][j]=(self.trans[i][j]*self.trans_s+trans[i][j])/(self.trans_s+1)
-            self.trans_s+=1
+                    if trans[i][j]==0 : continue
+                    self.trans[i][j]=(self.trans[i][j]*self.trans_s[i][j]+trans[i][j])/(self.trans_s[i][j]+1)
+                    self.trans_s[i][j]+=1
+            #self.trans_s+=1
         for k,v in others.items() :
             self.feature_models[k].add_model(v)
 

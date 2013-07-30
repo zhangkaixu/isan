@@ -76,7 +76,7 @@ class Character:
     def update(self,std_tags,rst_tags,delta,step):
         l=len(self.raw)
         for i,k in enumerate(self.uni) :
-            #if chr(0) in k : continue
+            if chr(0) in k : continue
             if k not in self.uni_d : 
                 self.uni_d[k]=[numpy.zeros(self.ts,dtype=float),
                     numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
@@ -101,7 +101,7 @@ class Character:
                 s[2][rst_tags[i]]-=step
 
         for i,k in enumerate(self.bi) :
-            #if chr(0) in k : continue
+            if chr(0) in k : continue
             if k not in self.bi_d : 
                 self.bi_d[k]=[numpy.zeros(self.ts,dtype=float),
                     numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
