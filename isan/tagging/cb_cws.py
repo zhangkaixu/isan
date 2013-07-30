@@ -12,30 +12,99 @@ from isan.tagging.cb_subsymbolic import Mapper as Mapper
 from isan.tagging.cb_subsymbolic import PCA as PCA
 from isan.tagging.cb_symbolic import Character as Character
 
-class codec:
-    @staticmethod
-    def decode(line):
+class Codec :
+    with_gold=False
+    
+    def decode(self,line):
         if not line: return None
         seq=[word for word in line.split()]
         seq=[(word.partition('_')) for word in seq]
         seq=[(w,t) for w,_,t in seq]
         raw=''.join(x[0] for x in seq)
+        if self.with_gold :
+            self.gold=seq
         return {'raw':raw, 'y': seq, 'Y_a': 'y'}
-    @staticmethod
-    def encode(y):
+
+    def encode(self,y):
         return ' '.join(x[0]+ '_'+x[1] if x[1] else '' for x in y)
 
-    @staticmethod
-    def encode_candidates(x):
+    def check_connections(self,rst):
+        keys=set(rst.keys())
+        begins={}
+        ends={}
+        for k in keys :
+            b,e,t=k
+            if b not in begins : begins[b]=set()
+            begins[b].add(k)
+            if e not in ends : ends[e]=set()
+            ends[e].add(k)
+
+        check=list(sorted(begins.keys()|set(ends.keys())))
+        begins[check[-1]]={'$'}
+        ends[0]={'^'}
+        while check :
+            ind=check.pop()
+            left=(ind in begins and len(begins[ind])>0)
+            right=(ind in ends and len(ends[ind])>0)
+            if left and right :
+                continue
+            if not left and not right :
+                continue
+            if ind in begins :
+                for k in begins[ind] :
+                    ends[k[1]].remove(k)
+                    keys.remove(k)
+                    check.append(k[1])
+                begins[ind]={}
+            if ind in ends :
+                for k in ends[ind] :
+                    begins[k[0]].remove(k)
+                    keys.remove(k)
+                    check.append(k[0])
+                ends[ind]={}
+
+        return {k:v for k,v in rst.items() 
+                if k in keys
+                }
+
+
+
+    def encode_candidates(self,x):
         raw,candidates=x
-        return(' '.join(("%d,%d,%s,%s,%0.4f"%(b,e,raw[b:e],t,m))for b,e,t,m in candidates))
-            
-        pass
+        rst={}
+        for b,e,t,m in candidates :
+            if m <-1 : 
+                print(raw,file=sys.stderr)
+                print(b,e,raw[b:e],t,m,file=sys.stderr)
+            rst[(b,e,t)]=[0,m if m>0 else 0]
+        offset=0
+
+        self.raw=raw
+        rst=self.check_connections(rst)
+
+        for w,t in self.gold :
+            key=(offset,offset+len(w),t)
+            offset+=len(w)
+            if key in rst : 
+                rst[key][0]=1
+            else : 
+                rst[key]=[1,-9]
+
+        cands=[]
+        for k,v in rst.items():
+            cands.append([v[0],k[0],k[1],raw[k[0]:k[1]]
+                    ,k[2],v[1],
+                ])
+        cands=sorted(cands,key=lambda x: (x[1],x[2]))
+
+        return(' '.join(("%d,%d,%d,%s,%s,%0.4f"%(
+            l,b,e,w,t,m))
+            for l,b,e,w,t,m in cands))
 
 class Task  :
     name="sub-symbolic Character-based CWS"
 
-    codec=codec
+    codec=Codec()
     Eval=tagging_eval.TaggingEval
 
     def get_init_states(self) : return None
@@ -75,6 +144,8 @@ class Task  :
             for j,it in enumerate(ml):
                 a,e,b=it
                 if(a+b+e+threshold < score ) : continue
+                if a+b+e> score+1 :
+                    print('xxxxxxxxxxxxxx',file=sys.stderr)
                 cands[-1].append((j,a,e,b))
 
         for i,column in enumerate(cands):
@@ -86,18 +157,26 @@ class Task  :
                     value=a_alpha+a_e
                     tag=a_t[2:]
                     last_tid=a_tid
+                    next_value=value
+                    next_tid=last_tid
                     for j in range(i+1,len(margins)):
                         flag=False
+                        value=next_value
+                        last_tid=next_tid
                         for b_tid,b_alpha,b_e,b_beta in cands[j]:
                             b_t=self.indexer[b_tid]
                             if b_t[2:]!=tag : continue
                             if b_t[0]=='E' or (j+1==len(cands) and b_t[0]=='M'):
                                 s=value+b_e+b_beta+self.trans[last_tid][b_tid]
                                 if s+threshold >= score :
+                                    if score-s <-1 :
+                                        print(i,j,file=sys.stderr)
+                                        print(self.indexer[last_tid],b_t,file=sys.stderr)
+                                        print(value,b_e,b_beta,self.trans[last_tid][b_tid],file=sys.stderr)
                                     candidates.append((i,j+1,tag,score-s))
                             if b_t[0]=='M' :
-                                value+=b_e+self.trans[last_tid][b_tid]
-                                last_tid=b_tid
+                                next_value=value+b_e+self.trans[last_tid][b_tid]
+                                next_tid=b_tid
                                 flag=True
                         if flag==False : break
 
@@ -138,19 +217,16 @@ class Task  :
                 'base':lambda x : Character(self.ts,x)}
         self.feature_models={}
 
+        args=Args()
+        args.eta=0.001
+        args.use_pca=False
+        args.use_ae=False
+        if hasattr(cmd_args,'task_seg'):
+            for k,v in cmd_args.task_seg.items():
+                setattr(args,k,v)
+        
+        dargs=vars(args)
         if model==None :
-            args=Args()
-            args.eta=0.001
-            args.use_pca=False
-            args.use_ae=False
-            if hasattr(cmd_args,'task_seg'):
-                for k,v in cmd_args.task_seg.items():
-                    setattr(args,k,v)
-            
-            dargs=vars(args)
-
-
-
             for train in cmd_args.train :
                 for line in open(train) :
                     x=self.codec.decode(line)
@@ -172,6 +248,8 @@ class Task  :
             if args.use_ae :
                 self.feature_models['ae']=self.feature_class['ae'](None,args=args.use_ae)
         else :
+            self.codec.with_gold=('with_gold' in dargs)
+
             self.oracle=None
             self.indexer,self.ts,self.trans,features=model
             for k,v in features.items():

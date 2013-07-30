@@ -30,7 +30,7 @@ class Model(object):
 
         if model_file!=None:
             file=gzip.open(model_file,"rb")
-            self.task=Task(pickle.load(file),logger=logger)
+            self.task=Task(model=pickle.load(file),logger=logger)
             file.close()
         else : # new model to train
             self.task=Task(logger=logger)

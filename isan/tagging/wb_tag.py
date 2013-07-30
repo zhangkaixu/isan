@@ -8,12 +8,6 @@ from isan.tagging.eval import TaggingEval as Eval
 import numpy as np
 import gzip
 
-sys.path.append('/home/zkx/exps/tagpath')
-from bigram import Bigram as Bigram
-from bigram import Trigram as Trigram
-from bigram import Word as Word
-
-
 class codec :
     @staticmethod
     def decode(line):
@@ -24,17 +18,23 @@ class codec :
         if not line: return []
         log2=math.log(2)
         line=list(map(lambda x:x.split(','), line.split()))
-        line=[[int(label),int(b),int(e),w,t,int(conf)] for label,b,e,w,t,conf in line]
+        for i,it in enumerate(line):
+            if len(it)!=6 :
+                l=it[:3]
+                r=it[-2:]
+                m=it[3:-2]
+                line[i]=l+[','.join(m)]+r
+
+        line=[[int(label),int(b),int(e),w,t,float(conf)] for label,b,e,w,t,conf in line]
         items2=[]
         gold=[]
         for l,b,e,w,t,conf in line :
-            if conf != -2:
-                if conf == -1 :
-                    conf = None
-                else :
-                    #conf = str(math.floor(math.log(conf/500+1)))
-                    conf = conf/1000
-                items2.append((b,e,(w,t,conf)))
+            if conf <= -1 :
+                conf = None
+            else :
+                pass
+                #conf = conf/1000
+            items2.append((b,e,(w,t,conf)))
             if l ==1 :
                 gold.append((w,t))
         raw=Lattice(items2)
@@ -54,10 +54,17 @@ class State (list):
         self.extend(pickle.loads(bt))
         self.lattice=lattice
 
-    def shift(self):
+    def shift(self,showall=False):
         begin=0 if self[1]==-1 else self.lattice[self[1]][1]
+
+        if begin not in self.lattice.begins : return []
+        
+        b=self.lattice.begins[begin]
+
         return [[n,pickle.dumps((self[1],n))] 
-                for n in self.lattice.begins[begin]]
+                for n in self.lattice.begins[begin]
+                if (self.lattice[n][2][-1] is not None or showall)
+                ]
 
     def dumps(self):
         return pickle.dumps(tuple(self))
@@ -134,28 +141,55 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         next_ind=last_ind+len(self.lattice[action][2][0])
         return next_ind if next_ind != self.lattice.length else -1
 
-    def shift(self,last_ind,stat):
-        return [(a,self._next_ind(last_ind,a),s) 
-                for a,s in self.State(self.lattice,stat).shift()]
+    def shift(self,last_ind,stat,showall=False):
+        rtn= [(a,self._next_ind(last_ind,a),s) 
+                for a,s in self.State(self.lattice,stat).shift(showall)]
+        return rtn
 
     reduce=None
 
 
+    def actions_to_moves(self,actions,lattice):
+        state=self.State(lattice)
+        stack=[state]
+        moves=[[None,None,action] for action in actions]
+        moves[0][0]=0
+        moves[0][1]=self.State.init_state
+        for i in range(len(moves)-1) :
+            move=moves[i]
+            step,state,action=move
+            ind,label=action
+            if ind >=0 : # shift
+                rst=[[nstep,ns] for a,nstep,ns in self.shift(step,state,True) if a==self.Action.encode(action)]
+                moves[i+1][0],moves[i+1][1]=rst[0]
+                stack.append(rst[0][1])
+            else : # reduce 
+                s0=stack.pop()
+                s1=stack.pop()
+                rst=[[nstep,ns] for a,nstep,ns,_ in self.reduce(step,s0,[0],[s1]) if a==self.Action.encode(action)]
+                moves[i+1][0],moves[i+1][1]=rst[0]
+                stack.append(rst[0][1])
+                pass
+        for move in moves:
+            move[2]=self.Action.encode(move[2])
+
+        moves=list(map(tuple,moves))
+        return moves
 
     # feature related
 
     def set_raw(self,raw,Y):
         self.lattice=raw
 
+        
 
         b=0
-        seq=[]
-        while b in self.lattice.begins :
-            ind=self.lattice.begins[b][0]
-            _,b,d=self.lattice[ind]
-            seq.append(d[0])
+        l=max(x[1] for x in self.lattice)
+        seq=['' for i in range(l)]
+        for b,e,data in self.lattice :
+            for i in range(len(data[0])):
+                seq[b+i]=data[0][i]
         seq=''.join(seq)
-        #print(seq)
         uni_chars=list(x for x in '##'+seq+'###')
         bi_chars=[uni_chars[i]+uni_chars[i+1]
                 for i in range(len(uni_chars)-1)]
@@ -210,7 +244,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             model.set_raw(self.atoms)
 
     def gen_features(self,state,actions,delta=0,step=0):
-        strm=lambda x:'x' if x=='' else str(math.floor(math.log(x*2+1)))
+        strm=lambda x:'x' if x=='' else str(math.floor(math.log((x if x>0 else 0)*2+1)))
         fvs=[]
         state=self.State(self.lattice,state,)
         ind1,ind2=state
@@ -225,11 +259,12 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             score=0#m3*self.m_d[0] if m3 is not None else 0
             for model in self.models :
                 score+=model(ind1,ind2,ind3,delta*0.1,step)
+
             fv=[]
             #"""
             fv=(
-                (['m3~'+strm(m3), ] if m3 is not None else []) +
-                    ([ 'm3m2~'+strm(m3)+'~'+strm(m2), ] if m3 is not None  and m2 is not None else [])+
+                #(['m3~'+strm(m3), ] if m3 is not None else []) +
+                    #([ 'm3m2~'+strm(m3)+'~'+strm(m2), ] if m3 is not None  and m2 is not None else [])+
             [
                     'w3~'+w3, 't3~'+t3, 'l3~'+len3, 'w3t3~'+w3+t3, 'l3t3~'+len3+t3,
 
@@ -254,8 +289,10 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             fvs.append(fv)
             scores.append(score)
 
+
         if delta==0 :
-            return [[self.weights(fv)+s] for fv,s in zip(fvs,scores)]
+            rtn= [[self.weights(fv)+s] for fv,s in zip(fvs,scores)]
+            return rtn
         else :
             for fv in fvs :
                 #print(fv,delta,step)
@@ -263,19 +300,40 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             return [[] for fv in fvs]
         return fvs
 
-    """
     def update_moves(self,std_moves,rst_moves,step) :
+        dirty=set()
+        for b,e,data in self.lattice :
+            if data[-1]==None :
+                for x in range(b,e) :
+                    dirty.add(x)
+
         max_step=max(x[0] for x in rst_moves)
         std_moves=set(x for x in std_moves if x[0]<=max_step)
         rst_moves=set(rst_moves)
         for m in std_moves-rst_moves :
-            print(pickle.loads(m[1]),m[2],1)
-            self._update(m,1,step)
+            a,b=pickle.loads(m[1])
+            c=m[-1]
+            flag=True
+            for x in [a,b,c] :
+                if x==-1 : continue
+                l,r,_=self.lattice[x]
+                for ind in range(l,r):
+                    if ind in dirty : flag=False
+            if flag : 
+                self._update(m,1,step)
         for m in rst_moves-std_moves :
-            print(pickle.loads(m[1]),m[2],-1)
-            self._update(m,-1,step)
-        print(self.weights.data)"""
+            a,b=pickle.loads(m[1])
+            c=m[-1]
+            flag=True
+            for x in [a,b,c] :
+                if x==-1 : continue
+                l,r,_=self.lattice[x]
+                for ind in range(l,r):
+                    if ind in dirty : flag=False
+            if flag : 
+                self._update(m,-1,step)
     """
+
     def update_moves(self,std_moves,rst_moves,step) :
         #print(self.lattice)
         for s,r in zip(std_moves,rst_moves) :

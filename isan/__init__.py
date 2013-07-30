@@ -181,7 +181,7 @@ def isan(**args):
                     name_task),file=sys.stderr)
     
     model=Model(args.model_file,
-                    Task=Task,
+                    (lambda **x: Task(cmd_args=args,**x)),
                     Searcher=Decoder,beam_width=int(args.beam_width),
                     logger=logger,
                     )
@@ -191,6 +191,7 @@ def isan(**args):
         print("使用已经过%s的文件%s作为测试集"%(name_task,make_color(args.test_file)),file=sys.stderr)
         model.test(args.test_file)
         return list(rec)
+
     if not args.test_file and not args.append_model and not args.train:
         threshold=args.threshold
         print("以 %s 作为输入，以 %s 作为输出"%(make_color('标准输入流'),make_color('标准输出流')),file=sys.stderr)
