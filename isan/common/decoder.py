@@ -45,7 +45,6 @@ class First_Order_Linear(Searcher):
         return self.searcher.cal_margins(self.handler)
     def __init__(self,schema,beam_width):
         self.get_init_states=schema.get_init_states
-        print(schema.name)
         self.do_set_raw=True
         self.handler=self.searcher.new(
                 1,

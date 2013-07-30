@@ -66,6 +66,7 @@ public:
         delete transitions;
         delete alphas;
         delete betas,
+
         tagset_size=new_tagset_size;
 
         emissions=new Score_Type[MAX_LEN*tagset_size];
@@ -93,7 +94,7 @@ public:
         Py_DECREF(py_transition);
         delete emissions;
         delete alphas;
-        delete betas,
+        delete betas;
         delete tags;
         delete transitions;
     };
@@ -115,9 +116,10 @@ inline size_t get_matrix(Interface* interface, PyObject* raw, PyObject* callable
             interface->set_tagset_size(new_tag_set);
         };
         
-        for(int j=0;j<tagset_size;j++){
-            array[i*tagset_size+j]=(PyFloat_AsDouble(PyList_GET_ITEM(ch,j)));
+        for(int j=0;j<interface->tagset_size;j++){
+            array[i*interface->tagset_size+j]=(PyFloat_AsDouble(PyList_GET_ITEM(ch,j)));
         };
+        
     };
     Py_DECREF(result);
     return size;
@@ -178,6 +180,7 @@ search(PyObject *self, PyObject *arg)
     PyArg_ParseTuple(arg, "LO", &interface,&py_init_states);
 
 
+    
 
     interface->length=get_matrix(interface,interface->raw,interface->py_emission,
             interface->tagset_size,interface->emissions);
