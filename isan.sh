@@ -43,6 +43,15 @@ if [ $1 = 'cws' ] ; then
         $@
 fi
 
+if [ $1 = 'tag' ] ; then
+    shift
+    ./isan.py \
+        --model isan.common.perceptrons.Model \
+        --decoder isan.common.decoder.DFA \
+        --task isan.tagging.wb_tag.Path_Finding \
+        $*
+fi
+
 
 if [ $1 = 'lat_dep' ] ; then
     shift
