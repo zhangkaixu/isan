@@ -95,7 +95,7 @@ Early-update
 
     f(\mathbf{x};\mathbf{z})=\sum_{p}{h(\mathbf{x};z_{p},z_{l},z_{r})}+\sum_{l}{g(\mathbf{x};z_{l})}
 
-已实现的方法
+已实现的模型
 +++++++++++++++++++++++++++
 
 基于字标注的分词词性标注
