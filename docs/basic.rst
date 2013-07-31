@@ -56,3 +56,11 @@
 ++++++++++++++++++++++++++++++++
 
 
+.. _trained_model_parameter_list:
+
+已训练模型参数文件列表
+--------------------------------
+
+中文分词 使用 ``wget http://t.cn/zQxy95O -O ctb.seg.gz``  获取，使用 ``./isan.sh seg ctb.seg.gz`` 启动
+
+中文分词词性标注  使用 ``http://t.cn/zQxg4lX -O ctb.tag.gz`` 获取， 使用 ``./isan.sh seg ctb.tag.gz`` 启动

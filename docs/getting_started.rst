@@ -1,7 +1,7 @@
 上手
 =============
 
-在此以Ubuntu操作系统为例，介绍如何安装和使用 isan 。
+在此以Ubuntu操作系统为例，介绍如何安装和使用isan的基本功能。
 
 下载与编译
 ----------------------
@@ -14,15 +14,20 @@
 
 .. note::
 
-    本工具使用的是python3，与最常用的python版本python2不太兼容。
+    本工具包使用的是python3，与最常用的python版本python2不完全兼容。
 
-然后选好路径，使用下载 isan 源代码，编译::
+    为了提高速度，解码核心算法使用c++编写，因此还需要gcc进行编译。
+    
+    
+
+然后选好路径，下载isan源代码，编译::
 
     git clone https://github.com/zhangkaixu/isan.git
     cd isan
     make
 
-如果编译正确，就说明已经可以使用了。
+编译正确后，就可以使用了。
+
 
 使用训练好的模型
 ----------------------
@@ -31,22 +36,20 @@
 
     wget http://t.cn/zQxy95O -O ctb.seg.gz
 
-试试分词::
+.. seealso::
+    
+    在这里有一份已经训练好的模型参数的列表 :ref:`trained_model_parameter_list`
+
+这是一个在中文树库5上训练的分词模型参数文件，试试分词::
 
     echo '厦门大学' | ./isan.sh seg ctb.seg.gz
 
-其中 `isan.sh` 是用来启动isan及其常用任务的脚本。 `seg` 是一个基于字标注的分词任务。 `ctb.seg.gz` 是刚才下载的对应的模型。 运行后将会得到这样的输出::
+其中 ``isan.sh`` 是用来启动isan及其常用任务的脚本。 用 ``seg`` 来指明一个基于字标注的模型。 ``ctb.seg.gz`` 是刚才下载的对应的参数文件。 运行后将会得到这样的输出::
 
     厦门 大学
 
-程序从标准输入流读入输入数据，将结果输出到标准输出流。可以这样执行::
+程序从标准输入流读入输入数据，将结果输出到标准输出流。一般地，可以这样执行::
 
     ./isan.sh seg ctb.seg.gz < input_file > output_file
 
-已训练模型列表
---------------------------
 
-
-ctb.seg.gz http://t.cn/zQxy95O
-
-ctb.tag.gz http://t.cn/zQxg4lX
