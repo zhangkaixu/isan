@@ -8,6 +8,9 @@ from isan.tagging.eval import TaggingEval as Eval
 import numpy as np
 import gzip
 
+sys.path.append('/home/zkx/exps/tagpath')
+from ss import Word as Word
+
 class codec :
     @staticmethod
     def decode(line):
@@ -88,8 +91,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     def __init__(self,cmd_args,logger=None):
 
         self.models=[]
-        #self.models=[SubSym()]
-        #self.models.append(Word())
+        self.models.append(Word())
         #self.models.append(Bigram())
         #self.models.append(Trigram())
 
