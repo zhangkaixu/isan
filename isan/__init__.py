@@ -61,6 +61,11 @@ def get_args(string=None):
     parser.add_argument('--logfile',default='/dev/null',type=str, help='',metavar="")
     parser.add_argument('--append_model',default=None,nargs='+')
 
+    parser.add_argument('-i','--input',dest='input',default=None)
+    parser.add_argument('-o','--output',dest='output',default=None)
+    parser.add_argument('--append',dest='append',default=False,action='store_true')
+    
+
 
     parser.add_argument('--json',default=None,type=str)
     parser.add_argument('--yaml',default=None,type=str)
@@ -93,9 +98,11 @@ def isan(**args):
     args=ns
     info_color='34'
 
-    rec=Recorder()
     
+    instream=sys.stdin if args.input==None else open(args.input,'r')
+    outstream=sys.stdout if args.output==None else open(args.output,'a' if args.append else 'w')
 
+    rec=Recorder()
     logger=logging.getLogger('s'+str(random.random()))
     console=logging.StreamHandler()
     logfile=logging.FileHandler(args.logfile,'w')
@@ -197,15 +204,15 @@ def isan(**args):
         print("以 %s 作为输入，以 %s 作为输出"%(make_color('标准输入流'),make_color('标准输出流')),file=sys.stderr)
         if threshold :
             print("输出分数差距在 %s 之内的候选词"%(make_color(threshold)),file=sys.stderr)
-        for line in sys.stdin:
+        for line in instream :
             line=line.strip()
             line=model.task.codec.decode(line)
             raw=line.get('raw','')
             Y=line.get('Y_a',None)
             if threshold :
-                print(model.task.codec.encode_candidates(model(raw,Y,threshold=threshold)))
+                print(model.task.codec.encode_candidates(model(raw,Y,threshold=threshold)), file=outstream)
             else :
-                print(model.task.codec.encode(model(raw,Y)))
+                print(model.task.codec.encode(model(raw,Y)), file=outstream)
     return list(rec)
 
 def run_isan(args):

@@ -263,8 +263,8 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             fv=[]
             #"""
             fv=(
-                #(['m3~'+strm(m3), ] if m3 is not None else []) +
-                    #([ 'm3m2~'+strm(m3)+'~'+strm(m2), ] if m3 is not None  and m2 is not None else [])+
+                (['m3~'+strm(m3), ] if m3 is not None else []) +
+                    ([ 'm3m2~'+strm(m3)+'~'+strm(m2), ] if m3 is not None  and m2 is not None else [])+
             [
                     'w3~'+w3, 't3~'+t3, 'l3~'+len3, 'w3t3~'+w3+t3, 'l3t3~'+len3+t3,
 

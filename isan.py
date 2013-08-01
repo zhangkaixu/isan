@@ -10,6 +10,8 @@ Isan
 
 ls test/*.train | sed 's/^\([^\.]*\)\.train/shuffle -m 20 -d .\/\1 -p 5 seg --train \1.train --dev \1.test --iteration 15 --yaml args.yaml /g' | xargs -n 16 -P 1 ./isan.sh
 
+
+seq 0 9 | awk '{print "test/" $1 "/model.gz --input test/" $1 ".test"}' | xargs -d "\n" -n 1 ./isan.sh seg --threshold 20 --yaml args.yaml --output t.lat --append
 """
 
 
