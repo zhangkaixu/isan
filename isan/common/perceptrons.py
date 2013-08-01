@@ -104,24 +104,9 @@ class Model(object):
     def search(self,raw,Y=None):
         """
         搜索
-
-        :param raw: 输入
-        :param Y: 对输出的限制，可为空
-
-        首先使用 :py:meth:`Task.set_raw` 为 :py:class:`Task` 设置输入，
-        然后调用搜索算法搜索结果。
-
-        .. code-block:: python
-
-            def search(self,raw,Y=None):
-                self.task.set_raw(raw,Y)
-                self.searcher.set_raw(raw)
-                return self.searcher.search()
-        
-
         """
         self.task.set_raw(raw,Y)
-        self.searcher.set_raw(raw)
+        #self.searcher.set_raw(raw)
         return self.searcher.search()
 
     def __call__(self,raw,Y=None,threshold=0):
@@ -162,7 +147,7 @@ class Model(object):
         #self.logger.debug(std_moves)
 
         #get result actions
-        self.searcher.set_step(self.step)
+        #self.searcher.set_step(self.step)
         rst_moves=self.search(raw,Y_a)#得到解码后动作
 
         #update
