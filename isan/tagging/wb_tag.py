@@ -10,6 +10,7 @@ import gzip
 
 sys.path.append('/home/zkx/exps/tagpath')
 from ss import Word as Word
+from ss import Tri
 
 class codec :
     @staticmethod
@@ -91,9 +92,8 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     def __init__(self,cmd_args,logger=None):
 
         self.models=[]
-        self.models.append(Word())
-        #self.models.append(Bigram())
-        #self.models.append(Trigram())
+        #self.models.append(Word())
+        self.models.append(Tri())
 
         if(hasattr(cmd_args,'debug')): self.debug=True
         if hasattr(self,'debug'):
@@ -260,7 +260,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             w3,t3,m3,len3,cb3=self.atoms[ind3]
             score=0#m3*self.m_d[0] if m3 is not None else 0
             for model in self.models :
-                score+=model(ind1,ind2,ind3,delta*0.1,step)
+                score+=model(ind1,ind2,ind3,delta*0.01,step)
 
             fv=[]
             #"""
