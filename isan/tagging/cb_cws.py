@@ -76,6 +76,8 @@ class Codec :
             if m <-1 : 
                 print(raw,file=sys.stderr)
                 print(b,e,raw[b:e],t,m,file=sys.stderr)
+            key=(b,e,t)
+            if key in rst and rst[key][1]<m : continue
             rst[(b,e,t)]=[0,m if m>0 else 0]
         offset=0
 

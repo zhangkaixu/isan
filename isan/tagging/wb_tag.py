@@ -5,6 +5,7 @@ import math
 import sys
 from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
 from isan.tagging.eval import TaggingEval as Eval
+from isan.common.weights import Weights
 import numpy as np
 import gzip
 
@@ -89,27 +90,35 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     State=State
     Eval=Eval
 
-    def __init__(self,cmd_args,logger=None):
+    def __init__(self,cmd_args,model=None,logger=None):
 
-        self.models=[]
-        #self.models.append(Word())
-        self.models.append(Tri())
+        self.models={}
 
-        if(hasattr(cmd_args,'debug')): self.debug=True
-        if hasattr(self,'debug'):
-            self.char_weights={}
-            for line in open('weights.txt'):
-                line=line.split()
-                if len(line)!=3 : 
-                    line[-2]=int(line[-2])
-                self.char_weights[tuple(line[:-1])]=float(line[-1])
+        self.build_ins={'word':Word}
 
-        """
-        self.ae={}
-        for line in open('ae_output.txt'):
-            word,*inds=line.split()
-            self.ae[word]=inds
-            """
+        self.w=Weights()
+        if model==None :
+            if hasattr(cmd_args,'task_features'):
+                for k,v in cmd_args.task_features.items():
+                    self.models[k]=self.build_ins[k](args=v)
+        else :
+            data,kv=model
+            self.w.data=data
+            for k,v in kv.items():
+                self.models[k]=self.build_ins[k](model=v)
+                pass
+
+    def add_model(self,model):
+        data,kv=model
+        self.w.add_model(data)
+        for k,v in kv.items():
+            self.models[k].add_model(v)
+        pass
+
+    def dump_weights(self) :
+        data=self.w.data
+        d={k:v.dump_weights() for k,v in self.models.items()}
+        return [data,d]
 
     class Action :
         @staticmethod
@@ -242,7 +251,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             self.atoms.append((w,t,m,str(len(w)),cb))
         self.atoms.append(('~','~','','0',0))
 
-        for model in self.models :
+        for model in self.models.values() :
             model.set_raw(self.atoms)
 
     def gen_features(self,state,actions,delta=0,step=0):
@@ -259,7 +268,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             ind3=action
             w3,t3,m3,len3,cb3=self.atoms[ind3]
             score=0#m3*self.m_d[0] if m3 is not None else 0
-            for model in self.models :
+            for model in self.models.values() :
                 score+=model(ind1,ind2,ind3,delta*0.01,step)
 
             fv=[]
@@ -279,26 +288,17 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                     'l3l1~'+len3+'~'+len1, 'l3l2l1~'+len3+'~'+len2+'~'+len1,
                     ])#"""
             #"""
-            if hasattr(self,'debug'):
-                score+=cb3
-                if len2 :
-                    l2=('S-' if len2=='1' else 'E-')+t2
-                    l3=('S-' if len3=='1' else 'B-')+t3
-                    score+=self.char_weights.get((l2,l3),0)
-                #print(w2,t2,w3,t3,l2,l3)
-                #"""
-            #print(w3,t3,fv)
             fvs.append(fv)
             scores.append(score)
 
 
         if delta==0 :
-            rtn= [[self.weights(fv)+s] for fv,s in zip(fvs,scores)]
+            rtn= [[self.w(fv)+s] for fv,s in zip(fvs,scores)]
             return rtn
         else :
             for fv in fvs :
                 #print(fv,delta,step)
-                self.weights.update_weights(fv,delta,step)
+                self.w.update_weights(fv,delta,step)
             return [[] for fv in fvs]
         return fvs
 
@@ -334,24 +334,16 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                     if ind in dirty : flag=False
             if flag : 
                 self._update(m,-1,step)
-    """
-
-    def update_moves(self,std_moves,rst_moves,step) :
-        #print(self.lattice)
-        for s,r in zip(std_moves,rst_moves) :
-            #print(pickle.loads(s[1]),s[2],pickle.loads(r[1]),r[2])
-            if s!= r:
-                self._update(s,1,step)
-                self._update(r,-1,step)
-                break
-    """
 
     def average_weights(self,step):
-        self.weights.average_weights(step)
-        for model in self.models:
+        self.w.average_weights(step)
+        for model in self.models.values() :
             model.average_weights(step)
 
     def un_average_weights(self):
-        self.weights.un_average_weights()
-        for model in self.models:
+        self.w.un_average_weights()
+        for model in self.models.values():
             model.un_average_weights()
+
+
+        
