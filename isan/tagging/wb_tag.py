@@ -34,7 +34,7 @@ class codec :
         items2=[]
         gold=[]
         for l,b,e,w,t,conf in line :
-            if conf <= -1 :
+            if conf <= -1  :
                 conf = None
             else :
                 pass
