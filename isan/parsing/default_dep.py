@@ -6,6 +6,7 @@ import numpy as np
 import gzip
 
 
+
 class SoftMax :
     def __init__(self):
         words={}
@@ -109,7 +110,10 @@ class SoftMax :
             self.d[k]=self._b[k].copy()
 
 
-class codec:
+class codec :
+    """
+    维阿里_NR_1_VMOD 看好_VV_-1_ROOT 欧文_NR_1_VMOD
+    """
     @staticmethod
     def decode(line):
         sen=[]
@@ -158,10 +162,10 @@ class State (list) :
         self.lattice=lattice
         self.extend(pickle.loads(bt))
 
-    def shift(self):
+    def shift(self): # shift
         span,stack_top=self
         pos=span[1]
-        nex=self.lattice.begins.get(pos,None)
+        nex=self.lattice.begins.get(pos,None) # nex is the list of next items
         if not nex : return []
         s0,s1,s2=stack_top
         ns=((pos,pos+1),((nex[0],None,None),s0,s1[0]if s1 else None))
@@ -195,7 +199,7 @@ class Dep (Early_Stop_Pointwise, Base_Task):
     State=State
     Eval=eval.Eval
 
-    def __init__(self,args=None):
+    def __init__(self,args=None,logger=None,cmd_args=None):
         self.models=[]
         #self.models.append(SoftMax())
         #random.seed(123)

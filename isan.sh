@@ -105,6 +105,17 @@ if [ $1 = 'tag' ] ; then
         $*
 fi
 
+# 实验性模型
+
+
+if [ $1 = 'lattice_dep' ] ; then
+    shift
+    ./isan.py \
+        --model isan.common.perceptrons.Model \
+        --decoder isan.common.decoder.Push_Down \
+        --task isan.parsing.lattice_dep.Dep \
+        $@
+fi
 
 if [ $1 = 'lat_dep' ] ; then
     shift
