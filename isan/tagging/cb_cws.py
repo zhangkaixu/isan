@@ -14,15 +14,28 @@ from isan.tagging.cb_symbolic import Character as Character
 
 class Codec :
     with_gold=False
+    output_json=False
+    dep_format=False
     
     def decode(self,line):
         if not line: return None
-        seq=[word for word in line.split()]
-        seq=[(word.partition('_')) for word in seq]
-        seq=[(w,t) for w,_,t in seq]
-        raw=''.join(x[0] for x in seq)
+
+        if self.dep_format :
+            items=line.split()
+            items=[item.split('_') for item in items]
+            raw=''.join(item[0] for item in items)
+            if any(len(item[0])==0 for item in items) : return None
+            seq=[(item[0],item[1]) for item in items]
+            self.gold_dep=items
+        else :
+            seq=[word for word in line.split()]
+            seq=[(word.partition('_')) for word in seq]
+            seq=[(w,t) for w,_,t in seq]
+            raw=''.join(x[0] for x in seq)
+
         if self.with_gold :
             self.gold=seq
+
         return {'raw':raw, 'y': seq, 'Y_a': 'y'}
 
     def encode(self,y):
@@ -95,13 +108,36 @@ class Codec :
         cands=[]
         for k,v in rst.items():
             cands.append([v[0],k[0],k[1],raw[k[0]:k[1]]
-                    ,k[2],v[1],
+                    ,k[2],round(v[1]*10000)/10000,
                 ])
         cands=sorted(cands,key=lambda x: (x[1],x[2]))
 
-        return(' '.join(("%d,%d,%d,%s,%s,%0.4f"%(
-            l,b,e,w,t,m))
-            for l,b,e,w,t,m in cands))
+        if not self.output_json :
+            return(' '.join(("%d,%d,%d,%s,%s,%0.4f"%(
+                l,b,e,w,t,m))
+                for l,b,e,w,t,m in cands))
+        else :
+            if self.dep_format :
+                arcs={}
+                offset=0
+                for i in range(len(self.gold_dep)):
+                    word,tag,ind,label=self.gold_dep[i]
+                    ind=int(ind)
+                    self.gold_dep[i]=((offset,offset+len(word),word,tag),ind,label)
+                    offset+=len(word)
+                for i in range(len(self.gold_dep)):
+                    k,ind,label=self.gold_dep[i]
+                    if ind != -1 :
+                        arcs[k]=(self.gold_dep[ind][0],label)
+                    else :
+                        arcs[k]=(None,label)
+
+                cands=[((b,e,w,t),m,arcs.get((b,e,w,t),None))for l,b,e,w,t,m in cands]
+                a=sum(1 for x in cands if x[2]!=None)
+                assert(a==len(arcs))
+                return json.dumps(cands, ensure_ascii=False)
+            else :
+                return json.dumps(cands, ensure_ascii=False)
 
 class Task  :
     name="sub-symbolic Character-based CWS"
@@ -228,10 +264,12 @@ class Task  :
                 setattr(args,k,v)
         
         dargs=vars(args)
+        self.codec.dep_format=('dep_format' in dargs)
         if model==None :
             for train in cmd_args.train :
                 for line in open(train) :
                     x=self.codec.decode(line)
+                    if x is None : continue
                     self.set_oracle(x['raw'],x['y'])[0][-1]
 
 
@@ -251,6 +289,8 @@ class Task  :
                 self.feature_models['ae']=self.feature_class['ae'](None,args=args.use_ae)
         else :
             self.codec.with_gold=('with_gold' in dargs)
+            self.codec.output_json=('output_json' in dargs)
+            self.codec.dep_format=('dep_format' in dargs)
 
             self.oracle=None
             self.indexer,self.ts,self.trans,features=model

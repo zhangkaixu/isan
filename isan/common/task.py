@@ -35,6 +35,7 @@ class Base_Task :
 
 
     def actions_to_moves(self,actions,lattice):
+        #print(lattice)
         state=self.State(lattice)
         stack=[state]
         moves=[[None,None,action] for action in actions]
@@ -44,17 +45,23 @@ class Base_Task :
             move=moves[i]
             step,state,action=move
             ind,label=action
+
             if ind >=0 : # shift
                 rst=[[nstep,ns] for a,nstep,ns in self.shift(step,state) if a==self.Action.encode(action)]
+                
+                #print(rst)
+                #print(i)
                 moves[i+1][0],moves[i+1][1]=rst[0]
                 stack.append(rst[0][1])
             else : # reduce 
                 s0=stack.pop()
                 s1=stack.pop()
                 rst=[[nstep,ns] for a,nstep,ns,_ in self.reduce(step,s0,[0],[s1]) if a==self.Action.encode(action)]
+                #print(i)
                 moves[i+1][0],moves[i+1][1]=rst[0]
                 stack.append(rst[0][1])
                 pass
+        #input()
         for move in moves:
             move[2]=self.Action.encode(move[2])
 

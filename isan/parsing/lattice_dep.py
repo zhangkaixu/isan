@@ -1,3 +1,4 @@
+import json
 import pickle
 from isan.common.task import Lattice
 from isan.parsing.default_dep import SoftMax, Action
@@ -9,6 +10,28 @@ class codec:
     """
     @staticmethod
     def decode(line):
+        #"""
+        line=json.loads(line)
+        line=[(tuple(k),m,(tuple(l[0]) if l[0] else -1) if l is not None else None) for k,m,l in line]
+
+        line=[item for item in line if item[2]!=None]
+
+        raw=[(k[0],k[1],(k[2],k[3])) for k,m,l in line]
+
+        #raw=[((k[2],k[3])) for k,m,l in line]
+        #raw=[(i,i+1,c) for i,c in enumerate(raw)]
+
+        raw=Lattice(raw)
+        inds={}
+        for i in range(len(line)):
+            inds[line[i][0]]=i
+        sen=[(k[2],k[3],inds[l] if l!=-1 else l) for k,m,l in line]
+        #print(raw)
+        #print(sen)
+        #input()
+        return {'raw':raw, 'y': sen}
+        #"""
+
         sen=[]
         for arc in line.split():
             word,tag,head_ind,arc_type=arc.rsplit('_',3)
@@ -18,8 +41,9 @@ class codec:
         raw=[(i,i+1,c) for i,c in enumerate(raw)]
         raw=Lattice(raw)
         sen=[(w,t,h) for w,t,h,_ in sen]
-        #print(sen)
-        #input()
+        print(raw)
+        print(sen)
+        input()
         return {'raw':raw, 'y': sen }
 
     @staticmethod
@@ -27,6 +51,9 @@ class codec:
         return ' '.join(y)
 
 class State (list) :
+    """
+    (begin,end),(s0,s1,s2)
+    """
     init_state=pickle.dumps(((0,0),(None,None,None)))
 
     decode=pickle.loads
@@ -44,10 +71,16 @@ class State (list) :
         pos=span[1]
         nex=self.lattice.begins.get(pos,None) # nex is the list of next items
         if not nex : return []
+
         s0,s1,s2=stack_top
         # nex[0], nex[1] ...
-        ns=((pos,pos+1),((nex[0],None,None),s0,s1[0]if s1 else None))
-        return [(ord('S'), pickle.dumps(ns))]
+
+        rtns=[]
+        for ne in nex :
+            item=self.lattice[ne]
+            ns=((item[0],item[1]),((ne,None,None),s0,s1[0]if s1 else None))
+            rtns.append((ord('S'),pickle.dumps(ns)))
+        return rtns
 
     def reduce(self,predictor):
         """
@@ -73,3 +106,25 @@ class State (list) :
 class Dep (Base_Dep):
     codec=codec
     State=State
+
+    def shift(self,last_ind,stat):
+        state=self.State(self.lattice,stat)
+
+        rtn=[]
+        for a,s in state.shift() :
+            ss=self.State(self.lattice,s)
+            next_ind=last_ind+1
+            if next_ind==2*len(self.lattice)-1 : next_ind=-1 # -1 means the last step
+            rtn.append((a,next_ind,s))
+            #print('next',ss)
+        
+        return rtn
+
+    def reduce(self,last_ind,stat,pred_inds,predictors):
+        next_ind=last_ind+1
+        if next_ind==2*len(self.lattice)-1 : next_ind=-1 # -1 means the last step
+        state=self.State(self.lattice,stat)
+        rtn=[]
+        for i,predictor in enumerate(predictors) :
+            rtn+=[(a,next_ind,s,i) for a,s in state.reduce(self.State(self.lattice,predictor))]
+        return rtn

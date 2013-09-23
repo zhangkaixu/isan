@@ -215,6 +215,7 @@ class Model(object):
             eval=self.task.Eval()#: 测试用的对象
 
             for rtn in gen_data():
+                if rtn is None : continue
                 y,hat_y=self._learn_sentence(rtn)#根据（输入，输出）学习参数，顺便得到解码结果
                 eval(y,hat_y)#根据解码结果和标准输出，评价效果
 
