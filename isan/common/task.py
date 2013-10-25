@@ -48,9 +48,6 @@ class Base_Task :
 
             if ind >=0 : # shift
                 rst=[[nstep,ns] for a,nstep,ns in self.shift(step,state) if a==self.Action.encode(action)]
-                
-                #print(rst)
-                #print(i)
                 moves[i+1][0],moves[i+1][1]=rst[0]
                 stack.append(rst[0][1])
             else : # reduce 
@@ -70,6 +67,8 @@ class Base_Task :
 
     def moves_to_result(self,moves,_):
         actions=[self.Action.decode(a) for ind,state,a in moves]
+        #print(actions)
+        #input()
         return self.actions_to_result(actions)
 
 
@@ -125,6 +124,8 @@ class Early_Stop_Pointwise :
         self.oracle=None
 
     def early_stop(self,step,next_states,moves):
+        print('early')
+        #return False
         if not moves : return False
         if not hasattr(self,'oracle') or self.oracle==None : return False
         last_steps,last_states,actions=zip(*moves)
@@ -135,6 +136,8 @@ class Early_Stop_Pointwise :
                 self.stop_step=step
                 return True
         return False
+    #def early_stop(self,step,next_states,moves):
+    #    return False
 
     def update_moves(self,std_moves,rst_moves,step) :
         for move in rst_moves :
