@@ -12,6 +12,13 @@ import gzip
 sys.path.append('/home/zkx/exps/tagpath')
 from ss import Word as Word
 
+
+"""
+
+word-based tagging
+
+"""
+
 class codec :
     @staticmethod
     def decode(line):
