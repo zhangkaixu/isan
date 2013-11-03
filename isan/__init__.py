@@ -57,7 +57,7 @@ def get_args(string=None):
     parser.add_argument('--dev',dest='dev_file',default=None,action='append',
             help='开发用语料库',metavar=('开发集'))
     parser.add_argument('--threshold',dest='threshold',type=int,default=0, help='',metavar='阈值')
-    parser.add_argument('--seed',type=int,default=None, help='')
+    parser.add_argument('--seed',type=int,default=0, help='')
     parser.add_argument('--logfile',default='/dev/null',type=str, help='',metavar="")
     parser.add_argument('--append_model',default=None,nargs='+')
 

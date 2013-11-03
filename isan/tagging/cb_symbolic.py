@@ -1,9 +1,32 @@
 import numpy
+
+
+class Tag_Bigram :
+    def __init__(self,ts,paras,model=None):
+        self.ts=ts
+        self.paras=paras
+        self.trans=self.paras.add(numpy.zeros((self.ts,self.ts)))
+
+    def set_raw(self,*x):
+        pass
+
+    def cal_delta(self,std_tags,rst_tags,delta):
+        trans_delta=self.trans*0
+        for i in range(len(std_tags)-1):
+            trans_delta[std_tags[i]][std_tags[i+1]]+=1
+            trans_delta[rst_tags[i]][rst_tags[i+1]]-=1
+        self.trans.add_delta(trans_delta)
+
+    def transition(self,*_):
+        return self.trans
+
 class Character:
-    def __init__(self,ts,model=None,):
+    def __init__(self,ts,paras,model=None,):
+        self.paras=paras
         self.ts=ts
         self.uni_d={}
         self.bi_d={}
+
         self.uni_s={}
         self.bi_s={}
 
@@ -12,14 +35,16 @@ class Character:
         else :
             self.ts,self.uni_d,self.bi_d=model
 
+
+    _new_vec=lambda self : numpy.zeros(self.ts,dtype=float)
+
     def add_model(self,model):
         self.ts,uni,bi=model
+        new_vec=self._new_vec
         for k,v in uni.items():
             if k not in self.uni_d :
-                self.uni_d[k]=[numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
-                self.uni_s[k]=[numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
+                self.uni_d[k]=[new_vec(),new_vec(),new_vec()]
+                self.uni_s[k]=[new_vec(),new_vec(),new_vec()]
             for j in range(3):
                 ind=numpy.abs(numpy.sign(v[j]))
                 self.uni_d[k][j]=numpy.where(ind,
@@ -28,12 +53,8 @@ class Character:
                 self.uni_s[k][j]+=ind
         for k,v in bi.items():
             if k not in self.bi_d :
-                self.bi_d[k]=[numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float)]
-                self.bi_s[k]=[numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float)]
+                self.bi_d[k]=[new_vec(),new_vec(),new_vec(),new_vec()]
+                self.bi_s[k]=[new_vec(),new_vec(),new_vec(),new_vec()]
             for j in range(4):
                 ind=numpy.abs(numpy.sign(v[j]))
                 self.bi_d[k][j]=numpy.where(ind,
@@ -73,80 +94,36 @@ class Character:
             if i< l: emissions[i]+=v[3]
 
 
-    def update(self,std_tags,rst_tags,delta,step):
+    def cal_delta(self,std_tags,rst_tags,delta):
         l=len(self.raw)
+        dv=[self._new_vec() for i in range(len(std_tags))]
+        for i in range(len(std_tags)) :
+            dv[i][std_tags[i]]+=1
+            dv[i][rst_tags[i]]-=1
         for i,k in enumerate(self.uni) :
-            if chr(0) in k : continue
+            if chr(0) in k : continue # used for dropout
             if k not in self.uni_d : 
-                self.uni_d[k]=[numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
-                self.uni_s[k]=[numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float)]
-            v=self.uni_d[k]
-            s=self.uni_s[k]
+                self.uni_d[k]=[self.paras.add(self._new_vec()) for v in range(3)]
+            v_para=self.uni_d[k]
             if i-2 >=0 :
-                v[0][std_tags[i-2]]+=1
-                v[0][rst_tags[i-2]]-=1
-                s[0][std_tags[i-2]]+=step
-                s[0][rst_tags[i-2]]-=step
+                v_para[0].add_delta(dv[i-2])
             if i-1 >=0 and i-1<l: 
-                v[1][std_tags[i-1]]+=1
-                v[1][rst_tags[i-1]]-=1
-                s[1][std_tags[i-1]]+=step
-                s[1][rst_tags[i-1]]-=step
+                v_para[1].add_delta(dv[i-1])
             if i<len(self.raw) :
-                v[2][std_tags[i]]+=1
-                v[2][rst_tags[i]]-=1
-                s[2][std_tags[i]]+=step
-                s[2][rst_tags[i]]-=step
+                v_para[2].add_delta(dv[i])
+
 
         for i,k in enumerate(self.bi) :
-            if chr(0) in k : continue
+            if chr(0) in k : continue # used for dropout
             if k not in self.bi_d : 
-                self.bi_d[k]=[numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float)]
-                self.bi_s[k]=[numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float),numpy.zeros(self.ts,dtype=float),
-                    numpy.zeros(self.ts,dtype=float)]
-            v=self.bi_d[k]
-            s=self.bi_s[k]
+                self.bi_d[k]=[self.paras.add(self._new_vec()) for v in range(4)]
+            v_para=self.bi_d[k]
             if i-3 >=0 :
-                v[0][std_tags[i-3]]+=1
-                v[0][rst_tags[i-3]]-=1
-                s[0][std_tags[i-3]]+=step
-                s[0][rst_tags[i-3]]-=step
+                v_para[0].add_delta(dv[i-3])
             if i-2 >=0 and i-2<l: 
-                v[1][std_tags[i-2]]+=1
-                v[1][rst_tags[i-2]]-=1
-                s[1][std_tags[i-2]]+=step
-                s[1][rst_tags[i-2]]-=step
+                v_para[1].add_delta(dv[i-2])
             if i-1 >=0 and i-1<l: 
-                v[2][std_tags[i-1]]+=1
-                v[2][rst_tags[i-1]]-=1
-                s[2][std_tags[i-1]]+=step
-                s[2][rst_tags[i-1]]-=step
+                v_para[2].add_delta(dv[i-1])
             if i<l :
-                v[3][std_tags[i]]+=1
-                v[3][rst_tags[i]]-=1
-                s[3][std_tags[i]]+=step
-                s[3][rst_tags[i]]-=step
+                v_para[3].add_delta(dv[i])
 
-
-    def average_weights(self,step):
-        self.uni_b={}
-        for k,v in self.uni_d.items():
-            self.uni_b[k]=[numpy.copy(x)for x in v]
-            for i in range(len(self.uni_b[k])):
-                self.uni_d[k][i]-=self.uni_s[k][i]/step
-        self.bi_b={}
-        for k,v in self.bi_d.items():
-            self.bi_b[k]=[numpy.copy(x)for x in v]
-            for i in range(len(self.bi_b[k])):
-                self.bi_d[k][i]-=self.bi_s[k][i]/step
-
-    def un_average_weights(self):
-        for k,v in self.uni_b.items():
-            self.uni_d[k]=[numpy.copy(x)for x in v]
-        for k,v in self.bi_b.items():
-            self.bi_d[k]=[numpy.copy(x)for x in v]

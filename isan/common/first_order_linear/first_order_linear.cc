@@ -1,4 +1,6 @@
 #include <Python.h>
+//#include <numpy/arrayobject.h>
+//#include <numpy/npy_common.h>
 #include <cstdio>
 #include <iostream>
 #include <cstring>
@@ -106,10 +108,23 @@ inline size_t get_matrix(Interface* interface, PyObject* raw, PyObject* callable
     arglist=PyTuple_Pack(1,raw);
     PyObject * result = PyObject_CallObject(callable, arglist);
     Py_DECREF(arglist);
+
+    
+
+    /*
+    if (PyArray_Check(result)) {
+        std::cout<<"no!"<<"\n";
+        Py_DECREF(result);
+        return interface->tagset_size;
+    }*/
+
     long size=PySequence_Size(result);
+
     PyObject * ch;
+    
     for(int i=0;i<size;i++){
-        ch=PyList_GET_ITEM(result,i);
+        //ch=PyList_GET_ITEM(result,i);
+        ch=PySequence_Fast_GET_ITEM(result,i);
 
         long new_tag_set=PySequence_Size(ch);
         if(interface->tagset_size!=new_tag_set){
@@ -117,7 +132,7 @@ inline size_t get_matrix(Interface* interface, PyObject* raw, PyObject* callable
         };
         
         for(int j=0;j<interface->tagset_size;j++){
-            array[i*interface->tagset_size+j]=(PyFloat_AsDouble(PyList_GET_ITEM(ch,j)));
+            array[i*interface->tagset_size+j]=(PyFloat_AsDouble(PySequence_Fast_GET_ITEM(ch,j)));
         };
         
     };

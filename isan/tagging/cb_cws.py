@@ -1,7 +1,5 @@
 import isan.tagging.eval as tagging_eval
-import argparse
 import random
-import shlex
 import numpy
 import gzip
 import pickle
@@ -10,7 +8,14 @@ import json
 from isan.utls.indexer import Indexer
 from isan.tagging.cb_subsymbolic import Mapper as Mapper
 from isan.tagging.cb_subsymbolic import PCA as PCA
-from isan.tagging.cb_symbolic import Character as Character
+from isan.tagging.cb_symbolic import Character
+from isan.tagging.cb_symbolic import Tag_Bigram
+
+
+
+"""
+基于字标注的中文分词词性标注
+"""
 
 class Codec :
     with_gold=False
@@ -223,36 +228,27 @@ class Task  :
     def check(self,std_moves,rst_moves):
         return std_moves[0][-1]==rst_moves[0][-1]
 
-    #"""
-    def update_moves(self,std_moves,rst_moves,step) :
-        std_tags=std_moves[0][-1]
-        rst_tags=rst_moves[0][-1]
-        for sm in self.feature_models.values() : 
-            sm.update(std_tags,rst_tags,self.eta,step)
-
-        for i in range(len(std_tags)-1):
-            self.trans[std_tags[i]][std_tags[i+1]]+=1
-            self.trans_s[std_tags[i]][std_tags[i+1]]+=1*step
-            self.trans[rst_tags[i]][rst_tags[i+1]]-=1
-            self.trans_s[rst_tags[i]][rst_tags[i+1]]-=1*step#"""
-
-
-
     def remove_oracle(self):
         self.oracle=None
 
-    def __init__(self,model=None,cmd_args='',**others):
+    def __init__(self,model=None,paras=None,cmd_args='',**others):
         class Args :
             pass
+
+
         self.indexer=Indexer() # index of tags
 
         self.logger=others.get('logger',None)
 
         self.corrupt_x=0
+        self.paras=paras
         self.feature_class={
                 'ae': lambda x,args={} : Mapper(self.ts,x,args) ,
                 'pca': lambda x,args={} : PCA(self.ts,x,args),
-                'base':lambda x : Character(self.ts,x)}
+                'base': lambda x : Character(self.ts,self.paras,x),
+                'trans' : lambda x : Tag_Bigram(self.ts,self.paras,x),
+                }
+
         self.feature_models={}
 
         args=Args()
@@ -275,9 +271,11 @@ class Task  :
 
             self.corrupt_x=dargs.get('noise_rate',0)
             self.ts=len(self.indexer)
-            self.trans=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
-            self.trans_s=[[0.0 for i in range(self.ts)] for j in range(self.ts)]
+
+            self.trans=numpy.zeros((self.ts,self.ts))
+
             self.feature_models['base']=self.feature_class['base'](None)
+            self.feature_models['trans']=self.feature_class['trans'](None)
 
             if self.logger :
                 self.logger.debug('eta: %f'%args.eta)
@@ -296,6 +294,11 @@ class Task  :
             self.indexer,self.ts,self.trans,features=model
             for k,v in features.items():
                 self.feature_models[k]=self.feature_class[k](v)
+
+        self.transition_features=[v for v in self.feature_models.values()
+                    if hasattr(v,'transition')]
+        self.emission_features=[v for v in self.feature_models.values()
+                    if hasattr(v,'emission')]
 
     def add_model(self,features):
         self.indexer,self.ts,trans,others=features
@@ -317,17 +320,13 @@ class Task  :
         features=[self.indexer,self.ts,self.trans,others]
         return features
 
-    def average_weights(self,step):
-        self.trans_d=list(list(x) for x in self.trans)
-        for i in range(self.ts):
-            for j in range(self.ts):
-                self.trans[i][j]-=self.trans_s[i][j]/step
-        for sm in self.feature_models.values() : sm.average_weights(step)
+    def cal_delta(self,std_moves,rst_moves) :
+        std_tags=std_moves[0][-1]
+        rst_tags=rst_moves[0][-1]
 
-    def un_average_weights(self):
-        self.trans=list(list(x) for x in self.trans_d)
-        for sm in self.feature_models.values() : sm.un_average_weights()
-    
+        for sm in self.feature_models.values() : 
+            sm.cal_delta(std_tags,rst_tags,self.eta)
+
     def set_raw(self,raw,Y):
         raw=raw[:]
         if self.oracle and self.corrupt_x :
@@ -337,8 +336,12 @@ class Task  :
 
     def emission(self,raw):
         emissions = [numpy.zeros(self.ts,dtype=float) for i in range(len(self.raw))]
-        for sm in self.feature_models.values() : sm.emission(emissions)
+        for sm in self.emission_features : 
+            sm.emission(emissions)
         return [x.tolist() for x in emissions]
 
     def transition(self,_):
-        return self.trans
+        self.trans*=0
+        for sm in self.transition_features : 
+            self.trans+=sm.transition()
+        return self.trans.tolist()
