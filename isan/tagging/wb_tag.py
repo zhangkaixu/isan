@@ -96,7 +96,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     State=State
     Eval=Eval
 
-    def __init__(self,cmd_args,model=None,logger=None):
+    def __init__(self,cmd_args,model=None,paras=None,logger=None):
 
         self.models={}
 
@@ -308,7 +308,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             return [[] for fv in fvs]
         return fvs
 
-    def update_moves(self,std_moves,rst_moves,step) :
+    def cal_delta(self,std_moves,rst_moves,step) :
         dirty=set()
         for b,e,data in self.lattice :
             if data[-1]==None :

@@ -66,7 +66,7 @@ class Model(object):
         @brief 预测开发集
         """
 
-        #self.task.average_weights(self.step)
+        self.task.average_weights(self.step)
         self.paras.final(self.step)
         eval=self.task.Eval()
         for line in open(dev_file):
@@ -80,6 +80,7 @@ class Model(object):
             self.result_logger.info(eval.get_result())
         else :
             eval.print_result()#打印评测结果
+        self.task.un_average_weights()
         self.paras.un_final()
 
         if hasattr(eval,'get_scaler'):
@@ -165,9 +166,9 @@ class Model(object):
         return y,hat_y
 
     def update(self,std_moves,rst_moves):
-        self.task.cal_delta(std_moves,rst_moves)
+        self.task.cal_delta(std_moves,rst_moves,self.step)
         #if self.step%7==0 : 
-        self.paras.update(self.step)
+        #self.paras.update(self.step)
 
         
     def train(self,training_file,
