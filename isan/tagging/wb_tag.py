@@ -5,7 +5,6 @@ import math
 import sys
 from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
 from isan.tagging.eval import TaggingEval as Eval
-from isan.common.weights import Weights
 import numpy as np
 import gzip
 
@@ -101,12 +100,13 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         self.models={}
 
         self.build_ins={'word':Word}
+        self.paras=paras
 
-        self.w=Weights()
+        self.w=paras.add({})
         if model==None :
             if hasattr(cmd_args,'task_features'):
                 for k,v in cmd_args.task_features.items():
-                    self.models[k]=self.build_ins[k](args=v)
+                    self.models[k]=self.build_ins[k](args=v,paras=self.paras)
         else :
             data,kv=model
             self.w.data=data
@@ -260,7 +260,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         for model in self.models.values() :
             model.set_raw(self.atoms)
 
-    def gen_features(self,state,actions,delta=0,step=0):
+    def gen_features(self,state,actions,delta=0):
         strm=lambda x:'x' if x=='' else str(math.floor(math.log((x if x>0 else 0)*2+1)))
         fvs=[]
         state=self.State(self.lattice,state,)
@@ -275,7 +275,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             w3,t3,m3,len3,cb3=self.atoms[ind3]
             score=0#m3*self.m_d[0] if m3 is not None else 0
             for model in self.models.values() :
-                score+=model(ind1,ind2,ind3,delta*0.1,step)
+                score+=model(ind1,ind2,ind3,delta*0.1)
 
             fv=[]
             #"""
@@ -299,16 +299,15 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
 
 
         if delta==0 :
-            rtn= [[self.w(fv)+s] for fv,s in zip(fvs,scores)]
+            rtn= [[float(self.w(fv))+s] for fv,s in zip(fvs,scores)]
             return rtn
         else :
             for fv in fvs :
-                #print(fv,delta,step)
-                self.w.update_weights(fv,delta,step)
+                self.w.add_delta(fv,delta)
             return [[] for fv in fvs]
         return fvs
 
-    def cal_delta(self,std_moves,rst_moves,step) :
+    def cal_delta(self,std_moves,rst_moves) :
         dirty=set()
         for b,e,data in self.lattice :
             if data[-1]==None :
@@ -328,7 +327,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                 for ind in range(l,r):
                     if ind in dirty : flag=False
             if flag : 
-                self._update(m,1,step)
+                self._update(m,1)
         for m in rst_moves-std_moves :
             a,b=pickle.loads(m[1])
             c=m[-1]
@@ -339,17 +338,5 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                 for ind in range(l,r):
                     if ind in dirty : flag=False
             if flag : 
-                self._update(m,-1,step)
+                self._update(m,-1)
 
-    def average_weights(self,step):
-        self.w.average_weights(step)
-        for model in self.models.values() :
-            model.average_weights(step)
-
-    def un_average_weights(self):
-        self.w.un_average_weights()
-        for model in self.models.values():
-            model.un_average_weights()
-
-
-        

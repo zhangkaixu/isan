@@ -91,8 +91,8 @@ class Base_Task :
 
     early_stop=None
 
-    def _update(self,move,delta,step):
-        self.gen_features(move[1],[move[2]],delta,step)
+    def _update(self,move,delta):
+        self.gen_features(move[1],[move[2]],delta)
     def update_moves(self,std_moves,rst_moves,step) :
         for s,r in zip(std_moves,rst_moves) :
             if s!= r:
