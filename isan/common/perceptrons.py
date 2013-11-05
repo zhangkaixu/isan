@@ -6,13 +6,15 @@ import sys
 import pickle
 import random
 import gzip
-from isan.common.parameters import Parameters, Averaged, Ada_Grad
+from isan.common.parameters import Parameters
 
 class Model(object):
-    """平均感知器模型 """
-    name="平均感知器" #: 模型的名字
+    """感知器模型 """
+    name="感知器" #: 模型的名字
 
-    def __init__(self,model_file,Task=None,Searcher=None,beam_width=8,logger=None,cmd_args={},**conf):
+    def __init__(self,model_file,Task=None,Searcher=None,
+            Updater=None,
+            beam_width=8,logger=None,cmd_args={},**conf):
         """
         初始化
         如果不设置，则读取已有模型。如果设置，就是学习新模型
@@ -33,7 +35,7 @@ class Model(object):
             self.task=Task(model=pickle.load(file),logger=logger)
             file.close()
         else : # new model to train
-            self.paras=Parameters(Averaged)
+            self.paras=Parameters(Updater)
             #self.paras=Parameters(Ada_Grad)
             self.task=Task(logger=logger,paras=self.paras)
         if hasattr(self.task,'init'):
@@ -166,17 +168,18 @@ class Model(object):
     def update(self,std_moves,rst_moves):
         #self.task.cal_delta(std_moves,rst_moves,self.step)
         self.task.cal_delta(std_moves,rst_moves)
-        if self.step%10==0 : 
+        if self.step%self.batch_size==0 : 
             self.paras.update(self.step)
 
         
     def train(self,training_file,
             iteration=5,peek=-1,
-            dev_files=None,keep_data=True):
+            dev_files=None,keep_data=True,batch_size=1):
         """
         训练
         """
         if iteration<=0 and peek <=0 : peek=5
+        self.batch_size=batch_size
 
         if type(training_file)==str:training_file=[training_file]
         #random.seed(123)

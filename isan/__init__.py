@@ -41,12 +41,17 @@ def get_args(string=None):
     parser.add_argument('model_file',nargs='?',default='/dev/null',
             help='模型参数文件',metavar=('模型文件'))
     meta_group=parser.add_argument_group('meta')
+
     meta_group.add_argument('--model',dest='model_module',default=None,
             help='相应的.sh文件中已设置好（如平均感知器模型）',metavar='机器学习模型')
     meta_group.add_argument('--decoder',dest='decoder',default=None,
             help='相应的.sh文件中已设置好（如有向图解码、Shift-Reduce解码）',metavar='解码算法')
     meta_group.add_argument('--task',dest='task',default=None,
             help='相应的.sh文件中已设置好（如分词、句法分析）',metavar='任务')
+    meta_group.add_argument('--updater',dest='updater',default='isan.common.updater.Averaged',
+            help='',metavar='parameter updater')
+
+
     parser.add_argument('--train',default=[],action='append', help='训练语料库',metavar=('训练集'))
     parser.add_argument('--test',dest='test_file', help='测试用语料库',metavar=('测试集'))
     parser.add_argument('--iteration',dest='iteration',default=5,type=int,
@@ -59,6 +64,11 @@ def get_args(string=None):
     parser.add_argument('--threshold',dest='threshold',type=int,default=0, help='',metavar='阈值')
     parser.add_argument('--seed',type=int,default=0, help='')
     parser.add_argument('--logfile',default='/dev/null',type=str, help='',metavar="")
+
+
+    parser.add_argument('--batch_size',type=int,default=1, help='',metavar='batch size')
+
+
     parser.add_argument('--append_model',default=None,nargs='+')
 
     parser.add_argument('-i','--input',dest='input',default=None)
@@ -132,12 +142,17 @@ def isan(**args):
     if args.decoder :
         mod,_,cls=args.decoder.rpartition('.')
         Decoder=getattr(__import__(mod,globals(),locals(),[cls],0),cls)
+    if args.updater :
+        mod,_,cls=args.updater.rpartition('.')
+        Updater=getattr(__import__(mod,globals(),locals(),[cls],0),cls)
+
 
 
 
     name_model=Model.name if hasattr(Model,'name') else '给定学习算法'
     name_decoder=Decoder.name if hasattr(Decoder,'name') else '给定解码算法'
     name_task=Task.name if hasattr(Task,'name') else '给定任务算法'
+    name_updater=Updater.name if hasattr(Updater,'name') else '某参数更新算法'
     logger.info("""模型: %s 解码器: %s 搜索宽度: %s
 任务: %s"""
             %(
@@ -146,14 +161,22 @@ def isan(**args):
             make_color(args.beam_width,info_color),
             make_color(name_task,info_color),
             ))
+
             
 
     if args.train or args.append_model :
         """如果指定了训练集，就训练模型"""
+
+        logger.info("""参数更新算法 : %(updater)s batch size : %(bs)s"""%
+                {'bs':make_color(args.batch_size,info_color),
+                    'updater':make_color(name_updater,info_color),
+                    })
+        
         random.seed(args.seed)
         model=Model(None,
                     (lambda **x: Task(cmd_args=args,**x)),
                     Decoder,beam_width=int(args.beam_width),
+                    Updater=Updater,
                     logger=logger,cmd_args=args)
 
         if args.train :
@@ -166,7 +189,9 @@ def isan(**args):
             if args.dev_file :
                 logger.info("开发集使用%s"%(make_color(' '.join(args.dev_file))))
 
-            model.train(args.train,int(args.iteration),peek=args.peek,dev_files=args.dev_file)
+            model.train(args.train,int(args.iteration),peek=args.peek,
+                    batch_size=args.batch_size,
+                    dev_files=args.dev_file)
             model.save(args.model_file)
 
         if args.append_model :
