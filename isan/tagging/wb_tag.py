@@ -8,8 +8,8 @@ from isan.tagging.eval import TaggingEval as Eval
 import numpy as np
 import gzip
 
-sys.path.append('/home/zkx/exps/tagpath')
-from ss import Word as Word
+#sys.path.append('/home/zkx/exps/tagpath')
+from isan.tagging.ss import Word as Word
 
 
 """
