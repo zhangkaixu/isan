@@ -9,17 +9,6 @@ class Word :
     def __init__(self,args={},model=None,paras=None):
         self.paras=paras
 
-        self.hf_words=set()
-        self.hfw_d=self.paras.add({})
-        """ ### 对高频词的embedding做学习
-        for line in open('hf_words.txt') :
-            word,freq=line.split()
-            if int(freq)<50 : break
-            self.hf_words.add(word)
-        print(len(self.hf_words),file=sys.stderr)#"""
-
-
-
         self.s={} ## ??
         if model == None :
             words={}
@@ -30,17 +19,14 @@ class Word :
                 size=len(vs)
                 words[word]=np.array(vs)
 
-                if word in self.hf_words :
-                    self.hfw_d[word]=words[word]
-
             self.words=words
             self.zw=np.zeros(size)
             self.size=size
 
-            
-
             self.d=self.paras.add({})
 
+            self.M=np.random.uniform(-1,1,(self.size,self.size))
+            self.b=np.zeros(self.size)
             
 
             self.s={k:v.copy()for k,v in self.d.items()}
@@ -78,21 +64,20 @@ class Word :
 
     def set_raw(self,atoms):
         self.atoms=atoms
+        self.sen_word_vecs=[]
+        for w,*_ in atoms :
+            wv=self.words.get(w,self.zw)
+            hidden=np.dot(self.M,wv)+self.b
+            hidden=np.tanh(hidden)
+            #self.sen_word_vecs.append(wv)
+            self.sen_word_vecs.append(hidden)
 
     def __call__(self,ind1,ind2,ind3,delta=0) :
-        w2,t2,*_=self.atoms[ind2] # word on the top of the stack
-        w3,t3,*_=self.atoms[ind3] # next word
-        word2=w2
-        word3=w3
+        word2,t2,*_=self.atoms[ind2] # word on the top of the stack
+        word3,t3,*_=self.atoms[ind3] # next word
         # get the vector
-        if w2 in self.hfw_d :
-            w2=self.hfw_d[w2]
-        else :
-            w2=self.words.get(w2,self.zw) 
-        if w3 in self.hfw_d :
-            w3=self.hfw_d[w3]
-        else :
-            w3=self.words.get(w3,self.zw) # get the vector
+        w2=self.sen_word_vecs[ind2]
+        w3=self.sen_word_vecs[ind3]
 
         score=0
 
@@ -106,13 +91,7 @@ class Word :
                     score+=np.dot(w2,self.d(['r'+t3]))
         else :  # cal the grad
             self.d.add_delta([t3],w3*delta)
-            if word3 in self.hfw_d :
-                self.hfw_d.add_delta([word3],self.d([t3])*delta)
             if t2!='~' :
-                if word3 in self.hfw_d :
-                    self.hfw_d.add_delta([word3],self.d(['l'+t2])*delta)
                 self.d.add_delta(['l'+t2],w3*delta)
-                if word2 in self.hfw_d :
-                    self.hfw_d.add_delta([word2],self.d(['r'+t3])*delta)
                 self.d.add_delta(['r'+t3],w2*delta)
         return score
