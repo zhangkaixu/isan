@@ -275,7 +275,8 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             w3,t3,m3,len3,cb3=self.atoms[ind3]
             score=0#m3*self.m_d[0] if m3 is not None else 0
             for model in self.models.values() :
-                score+=model(ind1,ind2,ind3,delta*0.1)
+                #score+=model(ind1,ind2,ind3,delta*0.1)
+                score+=model(ind1,ind2,ind3,delta)
 
             fv=[]
             #"""
@@ -300,14 +301,17 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
 
         if delta==0 :
             rtn= [[float(self.w(fv))+s] for fv,s in zip(fvs,scores)]
+            #print(rtn)
             return rtn
         else :
             for fv in fvs :
+                #self.w.add_delta(fv,delta)
                 self.w.add_delta(fv,delta)
             return [[] for fv in fvs]
         return fvs
 
     def cal_delta(self,std_moves,rst_moves) :
+        delta=0.01
         dirty=set()
         for b,e,data in self.lattice :
             if data[-1]==None :
@@ -327,7 +331,8 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                 for ind in range(l,r):
                     if ind in dirty : flag=False
             if flag : 
-                self._update(m,1)
+                pass
+                self._update(m,delta)
         for m in rst_moves-std_moves :
             a,b=pickle.loads(m[1])
             c=m[-1]
@@ -338,5 +343,11 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                 for ind in range(l,r):
                     if ind in dirty : flag=False
             if flag : 
-                self._update(m,-1)
+                pass
+                self._update(m,-delta)
+
+    def __del__(self):
+        for model in self.models.values() :
+            if hasattr(model,'close') :
+                model.close()
 

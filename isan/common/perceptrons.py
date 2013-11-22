@@ -245,6 +245,7 @@ class Model(object):
             it+=1
             if peek>=0 and it-best_it>peek : break
     def __del__(self):
+        self.task.__del__()
         del self.task
 
 
@@ -284,3 +285,4 @@ class Model_PA(Model) :
             self.update(std_moves,rst_moves)
         hat_y=self.task.moves_to_result(rst_moves,raw)#得到解码后结果
         return y,hat_y
+

@@ -5,12 +5,16 @@ class _Base_Dict (dict):
         self._delta={}
         self._paras=paras
     def __call__(self,keys):
+        #print( sum(self.get(k,0) for k in keys))
         return sum(self.get(k,0) for k in keys)
 
     def add_delta(self,keys,delta):
+        #print(keys,delta)
+        #input()
+        #delta*=0.1
         for f in keys :
             if f not in self._delta :
-                self._delta[f]=0
+                self._delta[f]=.0
             self._delta[f]+=delta
         self._paras._dirty.append(self)
 
@@ -94,7 +98,10 @@ class Averaged :
             self._s=dict(dic)
 
         def _update(self,step):
+            #print(self._delta)
+            #input()
             for k,v in self._delta.items():
+                #if v ==0 : continue
                 if k not in self : 
                     self[k]=0
                     self._s[k]=0
