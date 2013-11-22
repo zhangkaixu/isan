@@ -5,6 +5,8 @@ import numpy as np
 import pickle
 import random
 
+from isan.common.parameters import Para_Dict
+
 class Word : 
     def close(self):
         if self.use_hidden :
@@ -60,12 +62,21 @@ class Word :
             self.s={k:v.copy()for k,v in self.d.items()}
 
         else :
-            if type(model)==list :
-                self.use_hidden=False
-                self.size,self.d,self.words,self.zw=model
-            else :
-                for k,v in model.items():
-                    setattr(self,k,v)
+            for k,v in model.items():
+                setattr(self,k,v)
+
+    def dump_weights(self):
+        d={}
+        self.d=self.d.dump()
+        if not self.use_hidden :
+            for k in ['use_hidden','size','d','words','zw']:
+                d[k]=getattr(self,k)
+        else :
+            self.M=self.M.dump()
+            self.b=self.b.dump()
+            for k in ['use_hidden','size','d','words','zw','M','b']:
+                d[k]=getattr(self,k)
+        return d
 
     def add_model(self,model):
         if type(model)==list :
@@ -80,14 +91,6 @@ class Word :
             self.d[k]=(self.d[k]*self.s[k]+v)/(self.s[k]+1)
             self.s[k]+=1
         
-    def dump_weights(self):
-        if not self.use_hidden :
-            return [self.size,self.d,self.words,self.zw]
-        else :
-            d={}
-            for k in ['use_hidden','size','d','words','zw','tags','zt','sizet']:
-                d[k]=getattr(self,k)
-            return d
 
 
     def set_raw(self,atoms):
@@ -103,6 +106,7 @@ class Word :
                 self.sen_hidden_vecs.append(hidden)
             else :
                 self.sen_hidden_vecs.append(wv)
+
 
     def __call__(self,ind1,ind2,ind3,delta=0) :
         word2,t2,*_=self.atoms[ind2] # word on the top of the stack

@@ -2,6 +2,10 @@
 
 """
 
+class Para_Dict (dict):
+    def __call__(self,keys):
+        return sum(self.get(k,0) for k in keys)
+
 class Parameters :
     def __init__(self,para_class):
         self.para_class=para_class

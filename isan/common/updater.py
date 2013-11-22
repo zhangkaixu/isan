@@ -1,12 +1,18 @@
 import numpy as np
 import collections
-class _Base_Dict (dict):
+
+from isan.common.parameters import Para_Dict
+
+class _Base_Dict (Para_Dict):
     def init(self,paras):
         self._delta={}
         self._paras=paras
-    def __call__(self,keys):
-        #print( sum(self.get(k,0) for k in keys))
-        return sum(self.get(k,0) for k in keys)
+
+    def dump(self):
+        for k,v in self.items():
+            if hasattr(v,'dump') :
+                self[k]=v.dump()
+        return Para_Dict(self)
 
     def add_delta(self,keys,delta):
         #print(keys,delta)
@@ -27,7 +33,9 @@ class _Base_ndarray(np.ndarray):
     def add_delta(self,delta) :
         self._delta+=delta
         self.paras._dirty.append(self)
-    pass
+
+    def dump(self):
+        return np.array(self)
 
 class Ada_Grad :
     name='Ada Grad'

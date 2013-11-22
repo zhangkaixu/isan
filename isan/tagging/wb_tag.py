@@ -3,17 +3,18 @@ import pickle
 import time
 import math
 import sys
-from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
-from isan.tagging.eval import TaggingEval as Eval
+
 import numpy as np
 import gzip
 
-#sys.path.append('/home/zkx/exps/tagpath')
+from isan.common.parameters import Para_Dict
+from isan.common.task import Lattice, Base_Task, Early_Stop_Pointwise
+from isan.tagging.eval import TaggingEval as Eval
 from isan.tagging.ss import Word as Word
+from isan.tagging.wb_tag_symbolic import Base_Features
 
 
 """
-
 word-based tagging
 
 """
@@ -95,24 +96,36 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
     State=State
     Eval=Eval
 
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # init and weights
+
     def __init__(self,cmd_args,model=None,paras=None,logger=None):
-
         self.models={}
+        self.build_ins={'word':Word,'base': Base_Features }
 
-        self.build_ins={'word':Word}
-        self.paras=paras
-
-        self.w=paras.add({})
         if model==None :
+            self.paras=paras
+            self.w=paras.add({})
+
+            #self.modles['base']=self.build_ins['base'](args=None,paras=self.paras)
+
             if hasattr(cmd_args,'task_features'):
                 for k,v in cmd_args.task_features.items():
                     self.models[k]=self.build_ins[k](args=v,paras=self.paras)
         else :
             data,kv=model
-            self.w.data=data
+        
+            self.w=data
+            
             for k,v in kv.items():
                 self.models[k]=self.build_ins[k](model=v)
                 pass
+            
+    def dump_weights(self) :
+        data=self.w.dump()
+        d={k:v.dump_weights() for k,v in self.models.items()}
+        return [data,d]
 
     def add_model(self,model):
         data,kv=model
@@ -121,10 +134,9 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             self.models[k].add_model(v)
         pass
 
-    def dump_weights(self) :
-        data=self.w.data
-        d={k:v.dump_weights() for k,v in self.models.items()}
-        return [data,d]
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # actions
 
     class Action :
         @staticmethod
@@ -133,9 +145,6 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         @staticmethod
         def decode(action):
             return (action,None)
-
-
-    # actions
 
     def result_to_actions(self,result):
         offset=0
