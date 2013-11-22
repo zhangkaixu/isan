@@ -8,10 +8,10 @@ class _Base_Dict (Para_Dict):
         self._delta={}
         self._paras=paras
 
-    def dump(self):
+    def output_obj(self):
         for k,v in self.items():
-            if hasattr(v,'dump') :
-                self[k]=v.dump()
+            if hasattr(v,'output_obj') :
+                self[k]=v.output_obj()
         return Para_Dict(self)
 
     def add_delta(self,keys,delta):
@@ -34,7 +34,7 @@ class _Base_ndarray(np.ndarray):
         self._delta+=delta
         self.paras._dirty.append(self)
 
-    def dump(self):
+    def output_obj(self):
         return np.array(self)
 
 class Ada_Grad :

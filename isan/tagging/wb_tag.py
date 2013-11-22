@@ -16,7 +16,6 @@ from isan.tagging.wb_tag_symbolic import Base_Features
 
 """
 word-based tagging
-
 """
 
 class codec :
@@ -108,24 +107,20 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
             self.paras=paras
             self.w=paras.add({})
 
-            #self.modles['base']=self.build_ins['base'](args=None,paras=self.paras)
+            self.models['base']=self.build_ins['base'](args=None,paras=self.paras)
 
             if hasattr(cmd_args,'task_features'):
                 for k,v in cmd_args.task_features.items():
                     self.models[k]=self.build_ins[k](args=v,paras=self.paras)
         else :
             data,kv=model
-        
             self.w=data
-            
             for k,v in kv.items():
                 self.models[k]=self.build_ins[k](model=v)
-                pass
             
     def dump_weights(self) :
-        data=self.w.dump()
         d={k:v.dump_weights() for k,v in self.models.items()}
-        return [data,d]
+        return d
 
     def add_model(self,model):
         data,kv=model
@@ -161,6 +156,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         seq=[(it[0],it[1])for _,_,it in seq]
         return seq
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # states
 
     def _next_ind(self,last_ind,action):
@@ -206,121 +202,26 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
 
     def set_raw(self,raw,Y):
         self.lattice=raw
-
-        
-
-        b=0
-        l=max(x[1] for x in self.lattice)
-        seq=['' for i in range(l)]
-        for b,e,data in self.lattice :
-            for i in range(len(data[0])):
-                seq[b+i]=data[0][i]
-        seq=''.join(seq)
-        uni_chars=list(x for x in '##'+seq+'###')
-        bi_chars=[uni_chars[i]+uni_chars[i+1]
-                for i in range(len(uni_chars)-1)]
-        self.uni_chars=uni_chars
-        self.uni_fv=[]
-        for ind in range(len(seq)+1):
-            c_ind=ind+2
-            self.uni_fv.append([])
-            for ws_current in 'BMES':
-                self.uni_fv[-1].append([
-                        [uni_chars[c_ind-1],2,ws_current],
-                        [uni_chars[c_ind],1,ws_current],
-                        [uni_chars[c_ind+1],0,ws_current],
-                        [bi_chars[c_ind-2],3,ws_current],
-                        [bi_chars[c_ind-1],2,ws_current],
-                        [bi_chars[c_ind],1,ws_current],
-                        [bi_chars[c_ind+1],0,ws_current],
-                        ])
-
         self.atoms=[]
         for ind in range(len(self.lattice)):
             data=self.lattice[ind]
             b=data[0]
             e=data[1]
             w,t,m=data[2]
-            cb=[]
-            if b+1==e :
-                cb+=self.uni_fv[b][3]
-            else :
-                cb+=self.uni_fv[b][0]
-                for i in range(b+1,e-1):
-                    cb+=self.uni_fv[i][1]
-                cb+=self.uni_fv[e-1][2]
-            cb=[(p+'-'+t,k,ind) for k,ind,p in cb]
-            if b+1<e :
-                if b+2==e :
-                    cb+=[('B-'+t,'E-'+t)]
-                else :
-                    cb+=[('B-'+t,'M-'+t)]
-                    cb+=[('M-'+t,'M-'+t) for i in range(e-b-3)]
-                    cb+=[('M-'+t,'E-'+t)]
-            if hasattr(self,'debug'):
-                if cb :
-                    cb=sum(self.char_weights[x] for x in cb if x in self.char_weights)
-                else :
-                    cb=0
-                pass
-            self.atoms.append((w,t,m,str(len(w)),cb))
-        self.atoms.append(('~','~','','0',0))
+            self.atoms.append((w,t,m,str(len(w))))
+        self.atoms.append(('~','~','','0'))
 
         for model in self.models.values() :
             model.set_raw(self.atoms)
 
     def gen_features(self,state,actions,delta=0):
-        strm=lambda x:'x' if x=='' else str(math.floor(math.log((x if x>0 else 0)*2+1)))
-        fvs=[]
-        state=self.State(self.lattice,state,)
-        ind1,ind2=state
-
-        w1,t1,m1,len1,cb1=self.atoms[ind1]
-        w2,t2,m2,len2,cb2=self.atoms[ind2]
-
-        scores=[]
-        for action in actions :
-            ind3=action
-            w3,t3,m3,len3,cb3=self.atoms[ind3]
-            score=0#m3*self.m_d[0] if m3 is not None else 0
-            for model in self.models.values() :
-                #score+=model(ind1,ind2,ind3,delta*0.1)
-                score+=model(ind1,ind2,ind3,delta)
-
-            fv=[]
-            #"""
-            fv=(
-                (['m3~'+strm(m3), ] if m3 is not None else []) +
-                    ([ 'm3m2~'+strm(m3)+'~'+strm(m2), ] if m3 is not None  and m2 is not None else [])+
-            [
-                    'w3~'+w3, 't3~'+t3, 'l3~'+len3, 'w3t3~'+w3+t3, 'l3t3~'+len3+t3,
-
-                    'w3w2~'+w3+"~"+w2, 'w3t2~'+w3+t2, 't3w2~'+t3+w2, 't3t2~'+t3+t2,
-
-                    'l3w2~'+len3+'~'+w2, 'w3l2~'+w3+'~'+len2, 'l3t2~'+len3+'~'+t2, 't3l2~'+t3+'~'+len2,
-                    'l3l2~'+len3+'~'+len2,
-                    
-                    't3t1~'+t3+'~'+t1, 't3t2t1~'+t3+'~'+t2+'~'+t1,
-                    'l3l1~'+len3+'~'+len1, 'l3l2l1~'+len3+'~'+len2+'~'+len1,
-                    ])#"""
-            #"""
-            fvs.append(fv)
-            scores.append(score)
-
-
-        if delta==0 :
-            rtn= [[float(self.w(fv))+s] for fv,s in zip(fvs,scores)]
-            #print(rtn)
-            return rtn
-        else :
-            for fv in fvs :
-                #self.w.add_delta(fv,delta)
-                self.w.add_delta(fv,delta)
-            return [[] for fv in fvs]
-        return fvs
+        ind1,ind2=self.State(self.lattice,state)
+        scores=[[sum(model(ind1,ind2,ind3,delta) for model in self.models.values())]
+                for ind3 in actions]
+        return scores
 
     def cal_delta(self,std_moves,rst_moves) :
-        delta=0.01
+        delta=0.01 #### TODO: delta
         dirty=set()
         for b,e,data in self.lattice :
             if data[-1]==None :
@@ -359,4 +260,3 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         for model in self.models.values() :
             if hasattr(model,'close') :
                 model.close()
-

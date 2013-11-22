@@ -20,7 +20,7 @@ class Word :
     def __init__(self,args={},model=None,paras=None):
         self.paras=paras
 
-        print(args)
+        #print(args)
         self.s={} ## ??
         if model == None :
             words={}
@@ -67,13 +67,13 @@ class Word :
 
     def dump_weights(self):
         d={}
-        self.d=self.d.dump()
+        self.d=self.d.output_obj()
         if not self.use_hidden :
             for k in ['use_hidden','size','d','words','zw']:
                 d[k]=getattr(self,k)
         else :
-            self.M=self.M.dump()
-            self.b=self.b.dump()
+            self.M=self.M.output_obj()
+            self.b=self.b.output_obj()
             for k in ['use_hidden','size','d','words','zw','M','b']:
                 d[k]=getattr(self,k)
         return d
