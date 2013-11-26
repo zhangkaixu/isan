@@ -105,7 +105,6 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
 
         if model==None :
             self.paras=paras
-            self.w=paras.add({})
 
             self.models['base']=self.build_ins['base'](args=None,paras=self.paras)
 
@@ -113,9 +112,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
                 for k,v in cmd_args.task_features.items():
                     self.models[k]=self.build_ins[k](args=v,paras=self.paras)
         else :
-            data,kv=model
-            self.w=data
-            for k,v in kv.items():
+            for k,v in model.items():
                 self.models[k]=self.build_ins[k](model=v)
             
     def dump_weights(self) :
@@ -123,11 +120,8 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         return d
 
     def add_model(self,model):
-        data,kv=model
-        self.w.add_model(data)
-        for k,v in kv.items():
+        for k,v in model.items():
             self.models[k].add_model(v)
-        pass
 
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

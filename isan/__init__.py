@@ -12,6 +12,8 @@ import gzip
 import pickle
 import json
 
+from isan.common.parameters import Parameters
+
 def make_color(s,color='36'):
     return '\033['+color+';01m%s\033[1;m'%s #blue
 
@@ -194,8 +196,8 @@ def isan(**args):
                     dev_files=args.dev_file)
             model.save(args.model_file)
 
-        if args.append_model :
-            task=Task(cmd_args=args,)
+        if args.append_model : ### append multiple models
+            task=Task(cmd_args=args,paras=Parameters(Updater))
             for m in args.append_model :
                 print(m)
                 task.add_model(pickle.load(gzip.open(m,'rb')))
@@ -212,10 +214,11 @@ def isan(**args):
         print("使用模型文件%s进行%s"%(make_color(args.model_file),
                     name_task),file=sys.stderr)
     
+    #print(args.model_file)
     model=Model(args.model_file,
                     (lambda **x: Task(cmd_args=args,**x)),
                     Searcher=Decoder,beam_width=int(args.beam_width),
-                    logger=logger,
+                    logger=logger,cmd_args=args,
                     )
     
     """如果指定了测试集，就测试模型"""

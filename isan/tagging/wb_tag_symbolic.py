@@ -1,10 +1,17 @@
 import math
 class Base_Features :
     def __init__(self,args={},model=None,paras=None):
-        pass
         if model == None :
-            self.paras=paras
             self.w=paras.add({})
+        else :
+            self.w=model
+
+    def dump_weights(self):
+        return self.w.output_obj()
+    
+    def add_model(self,model):
+        self.w.add_model(model)
+        pass
 
     def set_raw(self,atoms):
         self.atoms=atoms
@@ -33,9 +40,6 @@ class Base_Features :
             v= float(self.w(fv))
             return v
         else :
-            self.w.add_delta(fv,delta)
+            self.w.add_delta(fv,delta*100)
             return 0
 
-    def dump_weights(self):
-        self.w=self.w.output_obj()
-        return self.w

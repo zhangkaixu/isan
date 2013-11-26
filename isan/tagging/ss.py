@@ -72,25 +72,19 @@ class Word :
             for k in ['use_hidden','size','d','words','zw']:
                 d[k]=getattr(self,k)
         else :
-            self.M=self.M.output_obj()
-            self.b=self.b.output_obj()
+            if 'update' in self.use_hidden :
+                self.M=self.M.output_obj()
+                self.b=self.b.output_obj()
             for k in ['use_hidden','size','d','words','zw','M','b']:
                 d[k]=getattr(self,k)
         return d
 
     def add_model(self,model):
-        if type(model)==list :
-            d=model[1]
-        else :
-            d=model['d']
-        for k,v in d.items():
-            #print(k)
-            if k not in self.d :
-                self.d[k]=v*0
-                self.s[k]=0
-            self.d[k]=(self.d[k]*self.s[k]+v)/(self.s[k]+1)
-            self.s[k]+=1
-        
+        for k,v in model.items():
+            if k not in ['d'] :
+                setattr(self,k,v)
+            else :
+                getattr(self,k).add_model(v)
 
 
     def set_raw(self,atoms):

@@ -1,41 +1,10 @@
 import numpy as np
 import collections
 
-from isan.common.parameters import Para_Dict
+from isan.common.parameters import _Base_Dict
+from isan.common.parameters import _Base_ndarray
 
-class _Base_Dict (Para_Dict):
-    def init(self,paras):
-        self._delta={}
-        self._paras=paras
 
-    def output_obj(self):
-        for k,v in self.items():
-            if hasattr(v,'output_obj') :
-                self[k]=v.output_obj()
-        return Para_Dict(self)
-
-    def add_delta(self,keys,delta):
-        #print(keys,delta)
-        #input()
-        #delta*=0.1
-        for f in keys :
-            if f not in self._delta :
-                self._delta[f]=.0
-            self._delta[f]+=delta
-        self._paras._dirty.append(self)
-
-class _Base_ndarray(np.ndarray):
-    def init(self,paras):
-        self._s=0
-        self._delta=0
-        self.paras=paras
-
-    def add_delta(self,delta) :
-        self._delta+=delta
-        self.paras._dirty.append(self)
-
-    def output_obj(self):
-        return np.array(self)
 
 class Ada_Grad :
     name='Ada Grad'
@@ -106,10 +75,7 @@ class Averaged :
             self._s=dict(dic)
 
         def _update(self,step):
-            #print(self._delta)
-            #input()
             for k,v in self._delta.items():
-                #if v ==0 : continue
                 if k not in self : 
                     self[k]=0
                     self._s[k]=0
