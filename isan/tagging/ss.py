@@ -46,7 +46,7 @@ class Word :
             np.random.seed(0)
 
 
-            self.M=np.random.uniform(-1,1,(self.size,self.size))
+            self.M=np.random.uniform(-0.8,0.8,(self.size,self.size))
             self.b=np.zeros(self.size)
             if self.use_hidden and 'load' in self.use_hidden :
                 m,b=open(self.use_hidden['load']).read().splitlines()

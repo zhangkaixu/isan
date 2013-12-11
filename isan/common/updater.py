@@ -24,11 +24,8 @@ class Ada_Grad :
                 _s=self._s[k]
                 _delta=np.where(_s,1/np.sqrt(_s+(_s==0)),0)*v
                 self[k]+=_delta
-                #self[k]*=0.9995
+                self[k]*=0.99
             self._delta.clear()
-            """
-            if '的' in self._s :
-                print(sum(np.abs(self['的'])),sum(np.abs(self._s['的'])))"""
 
     class ndarray(_Base_ndarray):
         def init(self,paras):
@@ -40,7 +37,7 @@ class Ada_Grad :
             self._s+=self._delta**2
             delta=np.where(self._s,1/np.sqrt(self._s+(self._s==0)),0)*self._delta
             self+=delta
-            #self*=0.9995
+            self*=0.99
             self._delta=0
         
 class Default :

@@ -215,7 +215,7 @@ class Path_Finding (Early_Stop_Pointwise, Base_Task):
         return scores
 
     def cal_delta(self,std_moves,rst_moves) :
-        delta=0.01 #### TODO: delta
+        delta=0.0001 #### TODO: delta
         dirty=set()
         for b,e,data in self.lattice :
             if data[-1]==None :

@@ -40,6 +40,6 @@ class Base_Features :
             v= float(self.w(fv))
             return v
         else :
-            self.w.add_delta(fv,delta*100)
+            self.w.add_delta(fv,delta*10)
             return 0
 
