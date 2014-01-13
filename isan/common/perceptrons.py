@@ -102,7 +102,6 @@ class Model(object):
         file=gzip.open(model_file,'wb')
         data=self.task.dump_weights()
         pickle.dump(data,file)
-        #pickle.dump(dict(self.task.weights.items()),file)
         file.close()
 
     def search(self,raw,Y=None):

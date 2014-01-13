@@ -1,11 +1,22 @@
 import numpy
+import pickle
 
 
 class Tag_Bigram :
     def __init__(self,ts,paras,model=None):
         self.ts=ts
         self.paras=paras
-        self.trans=self.paras.add(numpy.zeros((self.ts,self.ts)))
+
+        if model==None :
+            self.trans=self.paras.add(numpy.zeros((self.ts,self.ts)))
+            pass
+        else :
+            self.ts,self.trans=model
+
+    
+    
+    def dump(self):
+        return [self.ts,self.trans.output_obj()]
 
     def set_raw(self,*x):
         pass
@@ -63,6 +74,8 @@ class Character:
                 self.bi_s[k][j]+=ind
 
     def dump(self):
+        self.uni_d={k:[x.output_obj()for x in v] for k,v in self.uni_d.items()}
+        self.bi_d={k:[x.output_obj()for x in v] for k,v in self.bi_d.items()}
         return [self.ts,self.uni_d,self.bi_d]
 
     def set_raw(self,raw):

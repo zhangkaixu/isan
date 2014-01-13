@@ -231,6 +231,9 @@ class Task  :
     def remove_oracle(self):
         self.oracle=None
 
+    def __del__(self):
+        pass
+
     def __init__(self,model=None,paras=None,cmd_args='',**others):
         class Args :
             pass
@@ -302,18 +305,9 @@ class Task  :
 
     def add_model(self,features):
         self.indexer,self.ts,trans,others=features
-        if len(self.trans)==0 :
-            self.trans=trans
-            self.trans_s=[[0.0 for y in x]for x in trans]
-        else :
-            for i,a in enumerate(self.trans):
-                for j,b in enumerate(a):
-                    if trans[i][j]==0 : continue
-                    self.trans[i][j]=(self.trans[i][j]*self.trans_s[i][j]+trans[i][j])/(self.trans_s[i][j]+1)
-                    self.trans_s[i][j]+=1
-            #self.trans_s+=1
         for k,v in others.items() :
             self.feature_models[k].add_model(v)
+
 
     def dump_weights(self):
         others={k:v.dump() for k,v in self.feature_models.items()}
