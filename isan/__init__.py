@@ -53,7 +53,6 @@ def get_args(string=None):
     meta_group.add_argument('--updater',dest='updater',default='isan.common.updater.Averaged',
             help='',metavar='parameter updater')
 
-
     parser.add_argument('--train',default=[],action='append', help='训练语料库',metavar=('训练集'))
     parser.add_argument('--test',dest='test_file', help='测试用语料库',metavar=('测试集'))
     parser.add_argument('--iteration',dest='iteration',default=5,type=int,
@@ -67,17 +66,13 @@ def get_args(string=None):
     parser.add_argument('--seed',type=int,default=0, help='')
     parser.add_argument('--logfile',default='/dev/null',type=str, help='',metavar="")
 
-
     parser.add_argument('--batch_size',type=int,default=1, help='',metavar='batch size')
-
 
     parser.add_argument('--append_model',default=None,nargs='+')
 
     parser.add_argument('-i','--input',dest='input',default=None)
     parser.add_argument('-o','--output',dest='output',default=None)
     parser.add_argument('--append',dest='append',default=False,action='store_true')
-    
-
 
     parser.add_argument('--json',default=None,type=str)
     parser.add_argument('--yaml',default=None,type=str)
@@ -85,9 +80,6 @@ def get_args(string=None):
         args=parser.parse_args()
     else :
         args=parser.parse_args(string)
-
-
-
 
     if args.json :
         import json
@@ -101,6 +93,7 @@ def get_args(string=None):
             setattr(args,k,v)
 
     return vars(args)
+
 def isan(**args):
     orginal_args=args
     ns=argparse.Namespace()
@@ -259,3 +252,16 @@ def isans(argss,f,np=1):
         s=json.dumps([json.loads(i),json.loads(o)],ensure_ascii=False)
         print(s,file=f)
         f.flush()
+
+class data_seg :
+    def __init__(self,f):
+        pass
+
+class model_seg :
+    def __init__(self):
+        print('init')
+        pass
+    def fit(self,data):
+        pass
+    def predict(self,data):
+        pass
